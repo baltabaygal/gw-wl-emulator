@@ -1,4 +1,24 @@
 
+#pragma once
+#include <vector>
+#include <cstdint>
+
+struct LensingConfig {
+  int Nreal = 400000;
+  int Nhalos = 100;
+
+  // existing toggles
+  int fil = 1;
+  int bias = 1;
+  int ell = 1;
+
+  // future nuisance params (Phase 2)
+  // double c_norm = 1.0;
+  // double filament_density_norm = 1.0;
+  // double filament_fraction = 1.0;
+};
+
+
 class lensing {
     
 public:
@@ -18,3 +38,4 @@ private:
     double loglikelihood(cosmology &C, double DLthr, vector<vector<double> > &data, vector<double> &par, int lens, int dm, rgen &mt);
     
 };
+
