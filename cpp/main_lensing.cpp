@@ -1,5 +1,7 @@
 #include "cosmology.h"
 #include "lensing.h"
+#include <algorithm>
+#include <random>
 
 // units: masses in solar masses, time in Myr, length in kpc
 

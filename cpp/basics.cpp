@@ -1,4 +1,6 @@
 #include "basics.h"
+#include <algorithm>
+#include <iterator>
 
 string to_string_prec(double a, const int n) {
     ostringstream out;

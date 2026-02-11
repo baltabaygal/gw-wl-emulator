@@ -1,4 +1,5 @@
 #include "cosmology.h"
+#include <functional>
 
 // CDM matter transfer function (astro-ph/9709112)
 double cosmology::TM (double k) {

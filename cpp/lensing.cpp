@@ -1,6 +1,7 @@
 #include "cosmology.h"
 #include "lensing.h"
-
+// #include <functional>
+#include <functional>  // For std::function
 
 double Sigmacf(cosmology &C, double zs, double zl) {
     // angular diameter distances
