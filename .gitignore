@@ -27,6 +27,4 @@ Thumbs.db
 
 # Logs
 *.log
-*.log.*
-*.log.gz
-*.log.zip
+
