@@ -6,11 +6,13 @@
 struct LensingConfig {
   int Nreal = 400000;
   int Nhalos = 100;
+  int Nbins = 100;
 
   // existing toggles
   int fil = 1;
   int bias = 1;
   int ell = 1;
+  int write = 0;
 
   // future nuisance params (Phase 2)
   // double c_norm = 1.0;
@@ -29,6 +31,8 @@ public:
     // probability distribution of lnmu, {lnmu, dP/dlnmu}
     vector<vector<double> > Plnmuf(cosmology &C, double zs, rgen &mt, int fil, int bias, int ell, int write);
     
+    vector<double> sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg);
+
     // MCMC likelihood analysis of the Hubble diagram
     void Hubble_diagram_fit(cosmology &C, double DLthr, vector<vector<double> > &data, vector<double> &initial, vector<double> &steps , vector<vector<double> > &priors, int Ns, int Nburnin, int lens, int dm, rgen &mt, fs::path filename);
     
