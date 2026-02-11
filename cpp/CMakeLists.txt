@@ -13,4 +13,4 @@ add_executable(main_lensing
     main_lensing.cpp
 )
 
-target_link_libraries(main_leinsing PRIVATE GSL::gsl GSL::gslcblas m)
+target_link_libraries(main_lensing PRIVATE GSL::gsl GSL::gslcblas m)
