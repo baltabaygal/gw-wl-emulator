@@ -14,3 +14,12 @@ add_executable(main_lensing
 )
 
 target_link_libraries(main_lensing PRIVATE GSL::gsl GSL::gslcblas m)
+
+add_executable(main_sample_lnmu
+  basics.cpp
+  cosmology.cpp
+  lensing.cpp
+  main_sample_lnmu.cpp
+)
+target_link_libraries(main_sample_lnmu PRIVATE GSL::gsl GSL::gslcblas m)
+
