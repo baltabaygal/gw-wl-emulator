@@ -1,6 +1,54 @@
 #include "lnmu_wrapper.h"
 #include "cosmology.h"
 #include "lensing.h"
+#include <cmath>
+
+LnmuStats compute_lnmu_stats(
+    double z,
+    const CosmologyParams& cp,
+    const SamplingParams& sp
+) {
+    // Reuse existing sampler
+    auto y = sample_lnmu(z, cp, sp);
+
+    LnmuStats stats;
+
+    const size_t N = y.size();
+    if (N == 0) return stats;
+
+    // First pass: mean
+    double sum = 0.0;
+    double sum_mu = 0.0;
+    for (double v : y) {
+        sum += v;
+        sum_mu += std::exp(v);
+    }
+
+    stats.mean = sum / N;
+    stats.mean_mu = sum_mu / N;
+
+    // Second pass: variance & skewness
+    double var = 0.0;
+    double skew = 0.0;
+
+    for (double v : y) {
+        double d = v - stats.mean;
+        var += d * d;
+        skew += d * d * d;
+    }
+
+    var /= N;
+    skew /= N;
+
+    stats.variance = var;
+
+    if (var > 0)
+        stats.skewness = skew / std::pow(var, 1.5);
+
+    return stats;
+}
+
+
 
 std::vector<double> sample_lnmu(
     double z,

@@ -36,3 +36,16 @@ std::vector<double> sample_lnmu(
     const CosmologyParams& cosmo,
     const SamplingParams& sampling
 );
+
+struct LnmuStats {
+    double mean = 0.0;
+    double variance = 0.0;
+    double skewness = 0.0;
+    double mean_mu = 0.0;   // <mu> for flux conservation
+};
+
+LnmuStats compute_lnmu_stats(
+    double z,
+    const CosmologyParams& cosmo,
+    const SamplingParams& sampling
+);

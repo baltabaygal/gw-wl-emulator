@@ -44,3 +44,6 @@ add_executable(main_sample_lnmu
 target_link_libraries(main_sample_lnmu
     PRIVATE gwcore
 )
+
+add_executable(test_stats test_stats.cpp)
+target_link_libraries(test_stats PRIVATE gwcore)
