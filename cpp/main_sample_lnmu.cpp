@@ -33,6 +33,23 @@ int main(int argc, char** argv) {
     C.OmegaM = OmegaM;
     C.sigma8 = sigma8;
     C.h      = h;
+
+    // Important defaults required by C.initialize()
+    // Mirror the defaults used in main_lensing.cpp so initialize() has valid ranges
+    C.OmegaB = 0.0493;
+    C.zeq = 3402.0;
+    C.T0 = 2.7255;
+    C.ns = 0.965;
+
+    // mass and redshift grids
+    C.Mmin = 1.0e7;
+    C.Mmax = 1.0e17;
+    C.NM = 100;
+    C.zmin = 0.01;
+    C.zmax = 10.01;
+    C.Nz = 100;
+
+    // output directory
     C.outdir = "dataL";
 
 
