@@ -98,7 +98,7 @@ LnmuStats compute_lnmu_stats_fast(
         double gammaj = std::sqrt(r.gamma1*r.gamma1 + r.gamma2*r.gamma2);
         double muj = 1.0 / (std::pow(1.0-kappaj, 2.0) - std::pow(gammaj, 2.0));
 
-        if (muj > 0.0 && gammaj > 0.0) {
+        if (muj > 0.0) {
             double lnmu = std::log(muj);
             lnmu_values.push_back(lnmu);
             sum_lnmu += lnmu;

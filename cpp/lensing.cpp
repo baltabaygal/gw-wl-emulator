@@ -592,7 +592,7 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
         gammaj = sqrt(r.gamma1*r.gamma1 + r.gamma2*r.gamma2);
         muj = 1.0/(pow(1.0-kappaj, 2.0) - pow(gammaj, 2.0));
         
-        if (muj > 0.0 && gammaj > 0.0) {
+        if (muj > 0.0) {
             lnmulist.push_back(log(muj));
         }
     }

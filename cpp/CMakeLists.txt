@@ -47,3 +47,17 @@ target_link_libraries(main_sample_lnmu
 
 add_executable(test_stats test_stats.cpp)
 target_link_libraries(test_stats PRIVATE gwcore)
+
+# --- Python bindings (pybind11) ---
+option(BUILD_PYTHON "Build Python module gwlensing" ON)
+
+if (BUILD_PYTHON)
+  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
+
+  # Prefer vendored pybind11? If not vendored, use system package:
+  find_package(pybind11 CONFIG REQUIRED)
+
+  pybind11_add_module(gwlensing cpp/python_bindings.cpp)
+  target_link_libraries(gwlensing PRIVATE gwcore)
+  target_include_directories(gwlensing PRIVATE cpp)
+endif()
