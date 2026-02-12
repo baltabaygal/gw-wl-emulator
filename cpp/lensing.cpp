@@ -424,7 +424,7 @@ double findkappathr(int N, function<double(double)> Nf) {
 
 // sample lnmu from the PDF of amplifications
 
-vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
+vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
     
     // fix threshold kappa
     function<double(double)> NfNFW = [&C, zs](double kappa) {
@@ -443,11 +443,11 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
         cout << "Error: negative standard deviation." << endl;
     }
     
-    vector<double> kappalist(cfg.Nreal, 0.0);
-    vector<double> gamma1list(cfg.Nreal, 0.0);
-    vector<double> gamma2list(cfg.Nreal, 0.0);
+    vector<RealizationRaw> raw(cfg.Nreal);
     for (int j = 0; j < cfg.Nreal; j++) {
-        kappalist[j] = PkappaW(mt);
+        raw[j].kappa = PkappaW(mt);
+        raw[j].gamma1 = 0.0;
+        raw[j].gamma2 = 0.0;
     }
     
     vector<vector<vector<double> > > dNH = deltaNhfNFW(C, zs, kappathrH);
@@ -460,7 +460,7 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
     vector<double> kappagamma;
     normal_distribution<double> pG(0.0, 1.0);
     poisson_distribution<int> PN;
-    double zl, M, rmaxH, rmaxF, r, phi, phiH, phiF, epsilon = 0.0, barNH, barNF, sigma, deltab, lambda, meankappa = 0.0;
+    double zl, M, rmaxH, rmaxF, r, phi, phiH, phiF, epsilon = 0.0, barNH, barNF, sigma, deltab, lambda;
     int NH, NF;
     int NtotH = 0, NtotF = 0;;
     for (int jz = 0; jz < C.Nz; jz++) {
@@ -499,11 +499,9 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
                             
                             kappagamma = kappagammaNFW(C, zs, zl, r, M, phiH, epsilon);
                             
-                            kappalist[j] += kappagamma[0];
-                            gamma1list[j] += cos(phi)*kappagamma[1];
-                            gamma2list[j] += sin(phi)*kappagamma[1];
-                            
-                            meankappa += kappagamma[0];
+                            raw[j].kappa += kappagamma[0];
+                            raw[j].gamma1 += cos(phi)*kappagamma[1];
+                            raw[j].gamma2 += sin(phi)*kappagamma[1];
                             
                             NtotH++;
                         }
@@ -521,11 +519,9 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
                                 
                                 kappagamma = kappagammaNFW(C, zs, zl, r, M, phiH, epsilon);
                                 
-                                kappalist[j] += kappagamma[0];
-                                gamma1list[j] += cos(phi)*kappagamma[1];
-                                gamma2list[j] += sin(phi)*kappagamma[1];
-                                
-                                meankappa += kappagamma[0];
+                                raw[j].kappa += kappagamma[0];
+                                raw[j].gamma1 += cos(phi)*kappagamma[1];
+                                raw[j].gamma2 += sin(phi)*kappagamma[1];
                                 
                                 NtotH++;
                             }
@@ -542,11 +538,9 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
                                                             
                                 kappagamma = kappagammaCYL(C, zs, zl, r, M, phiF);
                                 
-                                kappalist[j] += kappagamma[0];
-                                gamma1list[j] += cos(phi)*kappagamma[1];
-                                gamma2list[j] += sin(phi)*kappagamma[1];
-                                
-                                meankappa += kappagamma[0];
+                                raw[j].kappa += kappagamma[0];
+                                raw[j].gamma1 += cos(phi)*kappagamma[1];
+                                raw[j].gamma2 += sin(phi)*kappagamma[1];
                                 
                                 NtotF++;
                             }
@@ -561,11 +555,9 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
                                     
                                     kappagamma = kappagammaCYL(C, zs, zl, r, M, phiF);
                                     
-                                    kappalist[j] += kappagamma[0];
-                                    gamma1list[j] += cos(phi)*kappagamma[1];
-                                    gamma2list[j] += sin(phi)*kappagamma[1];
-                                    
-                                    meankappa += kappagamma[0];
+                                    raw[j].kappa += kappagamma[0];
+                                    raw[j].gamma1 += cos(phi)*kappagamma[1];
+                                    raw[j].gamma2 += sin(phi)*kappagamma[1];
                                     
                                     NtotF++;
                                 }
@@ -577,31 +569,34 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
             }
         }
     }
-    meankappa = meankappa/(1.0*cfg.Nreal);
     
-    //cout << NtotH/(1.0*cfg.Nreal) << "   " << NtotF/(1.0*cfg.Nreal) << endl;
+    return raw;
+}
+
+
+vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
     
-    // compute mu
-    vector<double> lnmulist, lnmuAlist, ln1pkappalist, lngammalist;
-    double kappaj, gamma1j, gamma2j, gammaj, muj;
-    for (int j = 0; j < cfg.Nreal; j++) {
-        kappaj = kappalist[j] - meankappa;
-        gammaj = sqrt(pow(gamma1list[j], 2.0) + pow(gamma2list[j], 2.0));
+    auto raw = sample_lnmu_raw(C, zs, mt, cfg);
+    
+    double meankappa = 0.0;
+    for (auto &r : raw)
+        meankappa += r.kappa;
+    meankappa /= raw.size();
+    
+    vector<double> lnmulist;
+    lnmulist.reserve(raw.size());
+    
+    double kappaj, gammaj, muj;
+    for (auto &r : raw) {
+        kappaj = r.kappa - meankappa;
+        gammaj = sqrt(r.gamma1*r.gamma1 + r.gamma2*r.gamma2);
         muj = 1.0/(pow(1.0-kappaj, 2.0) - pow(gammaj, 2.0));
         
         if (muj > 0.0 && gammaj > 0.0) {
             lnmulist.push_back(log(muj));
-            lnmuAlist.push_back(log(1.0/pow(1.0-kappaj, 2.0)));
-            ln1pkappalist.push_back(log(1.0+kappaj));
-            lngammalist.push_back(log(gammaj));
         }
     }
-    // --- The body of this function will be copied from the beginning of Plnmuf
-    // up to the point where lnmulist is fully filled (right before binSample).
-
-    // IMPORTANT:
-    // - Use cfg.Nreal, cfg.Nhalos, cfg.fil, cfg.bias, cfg.ell, cfg.write
-    // - Return lnmulist
+    
     return lnmulist;
 }
 

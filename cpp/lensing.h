@@ -28,8 +28,16 @@ public:
     int Nhalos; // number of halos in each realization
     int Nbins; // P(lnmu) bins
     
+    struct RealizationRaw {
+        double kappa;
+        double gamma1;
+        double gamma2;
+    };
+    
     // probability distribution of lnmu, {lnmu, dP/dlnmu}
     vector<vector<double> > Plnmuf(cosmology &C, double zs, rgen &mt, int fil, int bias, int ell, int write);
+    
+    std::vector<RealizationRaw> sample_lnmu_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg);
     
     vector<double> sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg);
 

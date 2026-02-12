@@ -49,3 +49,9 @@ LnmuStats compute_lnmu_stats(
     const CosmologyParams& cosmo,
     const SamplingParams& sampling
 );
+
+LnmuStats compute_lnmu_stats_fast(
+    double z,
+    const CosmologyParams& cosmo,
+    const SamplingParams& sampling
+);
