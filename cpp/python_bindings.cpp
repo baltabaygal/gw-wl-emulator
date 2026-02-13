@@ -1,76 +1,104 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include <pybind11/stl.h>
 
-#include "lnmu_wrapper.h"  // your existing C++ wrapper
+#include "lnmu_wrapper.h"
 
 namespace py = pybind11;
 
-static py::array_t<double> vec_to_numpy(std::vector<double>&& v) {
-    // Move vector into a new heap allocation owned by a capsule
-    auto *vec = new std::vector<double>(std::move(v));
-    auto capsule = py::capsule(vec, [](void *p) {
-        delete reinterpret_cast<std::vector<double>*>(p);
-    });
-    return py::array_t<double>(
-        { static_cast<py::ssize_t>(vec->size()) },
-        { static_cast<py::ssize_t>(sizeof(double)) },
-        vec->data(),
-        capsule
-    );
-}
-
 PYBIND11_MODULE(gwlensing, m) {
-    m.doc() = "GW weak-lensing ln(mu) sampler/stats (C++ backend)";
+    m.doc() = "GW weak-lensing: ln(mu) sampler and stats (pybind11)";
 
+    // ---- sample_lnmu --------------------------------------------------------
     m.def(
         "sample_lnmu",
         [](double z, double OmegaM, double sigma8, double h,
-           int N, int seed,
-           bool halos, bool bias, bool filaments) {
-            // Match your CLI convention: enable/disable components
-            auto v = sample_lnmu(z, OmegaM, sigma8, h, N, seed, halos, bias, filaments);
-            return vec_to_numpy(std::move(v));
+           int Nreal, std::uint64_t seed,
+           bool filaments, bool bias, bool ell,
+           int Nhalos) {
+
+            CosmologyParams cosmo;
+            cosmo.OmegaM = OmegaM;
+            cosmo.sigma8 = sigma8;
+            cosmo.h      = h;
+
+            SamplingParams samp;
+            samp.Nreal  = Nreal;
+            samp.seed   = seed;
+            samp.fil    = filaments ? 1 : 0;
+            samp.bias   = bias ? 1 : 0;
+            samp.ell    = ell ? 1 : 0;
+            samp.Nhalos = Nhalos;
+
+            auto v = sample_lnmu(z, cosmo, samp);
+
+            // Zero-copy: move vector onto heap and let NumPy own it via capsule.
+            auto *heap_vec = new std::vector<double>(std::move(v));
+            auto capsule = py::capsule(heap_vec, [](void *p) {
+                delete reinterpret_cast<std::vector<double> *>(p);
+            });
+
+            return py::array_t<double>(
+                {static_cast<ssize_t>(heap_vec->size())},
+                {static_cast<ssize_t>(sizeof(double))},
+                heap_vec->data(),
+                capsule
+            );
         },
         py::arg("z"),
         py::arg("OmegaM"),
         py::arg("sigma8"),
         py::arg("h"),
-        py::arg("N") = 50000,
+        py::arg("Nreal") = 50000,
         py::arg("seed") = 123,
-        py::arg("halos") = true,
+        py::arg("filaments") = true,
         py::arg("bias") = true,
-        py::arg("filaments") = true
+        py::arg("ell") = true,
+        py::arg("Nhalos") = 100
     );
 
+    // ---- compute_lnmu_stats -------------------------------------------------
     m.def(
-        "lnmu_stats",
+        "compute_lnmu_stats",
         [](double z, double OmegaM, double sigma8, double h,
-           int N, int seed,
-           bool halos, bool bias, bool filaments,
+           int Nreal, std::uint64_t seed,
+           bool filaments, bool bias, bool ell,
+           int Nhalos,
            bool fast) {
+
+            CosmologyParams cosmo;
+            cosmo.OmegaM = OmegaM;
+            cosmo.sigma8 = sigma8;
+            cosmo.h      = h;
+
+            SamplingParams samp;
+            samp.Nreal  = Nreal;
+            samp.seed   = seed;
+            samp.fil    = filaments ? 1 : 0;
+            samp.bias   = bias ? 1 : 0;
+            samp.ell    = ell ? 1 : 0;
+            samp.Nhalos = Nhalos;
+
             LnmuStats s = fast
-                ? compute_lnmu_stats_fast(z, OmegaM, sigma8, h, N, seed, halos, bias, filaments)
-                : compute_lnmu_stats(z, OmegaM, sigma8, h, N, seed, halos, bias, filaments);
+                ? compute_lnmu_stats_fast(z, cosmo, samp)
+                : compute_lnmu_stats(z, cosmo, samp);
 
             py::dict d;
-            d["mean_lnmu"] = s.mean_lnmu;
-            d["var_lnmu"]  = s.var_lnmu;
-            d["skew_lnmu"] = s.skew_lnmu;
-            d["mean_mu"]   = s.mean_mu;
-            d["N_used"]    = s.N_used;   // if you have it; otherwise remove
-            d["N_total"]   = s.N_total;  // if you have it; otherwise remove
+            d["mean"]     = s.mean;
+            d["variance"] = s.variance;
+            d["skewness"] = s.skewness;
+            d["mean_mu"]  = s.mean_mu;
             return d;
         },
         py::arg("z"),
         py::arg("OmegaM"),
         py::arg("sigma8"),
         py::arg("h"),
-        py::arg("N") = 50000,
+        py::arg("Nreal") = 50000,
         py::arg("seed") = 123,
-        py::arg("halos") = true,
-        py::arg("bias") = true,
         py::arg("filaments") = true,
+        py::arg("bias") = true,
+        py::arg("ell") = true,
+        py::arg("Nhalos") = 100,
         py::arg("fast") = true
     );
 }
