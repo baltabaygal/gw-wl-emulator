@@ -6,6 +6,21 @@ This project aims to build a fast machine-learning emulator for weak gravitation
 We are in the **baseline C++ replication phase**.  
 No ML components have been added yet.
 
+
+# GW Weak Lensing Emulator
+
+C++ weak-lensing engine with Python bindings (pybind11) built inside Docker.
+
+---
+
+## 🚀 Quick Start (3 Commands)
+
+### 1️⃣ Build Docker image (one-time or after Dockerfile changes)
+
+```powershell
+.\scripts\run_make.ps1 image
+.\scripts\run_make.ps1 shell
+.\scripts\run_make.ps1 watch
 ---
 
 # Project Structure
