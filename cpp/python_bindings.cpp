@@ -107,6 +107,17 @@ PYBIND11_MODULE(gwlensing, m) {
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
+
+    // ---- get_simulator_config -----------------------------------------------
+    m.def("get_simulator_config", []() {
+        py::dict d;
+        d["filaments"] = true;
+        d["bias"] = true;
+        d["ell"] = true;
+        d["Nhalos"] = 100;
+        return d;
+    }, "Returns hardcoded default physics toggles used by sample_lnmu_ml");
+
     // ---- compute_lnmu_stats -------------------------------------------------
     m.def(
         "compute_lnmu_stats",
