@@ -6,9 +6,9 @@ if [ -z "${pybind11_DIR:-}" ]; then
   export pybind11_DIR="$(python3 -m pybind11 --cmakedir)"
 fi
 
-rm -rf /work/build
-mkdir -p /work/build
-cd /work/build
+rm -rf ./build
+mkdir -p ./build
+cd ./build
 
 cmake ../cpp -DCMAKE_BUILD_TYPE=Release
 cmake --build . -j

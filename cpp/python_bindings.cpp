@@ -1,3 +1,4 @@
+#include <random>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -54,6 +55,56 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias") = true,
         py::arg("ell") = true,
         py::arg("Nhalos") = 100
+    );
+
+
+    // ---- sample_lnmu_ml -----------------------------------------------------
+    m.def(
+        "sample_lnmu_ml",
+        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj) {
+
+            std::uint64_t seed = 0;
+            if (seed_obj.is_none()) {
+                std::random_device rd;
+                seed = (static_cast<std::uint64_t>(rd()) << 32) | rd();
+            } else {
+                seed = seed_obj.cast<std::uint64_t>();
+            }
+
+            CosmologyParams cosmo;
+            cosmo.OmegaM = OmegaM;
+            cosmo.sigma8 = sigma8;
+            cosmo.h      = h;
+
+            SamplingParams samp;
+            samp.Nreal  = nsamples;
+            samp.seed   = seed;
+            samp.fil    = 1;
+            samp.bias   = 1;
+            samp.ell    = 1;
+            samp.Nhalos = 100;
+
+            auto v = sample_lnmu(z, cosmo, samp);
+
+            auto *heap_vec = new std::vector<double>(std::move(v));
+            auto capsule = py::capsule(heap_vec, [](void *p) {
+                delete reinterpret_cast<std::vector<double> *>(p);
+            });
+
+            return py::array_t<double>(
+                {static_cast<ssize_t>(heap_vec->size())},
+                {static_cast<ssize_t>(sizeof(double))},
+                heap_vec->data(),
+                capsule
+            );
+        },
+        py::arg("z"),
+        py::arg("h"),
+        py::arg("OmegaM"),
+        py::arg("sigma8"),
+        py::arg("nsamples"),
+        py::arg("seed") = py::none(),
+        "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
     // ---- compute_lnmu_stats -------------------------------------------------
