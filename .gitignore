@@ -28,6 +28,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Local workspace-only folders
+.claude/
 
 datasets/
 ml/plots/

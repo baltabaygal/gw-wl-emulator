@@ -1,185 +1,85 @@
-# Fast ML Emulator for GW Weak Lensing PDFs
-
-This project aims to build a fast machine-learning emulator for weak gravitational lensing of gravitational waves, based on an existing C++ Monte-Carlo implementation from a published paper.
-
-**Current status:** Will be updated! 
-We are in the **baseline C++ replication phase**.  
-No ML components have been added yet.
-
-
 # GW Weak Lensing Emulator
 
-C++ weak-lensing engine with Python bindings (pybind11) built inside Docker.
+Fast ML emulator for the weak gravitational lensing magnification PDF of
+gravitational waves, based on the C++ Monte Carlo engine from
+[Vaskonen (2026), arXiv:2601.06023](papers/core/Vaskonen_2026_GWWeakLensingSigma8.pdf).
+
+The emulator reproduces dP/d(ln μ | z, σ₈, Ω_M, h) orders of magnitude faster
+than the C++ sampler, enabling efficient MCMC inference of σ₈ from bright
+standard sirens detected by ET and LISA.
+
+**Current status**: repo structure initialized; C++ baseline operational.
+ML integration begins next.
 
 ---
 
-## 🚀 Quick Start (3 Commands)
-
-### 1️⃣ Build Docker image (one-time or after Dockerfile changes)
-
-```powershell
-.\scripts\run_make.ps1 image
-.\scripts\run_make.ps1 shell
-.\scripts\run_make.ps1 watch
----
-
-# Project Structure
+## Structure
 
 ```
 gw-wl-emulator/
-│
-├── cpp/              # Original C++ lensing simulation code
-│   ├── basics.*
-│   ├── cosmology.*
-│   ├── lensing.*
-│   └── main_lensing.cpp
-│
-├── docker/           # Docker build configuration
-│   └── Dockerfile
-│
-├── scripts/          # Helper scripts
-│   └── build.sh
-│
-├── build/            # CMake build directory (generated)
-├── dataL/            # Lensing simulation outputs (generated)
-└── README.md
+├── cpp/              # Original C++ lensing engine (CMake + Docker)
+├── python/           # Initial pybind11 bindings and plotting
+├── papers/           # PDFs, notes, and paper index
+│   ├── core/         # Primary reference papers
+│   ├── methods/      # ML and statistics methods papers
+│   ├── context/      # Background cosmology papers
+│   └── misc/         # Unsorted
+├── research/         # Experiments and exploratory ML work
+│   └── shared/       # Shared helpers (data loaders, metrics)
+├── src/              # Stable, reusable production modules (promoted)
+├── data/
+│   ├── raw/          # Immutable C++ output (lnmu samples, PDFs)
+│   ├── processed/    # Training/test sets
+│   └── models/       # Saved checkpoints
+├── plots/
+│   ├── style/        # Shared plot style
+│   └── figures/      # Final publication figures
+├── scripts/          # Reproducible build and run workflows
+└── docs/             # Architecture, workflows, rulebook
 ```
 
 ---
 
-# Requirements
-
-- Docker Desktop installed
-- Windows / Mac / Linux host supported
-
-No local C++ or GSL installation is required.
-
----
-
-# Building the Project (Docker-only Workflow)
-
-## 1️ Build the Docker image
-
-From project root:
+## Quick Start (C++ engine)
 
 ```bash
-docker build -t gw-wl-dev -f docker/Dockerfile .
-```
+# Build Docker image (once)
+make image
 
-This installs:
-- GCC
-- CMake
-- GNU Scientific Library (GSL)
+# Enter dev shell
+make shell
 
----
-
-## 2️ Run container with volume mount
-
-Important: use volume mount so outputs persist on host machine.
-
-Linux / Git Bash:
-```bash
-docker run --rm -it -v ${PWD}:/work gw-wl-dev
-```
-
-PowerShell:
-```powershell
-docker run --rm -it -v ${PWD}:/work gw-wl-dev
-```
-
----
-
-## 3️ Build inside container
-
-Inside the container:
-
-```bash
+# Inside container: build and run
 ./scripts/build.sh
-```
-
-This generates:
-
-```
-build/main_lensing
-```
-
----
-
-## 4️ Run the lensing simulation
-
-Inside the container:
-
-```bash
 mkdir -p dataL
 ./build/main_lensing 0 1 2 0.05
 ```
 
-Arguments:
-
-| Argument | Meaning |
-|----------|----------|
-| 0 | CDM cosmology |
-| 1 | Lensing enabled |
-| 2 | NS catalogue |
-| 0.05 | Step size |
+See [docs/workflows.md](docs/workflows.md) for all workflows.
 
 ---
 
-# Output
+## Roadmap
 
-The simulation generates files in:
+**Phase 0 (done)**: Reproducible C++ baseline in Docker.
 
-```
-dataL/
-```
+**Phase 1**: Expose raw ln(μ) samples via pybind11; build training dataset
+covering a grid of (z, σ₈, Ω_M, h).
 
-Key output:
+**Phase 2**: Train conditional density estimator (Neural Spline Flow);
+validate against C++ PDFs.
 
-- `Plnmuz.dat` → Tabulated PDF of ln(\mu) vs redshift
-- `PDL.dat` → Lensed luminosity distance distribution
-- Catalogue files (depending on options)
-
-These are produced by Monte Carlo lensing calculations.
+**Phase 3**: Plug emulator into MCMC inference; benchmark σ₈ recovery on
+mock ET/LISA catalogues.
 
 ---
 
-# What We Have Achieved
+## Core Rules
 
-- Reproducible Docker-based build  
-- Successful compilation of C++ lensing code  
-- Monte Carlo lensing PDFs generated  
-- Output persisted to host filesystem  
+- `research/` is for experiments; `src/` is for promoted production code.
+- `src/` must not import from `research/`.
+- Raw data is immutable — write to `data/raw/`, never edit in place.
+- All reproducible commands live in `scripts/`.
 
----
-
-# Next Steps (Planned)
-
-Phase 1:
-- Isolate Monte Carlo lensing sampler
-- Expose raw ln(\mu) samples (not only binned PDFs)
-- Add pybind11 bindings
-- Create Python streaming interface
-
-Phase 2:
-- Implement conditional density estimator (Neural Spline Flow)
-- Validate against C++ PDFs
-
-Phase 3:
-- Extend to lens-model nuisance parameters
-- Extend to WDM/FDM cosmologies
-
----
-
-# Notes
-
-- `build/` and `dataL/` are intentionally excluded from version control.
-- Always run Docker with `-v ${PWD}:/work` to persist outputs.
-- First simulation run is slow (table generation).
-
----
-
-# Current Status
-
-Baseline C++ lensing pipeline is operational and reproducible.
-
-ML integration begins next.
+See [AGENTS.md](AGENTS.md) and [docs/rulebook.md](docs/rulebook.md) for
+operating rules.
