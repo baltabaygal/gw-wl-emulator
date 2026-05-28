@@ -1,4 +1,4 @@
-.PHONY: help build test watch clean pytest validate-dataset generate-small-dataset
+.PHONY: help build test watch clean pytest validate-dataset generate-small-dataset install-dev
 
 help:
 	@echo "In-container targets:"
@@ -27,3 +27,6 @@ watch:
 
 clean:
 	rm -rf build
+
+install-dev:
+	python3 -m pip install -r requirements.txt
