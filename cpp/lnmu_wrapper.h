@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <cstdint>
+#include "invalid_stats.h"
 
 struct CosmologyParams {
     double OmegaM = 0.315;
@@ -29,9 +30,21 @@ struct SamplingParams {
     int bias    = 1;
     int ell     = 1;
     int Nhalos  = 100;
+    bool strict_weak_lensing = false;
+};
+
+struct LnmuSampleDiagnostics {
+    std::vector<double> lnmu;
+    InvalidSampleStats invalid_stats;
 };
 
 std::vector<double> sample_lnmu(
+    double z,
+    const CosmologyParams& cosmo,
+    const SamplingParams& sampling
+);
+
+LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     double z,
     const CosmologyParams& cosmo,
     const SamplingParams& sampling

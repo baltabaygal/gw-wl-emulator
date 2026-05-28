@@ -2,6 +2,8 @@
 #include "lensing.h"
 // #include <functional>
 #include <functional>  // For std::function
+#include <algorithm>
+#include <limits>
 
 double Sigmacf(cosmology &C, double zs, double zl) {
     // angular diameter distances
@@ -585,17 +587,93 @@ vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const Len
     
     vector<double> lnmulist;
     lnmulist.reserve(raw.size());
-    
-    double kappaj, gammaj, muj;
+
+    InvalidSampleStats stats;
+    stats.total_samples = raw.size();
+    double detA_sum = 0.0;
+    bool detA_seen = false;
+    constexpr double huge_threshold = 1.0e12;
+    constexpr double detA_near_zero_threshold = 1.0e-6;
+
+    double kappaj, gammaj, muj, detA, logmu;
     for (auto &r : raw) {
         kappaj = r.kappa - meankappa;
         gammaj = sqrt(r.gamma1*r.gamma1 + r.gamma2*r.gamma2);
-        muj = 1.0/(pow(1.0-kappaj, 2.0) - pow(gammaj, 2.0));
-        
-        if (muj > 0.0) {
-            lnmulist.push_back(log(muj));
+        detA = (1.0 - kappaj) * (1.0 - kappaj) - (gammaj * gammaj);
+
+        if (!detA_seen) {
+            stats.detA_min = detA;
+            stats.detA_max = detA;
+            detA_seen = true;
+        } else {
+            stats.detA_min = std::min(stats.detA_min, detA);
+            stats.detA_max = std::max(stats.detA_max, detA);
+        }
+        detA_sum += detA;
+        if (std::abs(detA) < detA_near_zero_threshold) {
+            stats.detA_near_zero_count++;
+        }
+
+        bool invalid = false;
+        if (std::isnan(kappaj)) {
+            stats.nan_kappa++;
+            invalid = true;
+        }
+        if (std::isnan(gammaj)) {
+            stats.nan_gamma++;
+            invalid = true;
+        }
+        if (detA <= 0.0) {
+            stats.negative_detA++;
+            invalid = true;
+            if (cfg.strict_weak_lensing) {
+                stats.strict_weak_lensing_rejects++;
+            }
+        }
+
+        if (detA == 0.0) {
+            muj = std::numeric_limits<double>::infinity();
+        } else {
+            muj = 1.0 / detA;
+        }
+
+        if (!std::isfinite(muj)) {
+            stats.nonfinite_mu++;
+            invalid = true;
+        }
+        if (muj <= 0.0) {
+            stats.negative_mu++;
+            invalid = true;
+        }
+        if (std::isfinite(muj) && std::abs(muj) > huge_threshold) {
+            stats.overflow_mu++;
+            invalid = true;
+        }
+
+        if (!invalid) {
+            logmu = log(muj);
+            if (!std::isfinite(logmu)) {
+                stats.invalid_logmu++;
+                invalid = true;
+            } else {
+                lnmulist.push_back(logmu);
+                stats.valid_samples++;
+            }
+        } else {
+            // Keep invalid_logmu classification explicit when log(mu) is undefined.
+            if (muj <= 0.0 || !std::isfinite(muj)) {
+                stats.invalid_logmu++;
+            }
         }
     }
+
+    stats.invalid_samples = stats.total_samples - stats.valid_samples;
+    stats.detA_mean = (stats.total_samples > 0) ? (detA_sum / static_cast<double>(stats.total_samples)) : 0.0;
+    if (!detA_seen) {
+        stats.detA_min = 0.0;
+        stats.detA_max = 0.0;
+    }
+    last_invalid_stats_ = stats;
     
     return lnmulist;
 }

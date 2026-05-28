@@ -69,6 +69,24 @@ def split_stats(path: str) -> Dict[str, object]:
             "cpu_count": int(res.get("cpu_count", -1)) if not np.isnan(res.get("cpu_count", -1)) else -1,
         }
 
+        inv = dict(f.get("metadata/invalid_stats", {}).attrs.items()) if "metadata/invalid_stats" in f else {}
+        out["invalid_stats"] = {
+            "total_samples": int(inv.get("total_samples", 0)),
+            "valid_samples": int(inv.get("valid_samples", 0)),
+            "invalid_samples": int(inv.get("invalid_samples", 0)),
+            "invalid_fraction": float(inv.get("invalid_fraction", np.nan)),
+            "negative_detA": int(inv.get("negative_detA", 0)),
+            "nonfinite_mu": int(inv.get("nonfinite_mu", 0)),
+            "negative_mu": int(inv.get("negative_mu", 0)),
+            "nan_kappa": int(inv.get("nan_kappa", 0)),
+            "nan_gamma": int(inv.get("nan_gamma", 0)),
+            "overflow_mu": int(inv.get("overflow_mu", 0)),
+            "invalid_logmu": int(inv.get("invalid_logmu", 0)),
+            "detA_min": float(inv.get("detA_min", np.nan)),
+            "detA_max": float(inv.get("detA_max", np.nan)),
+            "detA_mean": float(inv.get("detA_mean", np.nan)),
+        }
+
         # Smoothness summary in sigma8-sorted config order
         order = np.argsort(s8)
         dists: List[float] = []
@@ -174,6 +192,19 @@ def main() -> int:
                 "### Wasserstein Smoothness (Adjacent in sigma8 order)",
                 f"- mean distance: {r['wasserstein_adjacent_sigma8_mean']:.6f}",
                 f"- std distance: {r['wasserstein_adjacent_sigma8_std']:.6f}",
+                "",
+                "### Invalid Sample Diagnostics",
+                f"- invalid_fraction: {r['invalid_stats']['invalid_fraction']:.6f}",
+                f"- negative_detA: {r['invalid_stats']['negative_detA']}",
+                f"- nonfinite_mu: {r['invalid_stats']['nonfinite_mu']}",
+                f"- negative_mu: {r['invalid_stats']['negative_mu']}",
+                f"- overflow_mu: {r['invalid_stats']['overflow_mu']}",
+                f"- nan_kappa: {r['invalid_stats']['nan_kappa']}",
+                f"- nan_gamma: {r['invalid_stats']['nan_gamma']}",
+                f"- invalid_logmu: {r['invalid_stats']['invalid_logmu']}",
+                f"- detA_min: {r['invalid_stats']['detA_min']:.6f}",
+                f"- detA_max: {r['invalid_stats']['detA_max']:.6f}",
+                f"- detA_mean: {r['invalid_stats']['detA_mean']:.6f}",
             ])
 
     lines.extend([

@@ -91,6 +91,23 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
     total_valid_samples = 0
     min_lnmu = None
     max_lnmu = None
+    invalid_totals = {
+        "total_samples": 0,
+        "valid_samples": 0,
+        "invalid_samples": 0,
+        "negative_detA": 0,
+        "nonfinite_mu": 0,
+        "negative_mu": 0,
+        "nan_kappa": 0,
+        "nan_gamma": 0,
+        "overflow_mu": 0,
+        "invalid_logmu": 0,
+        "strict_weak_lensing_rejects": 0,
+        "detA_near_zero_count": 0,
+    }
+    detA_min = None
+    detA_max = None
+    detA_weighted_sum = 0.0
 
     with h5py.File(output_file, 'w') as f:
         g_samples = f.create_group("samples")
@@ -121,14 +138,26 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
             sim_seed = None if seed is None else seed + i
 
-            lnmu = gw.sample_lnmu_ml(
+            result = gw.sample_lnmu_ml_with_diagnostics(
                 params['z'][i],
                 params['h'][i],
                 params['OmegaM'][i],
                 params['sigma8'][i],
                 nsamples_per_point,
-                sim_seed
+                sim_seed,
+                False,
             )
+            lnmu = np.asarray(result["lnmu"])
+            inv = dict(result["invalid_stats"])
+            for k in invalid_totals:
+                invalid_totals[k] += int(inv.get(k, 0))
+            row_detA_min = float(inv.get("detA_min", np.nan))
+            row_detA_max = float(inv.get("detA_max", np.nan))
+            if np.isfinite(row_detA_min):
+                detA_min = row_detA_min if detA_min is None else min(detA_min, row_detA_min)
+            if np.isfinite(row_detA_max):
+                detA_max = row_detA_max if detA_max is None else max(detA_max, row_detA_max)
+            detA_weighted_sum += float(inv.get("detA_mean", 0.0)) * float(inv.get("total_samples", 0))
 
             # Remove nans or invalid
             lnmu = lnmu[~np.isnan(lnmu)]
@@ -184,6 +213,19 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_res.attrs["cpu_count"] = cpu_count if cpu_count is not None else -1
         g_res.attrs["total_valid_samples"] = int(total_valid_samples)
         g_res.attrs["valid_fraction"] = float(total_valid_samples / (num_points * nsamples_per_point)) if num_points > 0 and nsamples_per_point > 0 else 0.0
+
+        g_inv = f.create_group("metadata/invalid_stats")
+        for k, v in invalid_totals.items():
+            g_inv.attrs[k] = int(v)
+        total_samples = invalid_totals["total_samples"]
+        g_inv.attrs["invalid_fraction"] = float(invalid_totals["invalid_samples"] / total_samples) if total_samples > 0 else 0.0
+        g_inv.attrs["detA_min"] = float(detA_min) if detA_min is not None else 0.0
+        g_inv.attrs["detA_max"] = float(detA_max) if detA_max is not None else 0.0
+        g_inv.attrs["detA_mean"] = float(detA_weighted_sum / total_samples) if total_samples > 0 else 0.0
+        g_inv.attrs["detA_near_zero_fraction"] = (
+            float(invalid_totals["detA_near_zero_count"] / total_samples) if total_samples > 0 else 0.0
+        )
+        g_inv.attrs["huge_threshold"] = 1.0e12
 
         # General metadata
         g_meta = f["metadata"]

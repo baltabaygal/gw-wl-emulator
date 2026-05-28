@@ -2,6 +2,7 @@
 #pragma once
 #include <vector>
 #include <cstdint>
+#include "invalid_stats.h"
 
 struct LensingConfig {
   int Nreal = 400000;
@@ -13,6 +14,7 @@ struct LensingConfig {
   int bias = 1;
   int ell = 1;
   int write = 0;
+  bool strict_weak_lensing = false;
 
   // future nuisance params (Phase 2)
   // double c_norm = 1.0;
@@ -40,14 +42,15 @@ public:
     std::vector<RealizationRaw> sample_lnmu_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg);
     
     vector<double> sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg);
+    const InvalidSampleStats& get_last_invalid_stats() const { return last_invalid_stats_; }
 
     // MCMC likelihood analysis of the Hubble diagram
     void Hubble_diagram_fit(cosmology &C, double DLthr, vector<vector<double> > &data, vector<double> &initial, vector<double> &steps , vector<vector<double> > &priors, int Ns, int Nburnin, int lens, int dm, rgen &mt, fs::path filename);
     
 private:
+    InvalidSampleStats last_invalid_stats_;
     
     // loglikelihood of the Hubble digram data
     double loglikelihood(cosmology &C, double DLthr, vector<vector<double> > &data, vector<double> &par, int lens, int dm, rgen &mt);
     
 };
-

@@ -19,6 +19,7 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
                 "samples/sigma8",
                 "metadata",
                 "metadata/preprocessing",
+                "metadata/invalid_stats",
             ]
             for path in required_paths:
                 assert path in f, f"Missing required path: {path}"
@@ -68,6 +69,25 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
             pre = f['metadata/preprocessing']
             for attr in ["lnmu_mean", "lnmu_std", "lnmu_min", "lnmu_max"]:
                 assert attr in pre.attrs, f"Missing preprocessing attribute: {attr}"
+
+            inv = f['metadata/invalid_stats']
+            for attr in [
+                "total_samples",
+                "valid_samples",
+                "invalid_samples",
+                "negative_detA",
+                "nonfinite_mu",
+                "negative_mu",
+                "nan_kappa",
+                "nan_gamma",
+                "overflow_mu",
+                "invalid_logmu",
+                "invalid_fraction",
+                "detA_min",
+                "detA_max",
+                "detA_mean",
+            ]:
+                assert attr in inv.attrs, f"Missing invalid_stats attribute: {attr}"
 
             # Check duplicates using only conditioning parameters
             params = np.column_stack([f['samples/z'][:], f['samples/h'][:], f['samples/OmegaM'][:], f['samples/sigma8'][:]])

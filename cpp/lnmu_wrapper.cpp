@@ -195,6 +195,14 @@ std::vector<double> sample_lnmu(
     const CosmologyParams& cp,
     const SamplingParams& sp
 ) {
+    return sample_lnmu_with_diagnostics(z, cp, sp).lnmu;
+}
+
+LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
+    double z,
+    const CosmologyParams& cp,
+    const SamplingParams& sp
+) {
     cosmology C;
 
     // cosmology parameters
@@ -230,6 +238,10 @@ std::vector<double> sample_lnmu(
     cfg.bias   = sp.bias;
     cfg.ell    = sp.ell;
     cfg.write  = 0;
+    cfg.strict_weak_lensing = sp.strict_weak_lensing;
 
-    return L.sample_lnmu(C, z, mt, cfg);
+    LnmuSampleDiagnostics out;
+    out.lnmu = L.sample_lnmu(C, z, mt, cfg);
+    out.invalid_stats = L.get_last_invalid_stats();
+    return out;
 }

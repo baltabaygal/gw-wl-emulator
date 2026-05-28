@@ -1,4 +1,4 @@
-.PHONY: help build test watch clean pytest validate-dataset generate-small-dataset install-dev
+.PHONY: help build test watch clean pytest validate-dataset generate-small-dataset install-dev debug-invalid-samples
 
 help:
 	@echo "In-container targets:"
@@ -30,3 +30,6 @@ clean:
 
 install-dev:
 	python3 -m pip install -r requirements.txt
+
+debug-invalid-samples:
+	python3 python/debug_invalid_samples.py
