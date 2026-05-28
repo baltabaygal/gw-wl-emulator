@@ -1,4 +1,4 @@
-.PHONY: help build test watch clean
+.PHONY: help build test watch clean pytest validate-dataset generate-small-dataset
 
 help:
 	@echo "In-container targets:"
@@ -12,6 +12,15 @@ build:
 
 test:
 	python3 python/testing_api.py
+
+pytest:
+	python3 -m pytest tests
+
+validate-dataset:
+	python3 python/validate_dataset.py
+
+generate-small-dataset:
+	python3 python/generate_dataset.py --num_points 10 --nsamples 1000 --seed 123
 
 watch:
 	./scripts/watch_build.sh

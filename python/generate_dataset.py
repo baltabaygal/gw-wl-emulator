@@ -19,6 +19,12 @@ except ImportError:
     except ImportError:
         from pyDOE import lhs
 
+SPLIT_SEED_OFFSETS = {
+    "train": 1000,
+    "validation": 2000,
+    "test": 3000,
+}
+
 def get_git_commit():
     try:
         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], stderr=subprocess.DEVNULL)
@@ -29,23 +35,20 @@ def get_git_commit():
 def partition_samples(params_dict, num_points):
     """
     Partitions generated parameters into train, val, and test using
-    a multidimensional checkerboard pattern on (OmegaM, sigma8).
+    a multidimensional checkerboard pattern on (z, h, OmegaM, sigma8).
     """
-    sigma8 = params_dict['sigma8']
-    OmegaM = params_dict['OmegaM']
+    keys = ["z", "h", "OmegaM", "sigma8"]
+    checker_index_sum = np.zeros(num_points, dtype=np.int32)
 
-    # create 4 bins per dimension
-    bins_s8 = np.linspace(np.min(sigma8), np.max(sigma8), 5)
-    bins_om = np.linspace(np.min(OmegaM), np.max(OmegaM), 5)
-
-    idx_s8 = np.digitize(sigma8, bins_s8) - 1
-    idx_om = np.digitize(OmegaM, bins_om) - 1
-
-    idx_s8[idx_s8 == 4] = 3
-    idx_om[idx_om == 4] = 3
+    for key in keys:
+        values = params_dict[key]
+        bins = np.linspace(np.min(values), np.max(values), 5)
+        idx = np.digitize(values, bins) - 1
+        idx[idx == 4] = 3
+        checker_index_sum += idx
 
     # Checkerboard: sum of indices is even -> Train, odd -> Val/Test
-    checker = (idx_s8 + idx_om) % 2 == 0
+    checker = (checker_index_sum % 2) == 0
 
     train_mask = checker
     non_train_mask = ~checker
@@ -72,60 +75,83 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
     start_time = time.time()
     print(f"\n--- Generating {split_name} split ({num_points} points) ---")
 
-    import psutil
-    process = psutil.Process(os.getpid())
-    mem_before = process.memory_info().rss / 1e6
-
-    lnmu_array = np.full((num_points, nsamples_per_point), np.nan, dtype=np.float32)
-    valid_counts = np.zeros(num_points, dtype=np.int32)
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        mem_before = process.memory_info().rss / 1e6
+        cpu_count = psutil.cpu_count()
+    except ImportError:
+        psutil = None
+        process = None
+        mem_before = np.nan
+        cpu_count = os.cpu_count()
 
     sum_lnmu = 0.0
     sum_sq_lnmu = 0.0
     total_valid_samples = 0
-
-    for i in range(num_points):
-        if i > 0 and i % 10 == 0:
-            print(f"  Processed {i}/{num_points} configurations...")
-
-        sim_seed = None if seed is None else seed + i
-
-        lnmu = gw.sample_lnmu_ml(
-            params['z'][i],
-            params['h'][i],
-            params['OmegaM'][i],
-            params['sigma8'][i],
-            nsamples_per_point,
-            sim_seed
-        )
-
-        # Remove nans or invalid
-        lnmu = lnmu[~np.isnan(lnmu)]
-        valid_len = min(len(lnmu), nsamples_per_point)
-
-        lnmu_array[i, :valid_len] = lnmu[:valid_len]
-        valid_counts[i] = valid_len
-
-        if valid_len > 0:
-            sum_lnmu += np.sum(lnmu[:valid_len])
-            sum_sq_lnmu += np.sum(lnmu[:valid_len]**2)
-            total_valid_samples += valid_len
-
-    sim_time = time.time() - start_time
-    mem_after = process.memory_info().rss / 1e6
+    min_lnmu = None
+    max_lnmu = None
 
     with h5py.File(output_file, 'w') as f:
         g_samples = f.create_group("samples")
 
-        # Fixed shape arrays instead of VLEN
-        g_samples.create_dataset("lnmu", data=lnmu_array, compression="gzip", chunks=True)
-        g_samples.create_dataset("valid_counts", data=valid_counts, compression="gzip")
+        ds_lnmu = g_samples.create_dataset(
+            "lnmu",
+            shape=(num_points, nsamples_per_point),
+            dtype="float32",
+            compression="gzip",
+            chunks=(1, nsamples_per_point),
+            fillvalue=np.nan,
+        )
+        ds_counts = g_samples.create_dataset(
+            "valid_counts",
+            shape=(num_points,),
+            dtype="int32",
+            compression="gzip",
+        )
 
         g_samples.create_dataset("z", data=params['z'], compression="gzip")
         g_samples.create_dataset("h", data=params['h'], compression="gzip")
         g_samples.create_dataset("OmegaM", data=params['OmegaM'], compression="gzip")
         g_samples.create_dataset("sigma8", data=params['sigma8'], compression="gzip")
 
-        # Preprocessing metadata (Task 4)
+        for i in range(num_points):
+            if i > 0 and i % 10 == 0:
+                print(f"  Processed {i}/{num_points} configurations...")
+
+            sim_seed = None if seed is None else seed + i
+
+            lnmu = gw.sample_lnmu_ml(
+                params['z'][i],
+                params['h'][i],
+                params['OmegaM'][i],
+                params['sigma8'][i],
+                nsamples_per_point,
+                sim_seed
+            )
+
+            # Remove nans or invalid
+            lnmu = lnmu[~np.isnan(lnmu)]
+            valid_len = min(len(lnmu), nsamples_per_point)
+
+            ds_counts[i] = valid_len
+            if valid_len > 0:
+                row = lnmu[:valid_len]
+                ds_lnmu[i, :valid_len] = row.astype(np.float32)
+
+                row_min = float(np.min(row))
+                row_max = float(np.max(row))
+                min_lnmu = row_min if min_lnmu is None else min(min_lnmu, row_min)
+                max_lnmu = row_max if max_lnmu is None else max(max_lnmu, row_max)
+
+                sum_lnmu += float(np.sum(row))
+                sum_sq_lnmu += float(np.sum(row**2))
+                total_valid_samples += valid_len
+
+        sim_time = time.time() - start_time
+        mem_after = process.memory_info().rss / 1e6 if process is not None else np.nan
+
+        # Preprocessing metadata
         g_pre = f.create_group("metadata/preprocessing")
         if total_valid_samples > 0:
             global_mean = sum_lnmu / total_valid_samples
@@ -137,8 +163,8 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
         g_pre.attrs["lnmu_mean"] = global_mean
         g_pre.attrs["lnmu_std"] = global_std
-        g_pre.attrs["lnmu_min"] = float(np.nanmin(lnmu_array)) if total_valid_samples > 0 else 0.0
-        g_pre.attrs["lnmu_max"] = float(np.nanmax(lnmu_array)) if total_valid_samples > 0 else 0.0
+        g_pre.attrs["lnmu_min"] = float(min_lnmu) if min_lnmu is not None else 0.0
+        g_pre.attrs["lnmu_max"] = float(max_lnmu) if max_lnmu is not None else 0.0
 
         for k in ['z', 'h', 'OmegaM', 'sigma8']:
             g_pre.attrs[f"{k}_mean"] = float(np.mean(params[k]))
@@ -148,13 +174,16 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
         g_pre.attrs["recommended_transform"] = "standardize"
 
-        # Resources metadata (Task 3)
+        # Resources metadata
         g_res = f.create_group("metadata/resources")
         g_res.attrs["generation_time_sec"] = sim_time
         g_res.attrs["throughput_samples_per_sec"] = total_valid_samples / sim_time if sim_time > 0 else 0
         g_res.attrs["mem_before_mb"] = mem_before
         g_res.attrs["mem_after_mb"] = mem_after
-        g_res.attrs["cpu_count"] = psutil.cpu_count()
+        g_res.attrs["peak_memory_proxy_mb"] = np.nanmax([mem_before, mem_after]) if not (np.isnan(mem_before) and np.isnan(mem_after)) else np.nan
+        g_res.attrs["cpu_count"] = cpu_count if cpu_count is not None else -1
+        g_res.attrs["total_valid_samples"] = int(total_valid_samples)
+        g_res.attrs["valid_fraction"] = float(total_valid_samples / (num_points * nsamples_per_point)) if num_points > 0 and nsamples_per_point > 0 else 0.0
 
         # General metadata
         g_meta = f["metadata"]
@@ -224,7 +253,7 @@ def main():
             continue
         split_params = {k: v[mask] for k, v in params.items()}
         out_file = os.path.join(args.output_dir, split_name, f"dataset_{split_name}.h5")
-        split_seed = None if args.seed is None else args.seed + hash(split_name) % 10000
+        split_seed = None if args.seed is None else args.seed + SPLIT_SEED_OFFSETS[split_name]
         generate_dataset_split(split_params, split_name, out_file, args.nsamples, split_seed, args)
 
 if __name__ == "__main__":
