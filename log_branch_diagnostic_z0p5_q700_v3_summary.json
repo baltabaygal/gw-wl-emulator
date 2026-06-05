@@ -1,0 +1,40 @@
+{
+  "full_unwrapped_band": {
+    "fixed_floor": 5.960518485643534,
+    "max_residual": 10.678859037680537,
+    "mc_floor": 0.0,
+    "mean_residual": 5.794094113050295,
+    "median_100k": 5.952207222807719,
+    "median_400k": 5.960518485643534,
+    "median_residual": 5.960518485643534,
+    "n_modes": 701,
+    "ratio_to_mc": null
+  },
+  "input_100k": "kappa_generator_exactpoisson_z0p5_N100k_q700_nu2048.npz",
+  "input_400k": "kappa_generator_exactpoisson_z0p5_N400k_q700_nu2048.npz",
+  "pre_winding_band": {
+    "unwrapped": {
+      "fixed_floor": 5.463012440106588,
+      "max_residual": 9.829897740357596,
+      "mc_floor": 0.0,
+      "mean_residual": 5.296531402532484,
+      "median_100k": 5.453629056016723,
+      "median_400k": 5.463012440106588,
+      "median_residual": 5.463012440106588,
+      "n_modes": 631,
+      "ratio_to_mc": null
+    },
+    "wrapped": {
+      "fixed_floor": 6.2672101695725715,
+      "max_residual": 6.287464594682513,
+      "mc_floor": 0.5117894488218054,
+      "mean_residual": 4.578683489626779,
+      "median_100k": 6.288072180686159,
+      "median_400k": 6.272432177359528,
+      "median_residual": 6.272432177359528,
+      "n_modes": 631,
+      "ratio_to_mc": 12.255884117578711
+    }
+  },
+  "q_wind": 632.0
+}

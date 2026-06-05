@@ -1,0 +1,9 @@
+{
+  "Nhalos": 100,
+  "kappa_max": 0.026512278179404252,
+  "kappa_threshold": 3.794037005449794e-05,
+  "n_u": 512,
+  "near_threshold_loglog_slope": -0.5215055516577071,
+  "total_weight": 99.45605553438325,
+  "z": 0.5
+}

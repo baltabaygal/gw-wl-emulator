@@ -7,6 +7,11 @@ except Exception:
     gw = None
 
 
+trapz = getattr(np, "trapezoid", None)
+if trapz is None:
+    trapz = np.trapz
+
+
 def make_x_grid(xmax=4.0, n=4096):
     dx = 2.0 * xmax / n
     x = (np.arange(n) - n // 2) * dx
@@ -27,7 +32,7 @@ def lnmu_to_px(lnmu, x_grid):
     edges = np.concatenate(([x_grid[0] - dx / 2.0], 0.5 * (x_grid[:-1] + x_grid[1:]), [x_grid[-1] + dx / 2.0]))
     hist, _ = np.histogram(lnmu, bins=edges, density=True)
     p = hist.astype(float)
-    norm = np.trapz(p, x_grid)
+    norm = trapz(p, x_grid)
     if norm > 0:
         p /= norm
     return p
@@ -55,8 +60,8 @@ def validate_redshift(z, **sampler_kwargs):
     return {
         "z": float(z),
         "n_samples": int(lnmu.size),
-        "norm": float(np.trapz(p_x, x)),
-        "mean_mu": float(np.trapz(mu * p_x, x)),
+        "norm": float(trapz(p_x, x)),
+        "mean_mu": float(trapz(mu * p_x, x)),
         "phi0_real": float(np.real(phi[0])),
         "phi0_imag": float(np.imag(phi[0])),
         "reliable_modes": int(np.count_nonzero(np.abs(phi) > 2e-2)),

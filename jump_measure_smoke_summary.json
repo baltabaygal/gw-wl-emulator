@@ -1,0 +1,32 @@
+{
+  "Nhalos": 100,
+  "Nreal": 200,
+  "bias": false,
+  "ell": false,
+  "exact_poisson": true,
+  "filaments": false,
+  "fit_power_law": {
+    "A": 3.8616872036383795e-05,
+    "alpha": 1.0774952397418627,
+    "sse_log": 16.48209785178504
+  },
+  "fit_stretched_exponential": {
+    "A": 1422.0911289580588,
+    "p": 0.3,
+    "sse_log": 91.94842381045267,
+    "xi_c": 1.4980964941495643e-05
+  },
+  "fit_truncated_power_law": {
+    "A": 1.2466571514618029e-05,
+    "alpha": 1.2508833504957493,
+    "sse_log": 12.007497338512747,
+    "xi_c": Infinity
+  },
+  "n_events_good_mu": 20006,
+  "n_events_total": 20006,
+  "n_filament_events": 0,
+  "n_halo_events": 20006,
+  "tail_quantile": 0.8,
+  "tail_xi_min": 0.0003538608579689942,
+  "z": 0.5
+}

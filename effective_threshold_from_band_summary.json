@@ -1,0 +1,34 @@
+{
+  "note": "Using |P_hat| ~= exp(z*Re[Lambda]) from stored transport spectra. Gamma interpolation is linear in log(kappa_thr) using nu_threshold_sweep_z1.json.",
+  "mask_levels": [
+    0.1,
+    0.05,
+    0.02
+  ],
+  "rows": [
+    {
+      "mask_threshold": 0.1,
+      "joint_modes": 22,
+      "k_max": 17.278759594744,
+      "kappa_thr_eff": 0.02893726238034438,
+      "gamma_pred_implied": 2.0276523208020523,
+      "gamma_obs": 1.46
+    },
+    {
+      "mask_threshold": 0.05,
+      "joint_modes": 26,
+      "k_max": 20.420352248334,
+      "kappa_thr_eff": 0.024485375860291175,
+      "gamma_pred_implied": 1.9054714915587987,
+      "gamma_obs": 1.46
+    },
+    {
+      "mask_threshold": 0.02,
+      "joint_modes": 26,
+      "k_max": 20.420352248334,
+      "kappa_thr_eff": 0.024485375860291175,
+      "gamma_pred_implied": 1.9054714915587987,
+      "gamma_obs": 1.46
+    }
+  ]
+}

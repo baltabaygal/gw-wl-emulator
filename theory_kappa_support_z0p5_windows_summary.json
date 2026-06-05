@@ -1,0 +1,33 @@
+{
+  "Nhalos": 100,
+  "kappa_max": 0.026512278179404252,
+  "kappa_threshold": 3.794037005449794e-05,
+  "n_u": 512,
+  "near_threshold_loglog_slope": NaN,
+  "total_weight": 99.45605553438325,
+  "window_fits": {
+    "1p0_to_1p1": null,
+    "1p0_to_1p2": {
+      "alpha": 0.07535898780075477,
+      "kappa_max": 4.5528444065397526e-05,
+      "kappa_min": 3.794037005449794e-05,
+      "log_amplitude": 13.655221484191355,
+      "n_points": 4
+    },
+    "1p0_to_1p5": {
+      "alpha": 0.2203570863270354,
+      "kappa_max": 5.691055508174691e-05,
+      "kappa_min": 3.794037005449794e-05,
+      "log_amplitude": 11.758915295666894,
+      "n_points": 10
+    },
+    "1p0_to_2p0": {
+      "alpha": 0.36014541707205183,
+      "kappa_max": 7.588074010899588e-05,
+      "kappa_min": 3.794037005449794e-05,
+      "log_amplitude": 10.017530443326347,
+      "n_points": 17
+    }
+  },
+  "z": 0.5
+}

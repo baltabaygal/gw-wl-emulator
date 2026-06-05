@@ -1,0 +1,22 @@
+{
+  "Nhalos": 100,
+  "Nreal": 100000,
+  "OmegaM": 0.315,
+  "corr_imag_reliable": 0.9999645363281185,
+  "corr_real_reliable": 0.9974281026106859,
+  "h": 0.674,
+  "max_abs_error_reliable": 0.041478656339183885,
+  "max_rel_error_reliable": 0.0676748931865249,
+  "mean_kappa_raw": 0.021455193875550085,
+  "median_abs_error_reliable": 0.024176076838056382,
+  "median_rel_error_reliable": 0.05983847508808528,
+  "n_u": 256,
+  "nq": 101,
+  "phi_floor": 0.02,
+  "qmax": 40.0,
+  "reliable_modes": 101,
+  "seed": 123,
+  "sigma8": 0.811,
+  "std_kappa_raw": 0.011386338308800063,
+  "z": 0.5
+}

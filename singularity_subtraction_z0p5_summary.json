@@ -1,0 +1,22 @@
+{
+  "A": 2583469.3213896197,
+  "Nhalos": 100,
+  "Nreal": 100000,
+  "alpha": -0.006106912572086274,
+  "fit_window_multiplier": 1.1,
+  "hist_mode": {
+    "corr_abs_delta_vs_abs_q": 0.9930767706380808,
+    "high_to_low_ratio": 4.09002145702019,
+    "max_abs_error_reliable": 0.025412889143531438,
+    "median_abs_error_reliable": 0.015495547389294552
+  },
+  "kappa_c": 3.794037005449794e-05,
+  "n_u": 512,
+  "subtracted_mode": {
+    "corr_abs_delta_vs_abs_q": -0.796200490889694,
+    "high_to_low_ratio": 0.637351523704657,
+    "max_abs_error_reliable": 637323.8134091991,
+    "median_abs_error_reliable": 478081.74400784157
+  },
+  "z": 0.5
+}

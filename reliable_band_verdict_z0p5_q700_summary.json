@@ -1,0 +1,72 @@
+{
+  "exact_poisson": true,
+  "input_npz": "kappa_generator_exactpoisson_z0p5_N400k_q700_nu2048.npz",
+  "rows": [
+    {
+      "corr_absq_absres": 0.8611726470341504,
+      "delta_fixed_median": 0.010026603139752531,
+      "delta_mc_median": 0.0,
+      "max_abs_error": 6.28534028843667,
+      "mean_abs_error": 2.8104414072383013,
+      "median_abs_error": 0.010026603139752531,
+      "median_to_mc_ratio": null,
+      "n_modes": 307,
+      "phi_threshold": 0.3,
+      "res100_median": 0.009401388039977233,
+      "res400_median": 0.010026603139752531
+    },
+    {
+      "corr_absq_absres": 0.8588802938636034,
+      "delta_fixed_median": 6.28179646311195,
+      "delta_mc_median": 0.1620348788004158,
+      "max_abs_error": 6.287464594682513,
+      "mean_abs_error": 3.553258682610449,
+      "median_abs_error": 6.282346974035902,
+      "median_to_mc_ratio": 38.77157202539149,
+      "n_modes": 389,
+      "phi_threshold": 0.2,
+      "res100_median": 6.283885908091717,
+      "res400_median": 6.282318889506706
+    },
+    {
+      "corr_absq_absres": 0.8087105907689167,
+      "delta_fixed_median": 6.278683742895237,
+      "delta_mc_median": 0.3251332236541657,
+      "max_abs_error": 6.287464594682513,
+      "mean_abs_error": 4.26076196317544,
+      "median_abs_error": 6.280787963828892,
+      "median_to_mc_ratio": 19.317582784186875,
+      "n_modes": 529,
+      "phi_threshold": 0.1,
+      "res100_median": 6.287096401075833,
+      "res400_median": 6.280787963828892
+    },
+    {
+      "corr_absq_absres": 0.7930279373813476,
+      "delta_fixed_median": 6.269045128816907,
+      "delta_mc_median": 0.4910072145935208,
+      "max_abs_error": 12.55927675997112,
+      "mean_abs_error": 4.8753353987746575,
+      "median_abs_error": 6.274386540526994,
+      "median_to_mc_ratio": 12.778603560278091,
+      "n_modes": 653,
+      "phi_threshold": 0.05,
+      "res100_median": 6.288244183548049,
+      "res400_median": 6.273850400538628
+    },
+    {
+      "corr_absq_absres": 0.8329371609741185,
+      "delta_fixed_median": 6.274858581104932,
+      "delta_mc_median": 0.428228706237578,
+      "max_abs_error": 12.58367181545618,
+      "mean_abs_error": 5.358466347177417,
+      "median_abs_error": 6.278510585248517,
+      "median_to_mc_ratio": 14.66158268653117,
+      "n_modes": 701,
+      "phi_threshold": 0.02,
+      "res100_median": 6.289453874360802,
+      "res400_median": 6.278510585248517
+    }
+  ],
+  "theory_mode": "midpoint"
+}

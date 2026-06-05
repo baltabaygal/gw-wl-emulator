@@ -1,0 +1,52 @@
+{
+  "edge_abs_delta_inf": 0.012286800223133634,
+  "input_npz": "kappa_generator_exactpoisson_z0p5_hiN.npz",
+  "input_summary_json": "kappa_generator_exactpoisson_z0p5_hiN_summary.json",
+  "max_abs_delta_inf_reliable": 0.012286800223133634,
+  "median_abs_delta_inf_reliable": 0.006063495467896941,
+  "n_u_values": [
+    128,
+    256,
+    512,
+    1024,
+    2048
+  ],
+  "q_at_edge": -40.0,
+  "records": [
+    {
+      "edge_abs_error": 0.06987354707146759,
+      "edge_abs_theory_to_inf": 0.07093192634633426,
+      "median_abs_error_reliable": 0.03948426704538666,
+      "median_abs_theory_to_inf_reliable": 0.03645501262606988,
+      "n_u": 128
+    },
+    {
+      "edge_abs_error": 0.04329193126427911,
+      "edge_abs_theory_to_inf": 0.04198040037212431,
+      "median_abs_error_reliable": 0.025206790116354547,
+      "median_abs_theory_to_inf_reliable": 0.021639873266575523,
+      "n_u": 256
+    },
+    {
+      "edge_abs_error": 0.02522952726611626,
+      "edge_abs_theory_to_inf": 0.0212139646756096,
+      "median_abs_error_reliable": 0.015309659357637437,
+      "median_abs_theory_to_inf_reliable": 0.011152550630704876,
+      "n_u": 512
+    },
+    {
+      "edge_abs_error": 0.013630894081286175,
+      "edge_abs_theory_to_inf": 0.007624003101412371,
+      "median_abs_error_reliable": 0.008855692568191683,
+      "median_abs_theory_to_inf_reliable": 0.004211961279866661,
+      "n_u": 1024
+    },
+    {
+      "edge_abs_error": 0.006542031428283936,
+      "edge_abs_theory_to_inf": 0.00583104174000952,
+      "median_abs_error_reliable": 0.004879369148045652,
+      "median_abs_theory_to_inf_reliable": 0.0015160636524682346,
+      "n_u": 2048
+    }
+  ]
+}

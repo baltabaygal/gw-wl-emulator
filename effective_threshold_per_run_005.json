@@ -1,0 +1,112 @@
+{
+  "summary": {
+    "mask_threshold": 0.05,
+    "n_runs": 12,
+    "kappa_eff_median": 0.0235785100876882,
+    "kappa_eff_mean": 0.02309484834229972,
+    "kappa_eff_p25": 0.02122065907891938,
+    "kappa_eff_p75": 0.024485375860291588,
+    "gamma_from_median_kappa": 1.8778687868530037,
+    "gamma_from_mean_kappa": 1.8627100086723256,
+    "gamma_implied_median_over_runs": 1.8778687868530037,
+    "gamma_implied_mean_over_runs": 1.8613833262303323
+  },
+  "rows": [
+    {
+      "sigma8": 0.75,
+      "z": 0.5,
+      "joint_modes_run": 30,
+      "k_max": 23.561944901923447,
+      "kappa_eff": 0.02122065907891938,
+      "gamma_implied": 1.800809700279183
+    },
+    {
+      "sigma8": 0.75,
+      "z": 1.0,
+      "joint_modes_run": 30,
+      "k_max": 23.561944901923447,
+      "kappa_eff": 0.02122065907891938,
+      "gamma_implied": 1.800809700279183
+    },
+    {
+      "sigma8": 0.75,
+      "z": 2.0,
+      "joint_modes_run": 30,
+      "k_max": 23.561944901923447,
+      "kappa_eff": 0.02122065907891938,
+      "gamma_implied": 1.800809700279183
+    },
+    {
+      "sigma8": 0.75,
+      "z": 5.0,
+      "joint_modes_run": 30,
+      "k_max": 23.561944901923447,
+      "kappa_eff": 0.02122065907891938,
+      "gamma_implied": 1.800809700279183
+    },
+    {
+      "sigma8": 0.81,
+      "z": 0.5,
+      "joint_modes_run": 27,
+      "k_max": 21.205750411731103,
+      "kappa_eff": 0.0235785100876882,
+      "gamma_implied": 1.8778687868530037
+    },
+    {
+      "sigma8": 0.81,
+      "z": 1.0,
+      "joint_modes_run": 27,
+      "k_max": 21.205750411731103,
+      "kappa_eff": 0.0235785100876882,
+      "gamma_implied": 1.8778687868530037
+    },
+    {
+      "sigma8": 0.81,
+      "z": 2.0,
+      "joint_modes_run": 27,
+      "k_max": 21.205750411731103,
+      "kappa_eff": 0.0235785100876882,
+      "gamma_implied": 1.8778687868530037
+    },
+    {
+      "sigma8": 0.81,
+      "z": 5.0,
+      "joint_modes_run": 27,
+      "k_max": 21.205750411731103,
+      "kappa_eff": 0.0235785100876882,
+      "gamma_implied": 1.8778687868530037
+    },
+    {
+      "sigma8": 0.87,
+      "z": 0.5,
+      "joint_modes_run": 26,
+      "k_max": 20.420352248333657,
+      "kappa_eff": 0.024485375860291588,
+      "gamma_implied": 1.9054714915588111
+    },
+    {
+      "sigma8": 0.87,
+      "z": 1.0,
+      "joint_modes_run": 26,
+      "k_max": 20.420352248333657,
+      "kappa_eff": 0.024485375860291588,
+      "gamma_implied": 1.9054714915588111
+    },
+    {
+      "sigma8": 0.87,
+      "z": 2.0,
+      "joint_modes_run": 26,
+      "k_max": 20.420352248333657,
+      "kappa_eff": 0.024485375860291588,
+      "gamma_implied": 1.9054714915588111
+    },
+    {
+      "sigma8": 0.87,
+      "z": 5.0,
+      "joint_modes_run": 26,
+      "k_max": 20.420352248333657,
+      "kappa_eff": 0.024485375860291588,
+      "gamma_implied": 1.9054714915588111
+    }
+  ]
+}

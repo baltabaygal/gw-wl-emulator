@@ -1,0 +1,11 @@
+{
+  "abs_delta_vs_abs_q_corr": 0.9702218081007375,
+  "abs_delta_vs_abs_q_slope": 0.00015107992878289668,
+  "high_to_low_median_ratio": 2.979270615350555,
+  "input_npz": "kappa_generator_exactpoisson_z0p5_N400k_nu2048.npz",
+  "max_abs_delta": 0.006287695789846427,
+  "median_abs_delta_high_q": 0.005947752345073986,
+  "median_abs_delta_low_q": 0.001996378682227947,
+  "q_at_max_abs_delta": 40.0,
+  "reliable_nonzero_modes": 100
+}

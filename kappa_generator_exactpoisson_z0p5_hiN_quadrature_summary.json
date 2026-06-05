@@ -1,0 +1,42 @@
+{
+  "input_npz": "kappa_generator_exactpoisson_z0p5_hiN.npz",
+  "input_summary_json": "kappa_generator_exactpoisson_z0p5_hiN_summary.json",
+  "records": [
+    {
+      "edge_abs_error": 0.10665569653830351,
+      "edge_q": -40.0,
+      "max_abs_error_reliable": 0.10665569653830351,
+      "median_abs_error_reliable": 0.05886343766363948,
+      "n_u": 64
+    },
+    {
+      "edge_abs_error": 0.06987354707146759,
+      "edge_q": -40.0,
+      "max_abs_error_reliable": 0.06987354707146759,
+      "median_abs_error_reliable": 0.03948426704538666,
+      "n_u": 128
+    },
+    {
+      "edge_abs_error": 0.04329193126427911,
+      "edge_q": -40.0,
+      "max_abs_error_reliable": 0.04329193126427911,
+      "median_abs_error_reliable": 0.025206790116354547,
+      "n_u": 256
+    },
+    {
+      "edge_abs_error": 0.02522952726611626,
+      "edge_q": -40.0,
+      "max_abs_error_reliable": 0.02522952726611626,
+      "median_abs_error_reliable": 0.015309659357637437,
+      "n_u": 512
+    },
+    {
+      "edge_abs_error": 0.013630894081286175,
+      "edge_q": -40.0,
+      "max_abs_error_reliable": 0.013630894081286175,
+      "median_abs_error_reliable": 0.008855692568191683,
+      "n_u": 1024
+    }
+  ],
+  "reference_n_u": 1024
+}

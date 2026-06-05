@@ -488,7 +488,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     }
                     
                     // generate halos
-                    if (lambda*barNH < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
+                    if (cfg.exact_poisson == 0 && lambda*barNH < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
                         if (lambda*barNH > randomreal(0.0, 1.0, mt)) {
                             if (cfg.ell > 0) {
                                 epsilon = epsilonNFW(C, zl, M); // pseudo ellipsity of the halo
@@ -530,7 +530,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     
                     if (cfg.fil > 0) {
                         // generate filaments
-                        if (lambda*barNF < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
+                        if (cfg.exact_poisson == 0 && lambda*barNF < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
                             if (lambda*barNF > randomreal(0.0, 1.0, mt)) {
                                 r = sqrt(randomreal(0.0,1.0,mt))*rmaxF; // distance from the line-of-sight
                                 phi = randomreal(0.0,2*PI,mt); // polar angle of r vector
@@ -571,6 +571,105 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     }
     
     return raw;
+}
+
+vector<lensing::EventRecord> lensing::sample_lensing_events_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
+
+    function<double(double)> NfNFW = [&C, zs](double kappa) {
+        return NhfNFW(C, zs, kappa);
+    };
+    double kappathrH = findkappathr(cfg.Nhalos, NfNFW);
+
+    vector<vector<vector<double> > > dNH = deltaNhfNFW(C, zs, kappathrH);
+    vector<vector<vector<double> > > dNF = deltaNhfCYL(C, zs, kappathrH);
+
+    vector<EventRecord> events;
+    events.reserve(static_cast<size_t>(cfg.Nreal) * static_cast<size_t>(cfg.Nhalos + 8));
+
+    vector<double> kappagamma;
+    normal_distribution<double> pG(0.0, 1.0);
+    poisson_distribution<int> PN;
+    double zl, M, rmaxH, rmaxF, r, phi, phiH, phiF, epsilon = 0.0, barNH, barNF, sigma, deltab, lambda;
+    int NH, NF;
+
+    for (int jz = 0; jz < C.Nz; jz++) {
+        zl = C.zlist[jz];
+        if (zl < zs) {
+            for (int jM = 0; jM < C.NM; jM++) {
+                M = C.Mlist[jM];
+
+                barNH = dNH[jz][jM][0];
+                sigma = dNH[jz][jM][1];
+                rmaxH = dNH[jz][jM][2];
+
+                barNF = dNF[jz][jM][0];
+                rmaxF = dNF[jz][jM][2];
+
+                for (int j = 0; j < cfg.Nreal; j++) {
+
+                    deltab = sigma*pG(mt);
+                    lambda = exp(deltab - pow(sigma,2.0)/2.0);
+                    if (cfg.bias == 0) {
+                        lambda = 1.0;
+                    }
+
+                    if (cfg.exact_poisson == 0 && lambda*barNH < 0.2) {
+                        if (lambda*barNH > randomreal(0.0, 1.0, mt)) {
+                            if (cfg.ell > 0) {
+                                epsilon = epsilonNFW(C, zl, M);
+                            }
+                            r = sqrt(randomreal(0.0,1.0,mt))*rmaxH;
+                            phi = randomreal(0.0,2*PI,mt);
+                            phiH = randomreal(0.0,2*PI,mt);
+                            kappagamma = kappagammaNFW(C, zs, zl, r, M, phiH, epsilon);
+                            events.push_back({j, 0, zl, M, r, kappagamma[0], cos(phi)*kappagamma[1], sin(phi)*kappagamma[1]});
+                        }
+                    } else {
+                        PN = poisson_distribution<int>(lambda*barNH);
+                        NH = PN(mt);
+                        if (NH > 0) {
+                            if (cfg.ell > 0) {
+                                epsilon = epsilonNFW(C, zl, M);
+                            }
+                            for (int jH = 0; jH < NH; jH++) {
+                                r = sqrt(randomreal(0.0,1.0,mt))*rmaxH;
+                                phi = randomreal(0.0,2*PI,mt);
+                                phiH = randomreal(0.0,2*PI,mt);
+                                kappagamma = kappagammaNFW(C, zs, zl, r, M, phiH, epsilon);
+                                events.push_back({j, 0, zl, M, r, kappagamma[0], cos(phi)*kappagamma[1], sin(phi)*kappagamma[1]});
+                            }
+                        }
+                    }
+
+                    if (cfg.fil > 0) {
+                        if (cfg.exact_poisson == 0 && lambda*barNF < 0.2) {
+                            if (lambda*barNF > randomreal(0.0, 1.0, mt)) {
+                                r = sqrt(randomreal(0.0,1.0,mt))*rmaxF;
+                                phi = randomreal(0.0,2*PI,mt);
+                                phiF = randomreal(0.0,2*PI,mt);
+                                kappagamma = kappagammaCYL(C, zs, zl, r, M, phiF);
+                                events.push_back({j, 1, zl, M, r, kappagamma[0], cos(phi)*kappagamma[1], sin(phi)*kappagamma[1]});
+                            }
+                        } else {
+                            PN = poisson_distribution<int>(lambda*barNF);
+                            NF = PN(mt);
+                            if (NF > 0) {
+                                for (int jF = 0; jF < NF; jF++) {
+                                    r = sqrt(randomreal(0.0,1.0,mt))*rmaxF;
+                                    phi = randomreal(0.0,2*PI,mt);
+                                    phiF = randomreal(0.0,2*PI,mt);
+                                    kappagamma = kappagammaCYL(C, zs, zl, r, M, phiF);
+                                    events.push_back({j, 1, zl, M, r, kappagamma[0], cos(phi)*kappagamma[1], sin(phi)*kappagamma[1]});
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return events;
 }
 
 
