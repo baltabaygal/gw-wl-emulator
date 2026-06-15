@@ -341,26 +341,30 @@ double Q(double S, double St, double z) {
 }
 */
 
-// star formation rate f_*(M) and its derivative df_*/dM
+// star formation rate f_*(M)
 double cosmology::fstar(double z, double M, double Mc, double Mt, double epsilon, double alpha, double beta) {
     double Mtz = Mt*pow((1.0+z)/10.0,-3.0/2.0);
+    double x = Mtz/M;
+    double expcut = exp(-1.0/sqrt(pow(x,-2.0) + pow(50.0,-2.0))); // regulated version of e^(-Mtz/M)
     if (alpha>0.0 && beta>0.0) {
-        return epsilon*(alpha+beta)/(beta*pow(M/Mc,-alpha) + alpha*pow(M/Mc,beta))*exp(-Mtz/M);
+        return epsilon*(alpha+beta)/(beta*pow(M/Mc,-alpha) + alpha*pow(M/Mc,beta))*expcut;
     }
-    return epsilon*exp(-Mtz/M);
+    return epsilon*expcut;
 }
+
+// (df_*/dM)/f_*
 double cosmology::Dfstarperfstar(double z, double M, double Mc, double Mt, double epsilon, double alpha, double beta) {
     double Mtz = Mt*pow((1.0+z)/10.0,-3.0/2.0);
     if (alpha>0.0 && beta>0.0) {
-        return beta*((alpha+beta)/(alpha*pow(M/Mc,alpha+beta)+beta) - 1.0)/M + Mtz/pow(M,2.0);
+        return Mtz/pow(M,2.0) + (beta*alpha/M - alpha*beta/M)/(beta*pow(M/Mc,-alpha) + alpha*pow(M/Mc,beta));
     }
     return Mtz/pow(M,2.0);
 }
 
 // halo concentration parameter (1402.7073)
-double cosmology::cons14(double z0, double M) {
-    double a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z0,1.21));
-    double b = -0.101 + 0.026*z0;
+double cosmology::cons14(double z, double M) {
+    double a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z,1.21));
+    double b = -0.101 + 0.026*z;
     
     return pow(10.0, a + b*log10(M/(1.0e12/h)));
 }
@@ -415,23 +419,25 @@ vector<vector<vector<double> > > cosmology::conslistf() {
 vector<vector<vector<double> > > cosmology::NFWlistf() {
     vector<vector<vector<double> > > NFWparams(Nz, vector<vector<double> > (NM, vector<double> (3,0.0)));
     
-    double z, M, c, Dc, r200, rs, rhos;
+    double z, rhoz, M, c, Dc, r200, rs, rhos;
     vector<double> zMc(2,0.0);
     for (int jz = 0; jz < Nz; jz++) {
         z = zlist[jz];
+        rhoz = Az(z)*rhoc;
+        
         for (int jM = 0; jM < NM; jM++) {
             M = Mlist[jM];
             
             zMc = conslist[jz][jM];
             c = zMc[0];
             
-            r200 = pow(3.0*M/(4.0*PI*200*rhoc),1.0/3.0);
+            r200 = pow(3.0*M/(4.0*PI*200*rhoz),1.0/3.0);
             rs =  r200/c;
-            rhos = 200*rhoc*pow(c,3.0)*(1+c)/(3.0*((1+c)*log(1+c) - c));
+            rhos = 200*rhoz*pow(c,3.0)*(1+c)/(3.0*((1+c)*log(1+c) - c));
             
             /*
             Dc = zMc[1];
-            Dr200 = 3.0/(4.0*PI*200*rhoc)*pow(3.0*M/(4.0*PI*200*rhoc),-2.0/3.0);
+            Dr200 = 3.0/(4.0*PI*200*rhoz)*pow(3.0*M/(4.0*PI*200*rhoz),-2.0/3.0);
             Drs =  Dr200/c - r200*Dc/pow(c,2.0);
             Drhos = Dc*pow(c,2.0)*(-c*(3+4*c) + 3*pow(1+c,2.0)*log(1+c))/(3.0*pow(c-(1+c)*log(1+c),2.0));
             */

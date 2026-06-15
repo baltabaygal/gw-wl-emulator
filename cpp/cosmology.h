@@ -118,7 +118,7 @@ private:
         return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TM(k),2.0));
     }
     double Plin(double z, double k, double deltaH) {
-        return pow(Deltak(k, deltaH)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(Deltak(k, deltaH)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // FDM matter power spectrum
@@ -126,7 +126,7 @@ private:
         return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMF(k,m22),2.0));
     }
     double PlinF(double z, double k, double deltaH, double m22) {
-        return pow(DeltakF(k, deltaH, m22)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakF(k, deltaH, m22)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // WDM matter power spectrum
@@ -134,7 +134,7 @@ private:
         return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMW(k,m3),2.0));
     }
     double PlinW(double z, double k, double deltaH, double m3) {
-        return pow(DeltakW(k, deltaH, m3)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakW(k, deltaH, m3)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // white noise enhanced matter power spectrum
@@ -142,14 +142,20 @@ private:
         return Deltak(k, deltaH) + pow(k/kc,3.0)*Deltak(kc, deltaH);
     }
     double PlinE(double z, double k, double deltaH, double kc) {
-        return pow(DeltakE(k, deltaH, kc)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakE(k, deltaH, kc)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
-    vector<vector<double> > DeltaBlist;
+    vector<double> kBlist;
+    vector<vector<double> > logDeltaBlist;
     
     // magnetic field enhanced matter power spectrum
     double DeltakB(double k, double deltaH, double B) {
-        return sqrt(pow(Deltak(k, deltaH),2.0) + pow(interpolate(k/h*1000.0, DeltaBlist),2.0));
+        double kmin = kBlist.front()*h/1000.0;
+        double kmax = kBlist.back()*h/1000.0;
+        if (k > kmin && k < kmax) {
+            return sqrt(pow(10.0, 2.0*interpolate2(B, k/h*1000.0, Blist, kBlist, logDeltaBlist)) + pow(Deltak(k, deltaH),2.0));
+        }
+        return Deltak(k, deltaH);
     }
     double PlinB(double z, double k, double deltaH, double B) {
         return pow(DeltakB(k, deltaH, B)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
@@ -272,6 +278,11 @@ public:
     vector<vector<vector<vector<double> > > > EDMHMFlist;
     vector<vector<vector<double> > > EDMFMFlist;
     
+    vector<double> Blist;
+    vector<vector<vector<double> > > BDMsigmalist;
+    vector<vector<vector<vector<double> > > > BDMHMFlist;
+    vector<vector<vector<double> > > BDMFMFlist;
+    
     void initialize0() {
         
         // directory for output files
@@ -393,20 +404,65 @@ public:
             writeToFile(kclist, EDMsigmalist, outdir/"sigma_EDM.dat");
             writeToFile(kclist, zlist, Mlist, EDMHMFlist, outdir/"HMF_EDM.dat");
         }
-        if (dm == 4) {
-            double B = 0.2;
-            DeltaBlist = readdataCSV("PS_PMF.csv");
+        if (dm == 4 || dm == 5) {
+            // read Delta spectra for different B values and extract list of B and k values
+            vector<vector<double> > tmp  = readdata(outdir/"DeltaBinf.dat",3);
+            if (dm == 5) {
+                tmp  = readdata(outdir/"DeltaBpt.dat",3);
+            }
             
-            // fix deltaH to match the input sigma8
-            deltaH8 = sigma8/sigmaB(M8, 1.0, B)[0];
-                        
-            // halo mass function and halo growth rate
-            sigmalist = sigmalistf(0.0, 0.0, 0.0, B);
-            HMFlist = HMFlistf();
-            halobiaslist = halobiaslistf();
+            set<double> xs, ys;
+            for (const auto &row : tmp) {
+                xs.insert(row[0]);
+                ys.insert(row[1]);
+            }
+            Blist.assign(xs.begin(), xs.end());
+            kBlist.assign(ys.begin(), ys.end());
             
-            writeToFile(sigmalist, outdir/"sigma_B.dat");
-            writeToFile(zlist, Mlist, HMFlist, outdir/"HMF_B.dat");
+            xs.clear(); ys.clear();
+            map<double,int> x_index, y_index;
+            for (int i = 0; i < Blist.size(); ++i) {
+                x_index[Blist[i]] = i;
+            }
+            for (int j = 0; j < kBlist.size(); ++j) {
+                y_index[kBlist[j]] = j;
+            }
+
+            vector<vector<double> > tmp2(Blist.size(), vector<double>(kBlist.size()));
+            for (const auto &row : tmp) {
+                double x = row[0];
+                double y = row[1];
+                double z = row[2];
+                
+                int jx = x_index[x];
+                int jy = y_index[y];
+
+                tmp2[jx][jy] = log10(z);
+            }
+            logDeltaBlist = tmp2;
+            tmp.clear(); tmp2.clear();
+            
+            for (double B : Blist) {
+                // fix deltaH to match the input sigma8
+                deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
+                                
+                // halo mass function and halo growth rate
+                sigmalist = sigmalistf(0.0, 0.0, 0.0, B);
+                HMFlist = HMFlistf();
+                halobiaslist = halobiaslistf();
+                
+                BDMsigmalist.push_back(sigmalist);
+                BDMHMFlist.push_back(HMFlist);
+            }
+            
+            if (dm == 4) {
+                writeToFile(Blist, BDMsigmalist, outdir/"sigma_Binf.dat");
+                writeToFile(Blist, zlist, Mlist, BDMHMFlist, outdir/"HMF_Binf.dat");
+            }
+            if (dm == 5) {
+                writeToFile(Blist, BDMsigmalist, outdir/"sigma_Bpt.dat");
+                writeToFile(Blist, zlist, Mlist, BDMHMFlist, outdir/"HMF_Bpt.dat");
+            }
         }
     }
     
@@ -438,11 +494,8 @@ public:
             HMFlist = HMFlistf();
             halobiaslist = halobiaslistf();
         }
-        if (dm == 4) {
-            deltaH8 = sigma8/sigmaB(M8, 1.0, x)[0];
-            sigmalist = sigmalistf(0.0, 0.0, 0.0, x);
-            HMFlist = HMFlistf();
-            halobiaslist = halobiaslistf();
+        if (dm == 4 || dm == 5) {
+            cout << "not implemented..." << endl;
         }
     }
     

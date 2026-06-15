@@ -4,9 +4,10 @@ import argparse
 import h5py
 import numpy as np
 
-MIN_VALID_FRACTION = 0.95
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from config import DEFAULT_MIN_VALID_FRACTION
 
-def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
+def validate_dataset(filepath, min_valid_fraction=DEFAULT_MIN_VALID_FRACTION):
     print(f"Validating {filepath}...")
     try:
         with h5py.File(filepath, 'r') as f:
@@ -17,9 +18,11 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
                 "samples/h",
                 "samples/OmegaM",
                 "samples/sigma8",
+                "samples/split_type",
                 "metadata",
                 "metadata/preprocessing",
                 "metadata/invalid_stats",
+                "metadata/parameter_ranges",
             ]
             for path in required_paths:
                 assert path in f, f"Missing required path: {path}"
@@ -28,6 +31,7 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
             assert len(f['samples/h']) == num_points, "samples/h length mismatch"
             assert len(f['samples/OmegaM']) == num_points, "samples/OmegaM length mismatch"
             assert len(f['samples/sigma8']) == num_points, "samples/sigma8 length mismatch"
+            assert len(f['samples/split_type']) == num_points, "samples/split_type length mismatch"
 
             lnmu = f['samples/lnmu']
             assert lnmu.ndim == 2, "samples/lnmu must be 2D"
@@ -63,7 +67,14 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
 
             # Check metadata completeness
             meta = f['metadata']
-            for attr in ["split", "config_hash", "seed", "dataset_version", "nsamples_per_point"]:
+            split_name = meta.attrs.get("split")
+            
+            required_meta_attrs = [
+                "split", "config_hash", "seed", "dataset_version", 
+                "nsamples_per_point", "git_commit", "git_branch",
+                "dataset_schema_version", "generation_timestamp"
+            ]
+            for attr in required_meta_attrs:
                 assert attr in meta.attrs, f"Missing metadata attribute: {attr}"
 
             pre = f['metadata/preprocessing']
@@ -72,22 +83,38 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
 
             inv = f['metadata/invalid_stats']
             for attr in [
-                "total_samples",
-                "valid_samples",
-                "invalid_samples",
-                "negative_detA",
-                "nonfinite_mu",
-                "negative_mu",
-                "nan_kappa",
-                "nan_gamma",
-                "overflow_mu",
-                "invalid_logmu",
-                "invalid_fraction",
-                "detA_min",
-                "detA_max",
-                "detA_mean",
+                "total_samples", "valid_samples", "invalid_samples",
+                "negative_detA", "nonfinite_mu", "negative_mu",
+                "nan_kappa", "nan_gamma", "overflow_mu", "invalid_logmu",
+                "invalid_fraction", "detA_min", "detA_max", "detA_mean",
             ]:
                 assert attr in inv.attrs, f"Missing invalid_stats attribute: {attr}"
+
+            # Check parameter ranges group
+            pr = f['metadata/parameter_ranges']
+            for attr in ["z", "h", "OmegaM", "sigma8"]:
+                assert attr in pr.attrs, f"Missing parameter ranges attribute: {attr}"
+                val = pr.attrs[attr]
+                assert len(val) == 2
+                assert val[0] < val[1]
+
+            # Check split types dataset consistency
+            split_types = [s.decode('utf-8') if isinstance(s, bytes) else s for s in f['samples/split_type'][:]]
+            if split_name == "train":
+                assert all(t == "train" for t in split_types), f"Found non-train split_type in train split: {set(split_types)}"
+            elif split_name in ["validation", "test"]:
+                assert all(t in ["interpolation", "ood"] for t in split_types), f"Invalid split_type in {split_name}: {set(split_types)}"
+                
+                # Validate the boundaries
+                om = f['samples/OmegaM'][:]
+                s8 = f['samples/sigma8'][:]
+                for t, o_val, s_val in zip(split_types, om, s8):
+                    is_id = (0.20 <= o_val <= 0.40) and (0.65 <= s_val <= 1.05)
+                    is_ood = ((o_val > 0.40) and (s_val > 1.05)) or ((o_val < 0.20) and (s_val < 0.65))
+                    if t == "interpolation":
+                        assert is_id, f"split_type 'interpolation' but parameter outside ID range: OmegaM={o_val}, sigma8={s_val}"
+                    elif t == "ood":
+                        assert is_ood, f"split_type 'ood' but parameter outside True OoD range: OmegaM={o_val}, sigma8={s_val}"
 
             # Check duplicates using only conditioning parameters
             params = np.column_stack([f['samples/z'][:], f['samples/h'][:], f['samples/OmegaM'][:], f['samples/sigma8'][:]])
@@ -103,7 +130,7 @@ def validate_dataset(filepath, min_valid_fraction=MIN_VALID_FRACTION):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_dir", type=str, default="datasets")
-    parser.add_argument("--min_valid_fraction", type=float, default=MIN_VALID_FRACTION)
+    parser.add_argument("--min_valid_fraction", type=float, default=DEFAULT_MIN_VALID_FRACTION)
     args = parser.parse_args()
 
     all_valid = True

@@ -31,5 +31,5 @@ Thumbs.db
 # Local workspace-only folders
 .claude/
 
-datasets/
+datasets*/
 ml/plots/

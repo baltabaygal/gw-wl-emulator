@@ -101,5 +101,16 @@ def test_wasserstein_continuity():
 
     assert dist12 < dist13, f"Continuity violation: d(0.8, 0.801)={dist12} >= d(0.8, 0.9)={dist13}"
 
+def test_characteristic_function_normalization():
+    z, h, OmegaM, sigma8, nsamples, seed = 1.0, 0.674, 0.315, 0.811, 1000, 42
+    samples = gw.sample_lnmu_ml(z, h, OmegaM, sigma8, nsamples, seed)
+    samples = samples[~np.isnan(samples)]
+    assert len(samples) > 0, "No valid samples generated"
+    
+    # Compute P(0)
+    P0 = np.mean(np.exp(1j * 0.0 * samples))
+    assert np.abs(P0 - 1.0) < 1e-12
+
 if __name__ == "__main__":
     pytest.main([__file__])
+

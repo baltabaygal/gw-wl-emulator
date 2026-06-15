@@ -32,11 +32,46 @@ def get_git_commit():
     except Exception:
         return "unknown"
 
-def partition_samples(params_dict, num_points):
+def get_git_branch():
+    try:
+        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], stderr=subprocess.DEVNULL)
+        return branch.decode('utf-8').strip()
+    except Exception:
+        return "unknown"
+
+def simulate_config_worker(args_tuple):
+    z, h, om, s8, nsamples_per_point, seed, i = args_tuple
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
+    import gwlensing as gw
+    import numpy as np
+
+    sim_seed = None if seed is None else seed + i
+    result = gw.sample_lnmu_ml_with_diagnostics(
+        z, h, om, s8, nsamples_per_point, sim_seed, False
+    )
+    return i, list(result["lnmu"]), dict(result["invalid_stats"])
+
+
+def partition_samples(params_dict, num_points, seed=None):
     """
-    Partitions generated parameters into train, val, and test using
-    a multidimensional checkerboard pattern on (z, h, OmegaM, sigma8).
+    Partitions generated parameters into train, val, and test.
+    - In-Distribution (ID): OmegaM in [0.20, 0.40] AND sigma8 in [0.65, 1.05]
+    - True Out-of-Distribution (OoD): (OmegaM > 0.40 AND sigma8 > 1.05) OR (OmegaM < 0.20 AND sigma8 < 0.65)
+    - Boundary/intermediate points are filtered out.
     """
+    omega_m = params_dict['OmegaM']
+    sigma8 = params_dict['sigma8']
+
+    id_mask = (omega_m >= 0.20) & (omega_m <= 0.40) & (sigma8 >= 0.65) & (sigma8 <= 1.05)
+    ood_mask = ((omega_m > 0.40) & (sigma8 > 1.05)) | ((omega_m < 0.20) & (sigma8 < 0.65))
+
+    train_mask = np.zeros(num_points, dtype=bool)
+    val_mask = np.zeros(num_points, dtype=bool)
+    test_mask = np.zeros(num_points, dtype=bool)
+    split_types = ["" for _ in range(num_points)]
+
     keys = ["z", "h", "OmegaM", "sigma8"]
     checker_index_sum = np.zeros(num_points, dtype=np.int32)
 
@@ -47,27 +82,58 @@ def partition_samples(params_dict, num_points):
         idx[idx == 4] = 3
         checker_index_sum += idx
 
-    # Checkerboard: sum of indices is even -> Train, odd -> Val/Test
     checker = (checker_index_sum % 2) == 0
 
-    train_mask = checker
-    non_train_mask = ~checker
+    # ID points partition
+    id_indices = np.where(id_mask)[0]
+    id_checker = checker[id_indices]
 
-    val_mask = np.zeros_like(train_mask, dtype=bool)
-    test_mask = np.zeros_like(train_mask, dtype=bool)
+    id_train_idx = id_indices[id_checker]
+    train_mask[id_train_idx] = True
+    for idx in id_train_idx:
+        split_types[idx] = "train"
 
-    non_train_idx = np.where(non_train_mask)[0]
-    np.random.shuffle(non_train_idx)
-    mid = len(non_train_idx) // 2
+    id_val_test_idx = id_indices[~id_checker]
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+        rng.shuffle(id_val_test_idx)
+    else:
+        np.random.shuffle(id_val_test_idx)
 
-    val_mask[non_train_idx[:mid]] = True
-    test_mask[non_train_idx[mid:]] = True
+    mid_id = len(id_val_test_idx) // 2
+    id_val_idx = id_val_test_idx[:mid_id]
+    id_test_idx = id_val_test_idx[mid_id:]
 
-    return train_mask, val_mask, test_mask
+    val_mask[id_val_idx] = True
+    test_mask[id_test_idx] = True
+    for idx in id_val_idx:
+        split_types[idx] = "interpolation"
+    for idx in id_test_idx:
+        split_types[idx] = "interpolation"
+
+    # True OoD points partition
+    ood_indices = np.where(ood_mask)[0]
+    if seed is not None:
+        rng_ood = np.random.default_rng(seed + 1)
+        rng_ood.shuffle(ood_indices)
+    else:
+        np.random.shuffle(ood_indices)
+
+    mid_ood = len(ood_indices) // 2
+    ood_val_idx = ood_indices[:mid_ood]
+    ood_test_idx = ood_indices[mid_ood:]
+
+    val_mask[ood_val_idx] = True
+    test_mask[ood_test_idx] = True
+    for idx in ood_val_idx:
+        split_types[idx] = "ood"
+    for idx in ood_test_idx:
+        split_types[idx] = "ood"
+
+    return train_mask, val_mask, test_mask, split_types
 
 
-
-def generate_dataset_split(params, split_name, output_file, nsamples_per_point, seed, config):
+def generate_dataset_split(params, split_name, output_file, nsamples_per_point, seed, config, split_types, bounds):
     num_points = len(params['z'])
     if num_points == 0:
         return
@@ -132,23 +198,34 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_samples.create_dataset("OmegaM", data=params['OmegaM'], compression="gzip")
         g_samples.create_dataset("sigma8", data=params['sigma8'], compression="gzip")
 
-        for i in range(num_points):
-            if i > 0 and i % 10 == 0:
-                print(f"  Processed {i}/{num_points} configurations...")
+        # Write split type dataset
+        dt = h5py.special_dtype(vlen=str)
+        ds_split_type = g_samples.create_dataset(
+            "split_type",
+            shape=(num_points,),
+            dtype=dt,
+            compression="gzip",
+        )
+        ds_split_type[:] = np.array(split_types, dtype=object)
 
-            sim_seed = None if seed is None else seed + i
+        # Prepare parallel simulation tasks
+        tasks = [
+            (params['z'][i], params['h'][i], params['OmegaM'][i], params['sigma8'][i], nsamples_per_point, seed, i)
+            for i in range(num_points)
+        ]
 
-            result = gw.sample_lnmu_ml_with_diagnostics(
-                params['z'][i],
-                params['h'][i],
-                params['OmegaM'][i],
-                params['sigma8'][i],
-                nsamples_per_point,
-                sim_seed,
-                False,
-            )
-            lnmu = np.asarray(result["lnmu"])
-            inv = dict(result["invalid_stats"])
+        from multiprocessing import Pool
+        import multiprocessing
+        num_workers = min(multiprocessing.cpu_count(), 16)
+        print(f"  Simulating {num_points} configurations in parallel using {num_workers} workers...")
+
+        with Pool(processes=num_workers) as pool:
+            parallel_results = pool.map(simulate_config_worker, tasks)
+
+        # Write results sequentially to HDF5
+        for i, lnmu_list, inv in sorted(parallel_results, key=lambda x: x[0]):
+            lnmu = np.array(lnmu_list)
+
             for k in invalid_totals:
                 invalid_totals[k] += int(inv.get(k, 0))
             row_detA_min = float(inv.get("detA_min", np.nan))
@@ -230,11 +307,12 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         # General metadata
         g_meta = f["metadata"]
         g_meta.attrs["split"] = split_name
-        g_meta.attrs["split_label"] = "train" if split_name == "train" else ("interpolation" if split_name in ["validation", "test"] else "OoD")
         g_meta.attrs["seed"] = seed if seed is not None else "stochastic"
         g_meta.attrs["git_commit"] = get_git_commit()
-        g_meta.attrs["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        g_meta.attrs["git_branch"] = get_git_branch()
+        g_meta.attrs["generation_timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
         g_meta.attrs["nsamples_per_point"] = nsamples_per_point
+        g_meta.attrs["dataset_schema_version"] = "1.1"
         g_meta.attrs["dataset_version"] = "1.1"
 
         sim_config = gw.get_simulator_config()
@@ -243,10 +321,16 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_meta.attrs["ell"] = sim_config["ell"]
         g_meta.attrs["Nhalos"] = sim_config["Nhalos"]
 
+        # Parameter ranges metadata
+        g_ranges = f.create_group("metadata/parameter_ranges")
+        for k in ['z', 'h', 'OmegaM', 'sigma8']:
+            g_ranges.attrs[k] = bounds[k]
+
         cfg_str = json.dumps({k: params[k].tolist() for k in params}) + str(seed) + str(nsamples_per_point)
         g_meta.attrs["config_hash"] = hashlib.md5(cfg_str.encode()).hexdigest()
 
     print(f"Simulation for {split_name} completed in {sim_time:.2f} seconds.")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -254,7 +338,11 @@ def main():
     parser.add_argument("--nsamples", type=int, default=10000)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output_dir", type=str, default="datasets")
+    parser.add_argument("--dataset_dir", type=str, default=None)
     args = parser.parse_args()
+
+    if args.dataset_dir is not None:
+        args.output_dir = args.dataset_dir
 
     os.makedirs(os.path.join(args.output_dir, 'train'), exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, 'validation'), exist_ok=True)
@@ -265,7 +353,7 @@ def main():
 
     bounds = {
         'h': (0.59, 0.76),
-        'OmegaM': (0.15, 0.47),
+        'OmegaM': (0.15, 0.45),
         'sigma8': (0.4, 1.4),
         'z': (0.01, 10.0)
     }
@@ -273,16 +361,22 @@ def main():
     keys = ['h', 'OmegaM', 'sigma8', 'z']
 
     # Generate all LHS points
-    # Need to generate enough points so splits get populated
-    total_points = args.num_points * 2
-    lhs_samples = lhs(4, samples=total_points)
+    # Need to generate enough points so splits get populated (scale by 4 due to filtering)
+    total_points = args.num_points * 4
+    
+    # Check if seed parameter is supported (pyDOE3)
+    try:
+        lhs_samples = lhs(4, samples=total_points, seed=args.seed)
+    except TypeError:
+        # Fallback if pyDOE version doesn't support seed keyword
+        lhs_samples = lhs(4, samples=total_points)
 
     params = {}
     for i, k in enumerate(keys):
         low, high = bounds[k]
         params[k] = low + lhs_samples[:, i] * (high - low)
 
-    train_mask, val_mask, test_mask = partition_samples(params, total_points)
+    train_mask, val_mask, test_mask, split_types = partition_samples(params, total_points, args.seed)
 
     splits = {
         'train': train_mask,
@@ -294,9 +388,12 @@ def main():
         if np.sum(mask) == 0:
             continue
         split_params = {k: v[mask] for k, v in params.items()}
+        split_types_filtered = [split_types[idx] for idx in np.where(mask)[0]]
         out_file = os.path.join(args.output_dir, split_name, f"dataset_{split_name}.h5")
+        
         split_seed = None if args.seed is None else args.seed + SPLIT_SEED_OFFSETS[split_name]
-        generate_dataset_split(split_params, split_name, out_file, args.nsamples, split_seed, args)
+        generate_dataset_split(split_params, split_name, out_file, args.nsamples, split_seed, args, split_types_filtered, bounds)
+
 
 if __name__ == "__main__":
     main()

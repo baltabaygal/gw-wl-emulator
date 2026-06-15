@@ -1,11 +1,15 @@
 #include <complex>
+#include <array>
 #include <vector>
+#include <set>
+#include <map>
 #include <random>
 #include <ctime>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <filesystem>
+#include <functional>
 #include <gsl/gsl_sf_expint.h>
 
 
@@ -55,3 +59,6 @@ void writeToFile(vector<double> &x, vector<double> &y, vector<double> &z, vector
 vector<double> readdata(fs::path filename);
 vector<vector<double> > readdata(fs::path filename, int N);
 vector<vector<double> > readdataCSV(fs::path filename);
+
+vector<vector<double> > MCMC_sampling(int N, int Nburnin, function<double(vector<double>&)> logpdf, vector<double> &initial, vector<double> &steps, vector<vector<double> > &priors, function<double(vector<double>&)> cut, rgen &mt, int print, int printL, fs::path filename);
+
