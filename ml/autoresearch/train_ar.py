@@ -50,6 +50,12 @@ CONFIG = dict(
     # --- tail-aware loss (0 disables) ---
     tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
+    # --- tail smoothness penalty (curvature of log dP/dlnmu; 0 disables) ---
+    smooth_weight=0.0,   # weight on mean (2nd derivative of log-density)^2 in tail
+    smooth_lo=3.0,       # tail grid lower mu
+    smooth_hi=12.0,      # tail grid upper mu
+    smooth_npts=24,      # grid points
+    smooth_ctx=512,      # contexts per batch used for the penalty
     # --- runtime ---
     time_budget_s=360,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
@@ -112,6 +118,12 @@ def train(cfg):
     flow = build_flow(cfg).to(dev)
     opt = torch.optim.AdamW(flow.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     n = Xtr.shape[0]; bs = cfg["batch_size"]
+    # smoothness grid: standardized lnmu over the tail (mu in [smooth_lo,smooth_hi]).
+    # A power-law tail is LINEAR in log p vs lnmu, so penalizing the 2nd derivative
+    # of log-density here drives the tail toward a clean power law (kills wiggles).
+    sgrid = torch.linspace((np.log(cfg["smooth_lo"]) - lmean) / lstd,
+                           (np.log(cfg["smooth_hi"]) - lmean) / lstd,
+                           cfg["smooth_npts"], device=dev).reshape(-1, 1)
     best_val = float("inf"); best_state = None; no_improve = 0
     t0 = time.time()
     for epoch in range(1, cfg["epochs"] + 1):
@@ -127,6 +139,14 @@ def train(cfg):
                 loss = -(w * lp).sum() / w.sum()
             else:
                 loss = -lp.mean()
+            if cfg["smooth_weight"] > 0:   # tail log-density curvature penalty
+                cs = xb[:cfg["smooth_ctx"]]                       # (Nc,4) contexts
+                G = sgrid.shape[0]; Nc = cs.shape[0]
+                gx = sgrid.repeat(Nc, 1)                          # (Nc*G,1)
+                cx = cs.repeat_interleave(G, dim=0)               # (Nc*G,4)
+                lg = flow(cx).log_prob(gx).reshape(Nc, G)
+                d2 = lg[:, 2:] - 2 * lg[:, 1:-1] + lg[:, :-2]
+                loss = loss + cfg["smooth_weight"] * (d2 ** 2).mean()
             if not torch.isfinite(loss):
                 raise ValueError(f"non-finite loss at epoch {epoch}")
             loss.backward()
