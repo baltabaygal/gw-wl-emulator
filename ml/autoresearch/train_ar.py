@@ -48,7 +48,7 @@ CONFIG = dict(
     patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=0.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=3.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
     # --- runtime ---
     time_budget_s=360,   # wall-clock training cap (fixed budget, comparable runs)
@@ -139,7 +139,12 @@ def train(cfg):
             vlp = []
             for i in range(0, Xva.shape[0], 65536):
                 vlp.append(flow(Xva[i:i+65536]).log_prob(Yva[i:i+65536]))
-            val = float(-torch.cat(vlp).mean())
+            vlp = torch.cat(vlp)
+            if cfg["tail_weight"] > 0:  # align selection with the tail objective
+                wv = 1.0 + cfg["tail_weight"] * (Yva.squeeze(-1) > tail_thr_norm).float()
+                val = float(-(wv * vlp).sum() / wv.sum())
+            else:
+                val = float(-vlp.mean())
         if epoch == 1 or epoch % 10 == 0:
             print(f"epoch {epoch:3d} | val NLL {val:.5f} | {time.time()-t0:.0f}s")
         if val < best_val - 1e-5:
