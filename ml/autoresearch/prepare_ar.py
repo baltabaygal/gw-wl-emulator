@@ -44,6 +44,13 @@ N_BODY_KEEP = 60_000               # subsample of body samples kept for NLL eval
 BODY_BUDGET = -0.10
 EPS = 1e-6                         # survival floor for log10
 
+# Tail-SHAPE metric: compare dP/dlnmu bin-by-bin in the tail. Survival (TLSE)
+# can be right while the density shape is wrong (a bump + a dip cancel in the
+# integral), so this term penalizes the actual curve the eye sees.
+TAIL_LO_MU, TAIL_HI_MU = 2.0, 9.0   # tail window in mu
+TAIL_NBINS = 24
+MIN_TAIL_COUNT = 30                 # only score bins with enough simulator counts
+
 _trapz = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
 
 
@@ -76,8 +83,11 @@ def build_ground_truth(force: bool = False) -> dict:
 
     tags, zs, thetas, is_tail = [], [], [], []
     surv = []                 # (P, len(THRESHOLDS)) simulator survivals
+    tail_dpdlnmu, tail_counts = [], []   # (P, TAIL_NBINS) tail density + raw counts
     body_arrays = {}          # tag -> body lnmu samples (subsampled)
     rng = np.random.default_rng(0)
+    tail_edges = np.linspace(np.log(TAIL_LO_MU), np.log(TAIL_HI_MU), TAIL_NBINS + 1)
+    tail_bw = tail_edges[1] - tail_edges[0]
 
     for tag, z, theta, tail in _eval_points():
         h, om, s8 = theta
@@ -88,12 +98,16 @@ def build_ground_truth(force: bool = False) -> dict:
         mu = np.exp(lnmu)
         s = np.array([float(np.mean(mu > t)) for t in THRESHOLDS], dtype=np.float64)
 
+        c, _ = np.histogram(lnmu, bins=tail_edges)      # tail density dP/dlnmu
+        dpd = c / (lnmu.size * tail_bw)
+
         body = lnmu[(lnmu >= BODY_LO) & (lnmu <= BODY_HI)]
         if body.size > N_BODY_KEEP:
             body = rng.choice(body, size=N_BODY_KEEP, replace=False)
 
         tags.append(tag); zs.append(z); thetas.append(theta)
         is_tail.append(tail); surv.append(s); body_arrays[f"body_{tag}"] = body
+        tail_dpdlnmu.append(dpd); tail_counts.append(c)
         print(f"[gt] {tag:14s} z={z:<4} n={lnmu.size:>7} "
               f"S(mu>2,3,4,5)={np.array2string(s, precision=4, floatmode='fixed')}")
 
@@ -102,6 +116,8 @@ def build_ground_truth(force: bool = False) -> dict:
         thetas=np.array(thetas, dtype=np.float64), is_tail=np.array(is_tail),
         surv=np.array(surv, dtype=np.float64),
         thresholds=np.array(THRESHOLDS, dtype=np.float64),
+        tail_edges=tail_edges, tail_dpdlnmu=np.array(tail_dpdlnmu),
+        tail_counts=np.array(tail_counts),
     )
     np.savez(CACHE_PATH, **meta, **body_arrays)
     print(f"[gt] cached -> {CACHE_PATH}")
@@ -130,46 +146,57 @@ def _survival_nsf(log_prob_fn, z, theta) -> np.ndarray:
 
 
 def evaluate(log_prob_fn, verbose: bool = True) -> dict:
-    """Compute TLSE, BodyNLL, SCORE for a model exposed as log_prob_fn."""
+    """Compute the tail-shape and survival metrics for a model (log_prob_fn).
+
+    Primary: TailShape = mean |log10 dP/dlnmu_model - log10 dP/dlnmu_sim| over tail
+    bins (mu in [2,9]) with enough sim counts. Penalizes the bump/wiggles the eye
+    sees, which the integrated survival (TLSE) misses.
+    Also: Rough = mean |2nd difference of log dP/dlnmu_model| (wiggliness, lower is
+    smoother); TLSE (survival); BodyNLL (guard).
+    """
     gt = load_ground_truth()
     tags = gt["tags"]; surv_sim = gt["surv"]; is_tail = gt["is_tail"]
     thetas = gt["thetas"]; zs = gt["zs"]
+    tail_edges = gt["tail_edges"]; tail_dpd = gt["tail_dpdlnmu"]; tail_cnt = gt["tail_counts"]
+    centers = 0.5 * (tail_edges[:-1] + tail_edges[1:])
 
-    tlse_terms, body_nlls, rows = [], [], []
+    tlse_terms, shape_terms, rough_terms, body_nlls, rows = [], [], [], [], []
     for i, tag in enumerate(tags):
-        z = float(zs[i]); theta = thetas[i]
-        # body NLL
+        z = float(zs[i]); theta = tuple(float(x) for x in thetas[i])
         body = gt[f"body_{tag}"]
         nll = float("nan")
         if body.size:
-            lp = np.asarray(log_prob_fn(body, z, tuple(float(x) for x in theta)), dtype=np.float64)
-            nll = float(-np.mean(lp))
-            body_nlls.append(nll)
-        # tail log-survival error (tail points only)
-        if bool(is_tail[i]):
-            s_nsf = _survival_nsf(log_prob_fn, z, theta)
-            s_sim = surv_sim[i]
-            for j, _t in enumerate(THRESHOLDS):
-                if s_sim[j] <= 0:   # not measurable from sim
-                    continue
-                err = abs(np.log10(max(s_nsf[j], EPS)) - np.log10(max(s_sim[j], EPS)))
-                tlse_terms.append(err)
-            rows.append((tag, s_sim, s_nsf, nll))
+            lp = np.asarray(log_prob_fn(body, z, theta), dtype=np.float64)
+            nll = float(-np.mean(lp)); body_nlls.append(nll)
+        if not bool(is_tail[i]):
+            continue
+        # survival error
+        s_nsf = _survival_nsf(log_prob_fn, z, theta); s_sim = surv_sim[i]
+        for j in range(len(THRESHOLDS)):
+            if s_sim[j] > 0:
+                tlse_terms.append(abs(np.log10(max(s_nsf[j], EPS)) - np.log10(max(s_sim[j], EPS))))
+        # tail-shape error (density bin-by-bin) + roughness
+        logp = np.asarray(log_prob_fn(centers, z, theta), dtype=np.float64)
+        pmod = np.exp(logp); sim = tail_dpd[i]; cnt = tail_cnt[i]
+        mask = (cnt >= MIN_TAIL_COUNT) & (sim > 0)
+        shape_err = np.abs(np.log10(np.maximum(pmod[mask], EPS)) - np.log10(sim[mask]))
+        shape_terms.extend(shape_err.tolist())
+        rough_terms.append(float(np.mean(np.abs(np.diff(logp[mask], n=2)))) if mask.sum() > 2 else 0.0)
+        rows.append((tag, s_sim, s_nsf, nll, sim, pmod, mask))
 
     tlse = float(np.mean(tlse_terms)) if tlse_terms else float("nan")
+    shape = float(np.mean(shape_terms)) if shape_terms else float("nan")
+    rough = float(np.mean(rough_terms)) if rough_terms else float("nan")
     body_nll = float(np.mean(body_nlls)) if body_nlls else float("nan")
-    score = tlse + 0.3 * max(0.0, body_nll - BODY_BUDGET)
+    score = shape + 0.3 * max(0.0, body_nll - BODY_BUDGET)
 
     if verbose:
-        print("\n--- per-point tail survival (sim vs nsf) ---")
-        print(f"{'point':16s} | {'mu>t':>5} | {'S_sim':>9} {'S_nsf':>9} | bodyNLL")
-        for tag, s_sim, s_nsf, nll in rows:
-            for j, t in enumerate(THRESHOLDS):
-                lead = tag if j == 0 else ""
-                nlls = f"{nll:7.3f}" if j == 0 else ""
-                print(f"{lead:16s} | {t:5.1f} | {s_sim[j]:9.5f} {s_nsf[j]:9.5f} | {nlls}")
+        print("\n--- tail density dP/dlnmu (sim vs nsf), scored bins only ---")
+        for tag, s_sim, s_nsf, nll, sim, pmod, mask in rows:
+            mae = np.mean(np.abs(np.log10(np.maximum(pmod[mask], EPS)) - np.log10(sim[mask]))) if mask.any() else float("nan")
+            print(f"{tag:14s} shapeMAE={mae:.3f}  S(mu>5) sim={s_sim[3]:.4f} nsf={s_nsf[3]:.4f}  bodyNLL={nll:.3f}")
         print("---")
-    return dict(SCORE=score, TLSE=tlse, BodyNLL=body_nll)
+    return dict(SCORE=score, TailShape=shape, Rough=rough, TLSE=tlse, BodyNLL=body_nll)
 
 
 if __name__ == "__main__":
