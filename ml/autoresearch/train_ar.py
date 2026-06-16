@@ -48,7 +48,7 @@ CONFIG = dict(
     patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=3.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
     # --- runtime ---
     time_budget_s=360,   # wall-clock training cap (fixed budget, comparable runs)
