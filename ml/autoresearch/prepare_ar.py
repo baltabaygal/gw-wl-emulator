@@ -39,9 +39,9 @@ SEED = 100
 BODY_LO, BODY_HI = -0.5, 2.5       # science window in lnmu (mu ~ [0.61, 12.18])
 N_BODY_KEEP = 60_000               # subsample of body samples kept for NLL eval
 
-# Calibrated from the baseline run (see results.tsv). Body NLL above this is
-# penalized. Set generously until baseline is measured, then tighten once.
-BODY_BUDGET = 1.0
+# Calibrated once from the baseline run (BodyNLL=-0.209): allow ~0.1 nat of body
+# regression before penalizing. Body fidelity is a guard; TLSE is the driver.
+BODY_BUDGET = -0.10
 EPS = 1e-6                         # survival floor for log10
 
 _trapz = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
