@@ -48,16 +48,16 @@ CONFIG = dict(
     patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=4.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
     # --- tail smoothness penalty (curvature of log dP/dlnmu; 0 disables) ---
     smooth_weight=0.5,   # weight on mean (2nd derivative of log-density)^2 in tail
     smooth_lo=4.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
-    smooth_npts=24,      # grid points
-    smooth_ctx=256,      # contexts per batch used for the penalty
+    smooth_npts=20,      # grid points
+    smooth_ctx=128,      # contexts per batch used for the penalty
     # --- runtime ---
-    time_budget_s=360,   # wall-clock training cap (fixed budget, comparable runs)
+    time_budget_s=600,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
     seed=0,
 )
