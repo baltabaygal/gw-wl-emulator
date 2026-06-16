@@ -35,7 +35,7 @@ from ml.autoresearch import prepare_ar
 CONFIG = dict(
     # --- architecture ---
     bins=8,              # RQS bins
-    bound=8.0,           # RQS spline domain [-bound, bound] in standardized lnmu
+    bound=12.0,          # RQS spline domain [-bound, bound] in standardized lnmu
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
     base="studentt",     # "normal" | "studentt"
