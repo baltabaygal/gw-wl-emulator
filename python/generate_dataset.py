@@ -339,6 +339,9 @@ def main():
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output_dir", type=str, default="datasets")
     parser.add_argument("--dataset_dir", type=str, default=None)
+    parser.add_argument("--log_z", action="store_true", help="Sample z log-uniformly instead of uniformly (denser low-z coverage).")
+    parser.add_argument("--z_min", type=float, default=0.01, help="Lower z bound for sampling.")
+    parser.add_argument("--z_max", type=float, default=10.0, help="Upper z bound for sampling.")
     args = parser.parse_args()
 
     if args.dataset_dir is not None:
@@ -355,7 +358,7 @@ def main():
         'h': (0.59, 0.76),
         'OmegaM': (0.15, 0.45),
         'sigma8': (0.4, 1.4),
-        'z': (0.01, 10.0)
+        'z': (args.z_min, args.z_max)
     }
 
     keys = ['h', 'OmegaM', 'sigma8', 'z']
@@ -374,7 +377,12 @@ def main():
     params = {}
     for i, k in enumerate(keys):
         low, high = bounds[k]
-        params[k] = low + lhs_samples[:, i] * (high - low)
+        if k == "z" and args.log_z:
+            # Log-uniform z: equal density per decade so the steep low-z regime
+            # is resolved as well as the slow high-z regime.
+            params[k] = np.exp(np.log(low) + lhs_samples[:, i] * (np.log(high) - np.log(low)))
+        else:
+            params[k] = low + lhs_samples[:, i] * (high - low)
 
     train_mask, val_mask, test_mask, split_types = partition_samples(params, total_points, args.seed)
 

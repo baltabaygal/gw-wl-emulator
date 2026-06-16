@@ -66,6 +66,119 @@ def catalog_log_likelihood(model, catalog, theta_batch) -> torch.Tensor | np.nda
         return log_liks.cpu().numpy()
     return log_liks
 
+def load_bin_edges(mlp_model_path: str = "data/models/baseline_mlp_backend_current.pt") -> np.ndarray:
+    try:
+        import torch
+        checkpoint = torch.load(mlp_model_path, map_location="cpu", weights_only=False)
+        return np.asarray(checkpoint["bin_edges"], dtype=np.float64)
+    except Exception:
+        return np.linspace(-1.0, 1.0, 101)
+
+def nsf_mixed_catalog_log_likelihood(
+    model,
+    z: np.ndarray,
+    lnmu: np.ndarray,
+    theta_grid: np.ndarray,
+    chunk_size: int = 128,
+    likelihood_mode: str = "simulator_compatible",
+    bin_edges: np.ndarray | None = None,
+) -> np.ndarray:
+    import torch
+
+    if likelihood_mode == "continuous":
+        device = model.context_mean.device
+        z_t = torch.tensor(z.astype(np.float32), device=device)
+        lnmu_t = torch.tensor(lnmu.astype(np.float32), device=device).reshape(-1, 1)
+        out = []
+        n = lnmu_t.shape[0]
+        with torch.no_grad():
+            for start in range(0, theta_grid.shape[0], chunk_size):
+                theta = torch.tensor(theta_grid[start : start + chunk_size].astype(np.float32), device=device)
+                m = theta.shape[0]
+                x_rep = lnmu_t.repeat(m, 1)
+                theta_rep = theta.repeat_interleave(n, dim=0)
+                z_rep = z_t.repeat(m).reshape(-1, 1)
+                context = torch.cat([z_rep, theta_rep], dim=1)
+                x_norm = (x_rep - model.lnmu_mean) / model.lnmu_std
+                context_norm = (context - model.context_mean) / model.context_std
+                log_prob_norm = model.flow(context_norm).log_prob(x_norm)
+                log_prob_raw = log_prob_norm - torch.log(model.lnmu_std)
+                vals = log_prob_raw.reshape(m, n).sum(dim=1)
+                if not torch.isfinite(vals).all():
+                    raise ValueError("NSF produced non-finite log probabilities")
+                out.append(vals.cpu().numpy())
+        return np.concatenate(out)
+
+    elif likelihood_mode == "simulator_compatible":
+        if bin_edges is None:
+            bin_edges = load_bin_edges()
+
+        z_round = 2
+        z_bins = np.round(np.asarray(z, dtype=float), z_round)
+        unique_z = np.unique(z_bins)
+
+        catalog_counts_list = []
+        for z_val in unique_z:
+            mask = z_bins == z_val
+            clamped = np.clip(lnmu[mask], bin_edges[0] + 1e-9, bin_edges[-1] - 1e-9)
+            counts, _ = np.histogram(clamped, bins=bin_edges)
+            catalog_counts_list.append(counts)
+
+        device = model.context_mean.device
+        catalog_counts_t = torch.tensor(np.array(catalog_counts_list), dtype=torch.float32, device=device)
+        Nz = len(unique_z)
+        B = len(bin_edges) - 1
+
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        bin_widths = np.diff(bin_edges)
+
+        bin_centers_t = torch.tensor(bin_centers, dtype=torch.float32, device=device).reshape(-1, 1)
+        bin_widths_t = torch.tensor(bin_widths, dtype=torch.float32, device=device)
+        z_vals_t = torch.tensor(unique_z, dtype=torch.float32, device=device)
+
+        out = []
+        with torch.no_grad():
+            for start in range(0, theta_grid.shape[0], chunk_size):
+                theta_batch = theta_grid[start : start + chunk_size]
+                m = theta_batch.shape[0]
+                theta_batch_t = torch.tensor(theta_batch, dtype=torch.float32, device=device)
+
+                z_rep = z_vals_t.repeat_interleave(m).reshape(-1, 1)
+                theta_rep = theta_batch_t.repeat(Nz, 1)
+                contexts = torch.cat([z_rep, theta_rep], dim=1)
+
+                inputs_rep = bin_centers_t.repeat(Nz * m, 1)
+                contexts_rep = contexts.repeat_interleave(B, dim=0)
+
+                x_norm = (inputs_rep - model.lnmu_mean) / model.lnmu_std
+                context_norm = (contexts_rep - model.context_mean) / model.context_std
+
+                log_prob_norm = model.flow(context_norm).log_prob(x_norm)
+                log_prob_raw = log_prob_norm - torch.log(model.lnmu_std)
+
+                log_prob_raw = log_prob_raw.reshape(Nz * m, B)
+                density = torch.exp(log_prob_raw)
+                probs = density * bin_widths_t
+
+                probs = probs / (probs.sum(dim=1, keepdim=True) + 1e-20)
+                probs = probs + 1e-12
+
+                probs = probs.reshape(Nz, m, B)
+                log_probs = torch.log(probs)
+
+                log_liks_by_z = (catalog_counts_t.unsqueeze(1) * log_probs).sum(dim=2)
+                log_liks = log_liks_by_z.sum(dim=0)
+
+                if not torch.isfinite(log_liks).all():
+                    raise ValueError("NSF produced non-finite log likelihood in compatible mode")
+
+                out.append(log_liks.cpu().numpy())
+
+        return np.concatenate(out)
+    else:
+        raise ValueError(f"Unknown likelihood_mode: {likelihood_mode}")
+
+
 def run_profiling(model_path: str, output_json: str, plots_dir: str, output_report: str):
     os.makedirs(os.path.dirname(output_json), exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)

@@ -1,0 +1,43 @@
+{
+  "coarse": {
+    "credible_region_overlap": {
+      "credible_region_68": 0.0,
+      "credible_region_95": 0.16666666666666666
+    },
+    "mle_offset": {
+      "OmegaM": -0.10909090909090907,
+      "sigma8": 0.2909090909090909
+    },
+    "normalized_posterior_shift": {
+      "OmegaM": 8.0271621250568,
+      "sigma8": 7.7876058081502615
+    },
+    "posterior_jsd": 0.607844794876327,
+    "total_variation": 0.947312481827653
+  },
+  "configuration": {
+    "coarse_grid": "data/results/phase3_posterior_grids/combined_2d_mixed_uniform_central_N1000_seed610001_57cb44ad1ef0f9d4_e51caa6b6820.npz",
+    "nsim_per_z": 1000,
+    "refined_resolution": 24
+  },
+  "objective": "posterior_grid_refinement",
+  "phase": "3B",
+  "refined": {
+    "credible_region_overlap": {
+      "credible_region_68": 0.0,
+      "credible_region_95": 0.0
+    },
+    "grid": "data/results/phase3b_grid_refinement_grids/combined_2d_mixed_uniform_central_N1000_seed610001_57cb44ad1ef0f9d4_54ce8e8502e3.npz",
+    "mle_offset": {
+      "OmegaM": -0.1826086956521739,
+      "sigma8": 0.31304347826086953
+    },
+    "normalized_posterior_shift": {
+      "OmegaM": 24.817706740859826,
+      "sigma8": 21.956117124763026
+    },
+    "plot": "plots/figures/phase3b_grid_refinement/mixed_refined_24x24_contours.png",
+    "posterior_jsd": 0.6931458016251926,
+    "total_variation": 0.9999997394682657
+  }
+}

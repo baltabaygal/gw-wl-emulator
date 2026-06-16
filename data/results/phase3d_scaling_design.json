@@ -1,0 +1,25 @@
+{
+  "phase": "3D",
+  "study_name": "posterior_statistics_scaling_study",
+  "timestamp": "2026-06-16T11:00:00Z",
+  "design": {
+    "sizes": [250, 1000, 5000],
+    "catalog_types": [
+      "mixed_uniform",
+      "mixed_low_z_dominated",
+      "mixed_high_z_dominated"
+    ],
+    "seeds": [710001, 710002, 710003],
+    "grid": {
+      "grid_type": "2d",
+      "resolution": 12,
+      "prior_bounds": {
+        "h": [0.59, 0.76],
+        "OmegaM": [0.2, 0.4],
+        "sigma8": [0.65, 1.05]
+      }
+    },
+    "likelihood_mode": "simulator_compatible",
+    "total_runs": 27
+  }
+}

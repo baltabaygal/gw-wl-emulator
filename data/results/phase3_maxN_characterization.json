@@ -1,0 +1,140 @@
+{
+  "truth": {
+    "h": 0.67,
+    "OmegaM": 0.3,
+    "sigma8": 0.85
+  },
+  "zs": [
+    0.5,
+    1.5,
+    2.5
+  ],
+  "nsim": 40000,
+  "reps": 16,
+  "model_path": "data/models/conditional_nsf_backend_current.pt",
+  "rows": [
+    {
+      "N": 150,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.0016,
+        "rms_offset": 0.0073,
+        "width_sim_std": 0.0422,
+        "syst_over_width": 0.04
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0014,
+        "rms_offset": 0.0189,
+        "width_sim_std": 0.0999,
+        "syst_over_width": 0.01
+      }
+    },
+    {
+      "N": 300,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.0022,
+        "rms_offset": 0.0107,
+        "width_sim_std": 0.0383,
+        "syst_over_width": 0.06
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0025,
+        "rms_offset": 0.0274,
+        "width_sim_std": 0.0938,
+        "syst_over_width": 0.03
+      }
+    },
+    {
+      "N": 600,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.005,
+        "rms_offset": 0.0222,
+        "width_sim_std": 0.0315,
+        "syst_over_width": 0.16
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0066,
+        "rms_offset": 0.0549,
+        "width_sim_std": 0.0776,
+        "syst_over_width": 0.09
+      }
+    },
+    {
+      "N": 1200,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.0039,
+        "rms_offset": 0.0353,
+        "width_sim_std": 0.0262,
+        "syst_over_width": 0.15
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0006,
+        "rms_offset": 0.0847,
+        "width_sim_std": 0.0613,
+        "syst_over_width": 0.01
+      }
+    },
+    {
+      "N": 2400,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.013,
+        "rms_offset": 0.0328,
+        "width_sim_std": 0.0197,
+        "syst_over_width": 0.66
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0356,
+        "rms_offset": 0.0733,
+        "width_sim_std": 0.0475,
+        "syst_over_width": 0.75
+      }
+    },
+    {
+      "N": 4800,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.0164,
+        "rms_offset": 0.0299,
+        "width_sim_std": 0.0123,
+        "syst_over_width": 1.33
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0451,
+        "rms_offset": 0.0772,
+        "width_sim_std": 0.0307,
+        "syst_over_width": 1.47
+      }
+    },
+    {
+      "N": 9600,
+      "OmegaM": {
+        "truth": 0.3,
+        "systematic_bias": 0.0124,
+        "rms_offset": 0.0296,
+        "width_sim_std": 0.0105,
+        "syst_over_width": 1.18
+      },
+      "sigma8": {
+        "truth": 0.85,
+        "systematic_bias": 0.0387,
+        "rms_offset": 0.0741,
+        "width_sim_std": 0.0256,
+        "syst_over_width": 1.51
+      }
+    }
+  ],
+  "crossover_N": {
+    "OmegaM": 4800,
+    "sigma8": 4800
+  }
+}

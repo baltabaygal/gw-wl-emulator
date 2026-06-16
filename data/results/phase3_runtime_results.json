@@ -1,0 +1,22 @@
+{
+  "configuration": {
+    "n_events": 1000,
+    "grid_resolution": 4,
+    "catalog": "data/mock_catalogs/phase3/runtime/mixed_uniform_central_N1000_seed530000_e7019c4d43240681.npz"
+  },
+  "timings": {
+    "nsf_single_likelihood_seconds": 0.20296692848205566,
+    "nsf_2d_grid_seconds": 0.03331923484802246,
+    "nsf_3d_grid_seconds": 0.10179591178894043,
+    "simulator_single_likelihood_seconds": 5.6259589195251465,
+    "simulator_2d_grid_projected_seconds": 90.01534271240234,
+    "simulator_3d_grid_projected_seconds": 360.0613708496094,
+    "coverage_catalog_inference_seconds": 0.10179591178894043,
+    "full_posterior_benchmark_projected_seconds": 360.1631667613983
+  },
+  "speedups": {
+    "single_likelihood": 27.71859909198231,
+    "2d_grid_projected": 2701.602936651616,
+    "3d_grid_projected": 3537.0906799886643
+  }
+}

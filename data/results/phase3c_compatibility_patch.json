@@ -1,0 +1,13 @@
+{
+  "status": "success",
+  "local_density_residuals": {
+    "mean_continuous_residual": 5247.839926344558,
+    "mean_compatible_residual": 158.140951735184
+  },
+  "smoke_benchmark": {
+    "continuous_jsd": 0.6714065714326034,
+    "compatible_jsd": 0.6869079935220981,
+    "continuous_68_overlap": 0.0,
+    "compatible_68_overlap": 0.0
+  }
+}

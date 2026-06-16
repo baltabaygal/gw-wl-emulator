@@ -1,0 +1,31 @@
+{
+  "ln2": 0.6931471805599453,
+  "nsim": 10000,
+  "seeds": [
+    100,
+    777
+  ],
+  "rows": [
+    {
+      "N": 250,
+      "jsd_sim_vs_sim": 0.344347,
+      "tv_sim_vs_sim": 0.676816,
+      "jsd_nsf_vs_sim": 0.625687,
+      "tv_nsf_vs_sim": 0.946558
+    },
+    {
+      "N": 1000,
+      "jsd_sim_vs_sim": 0.639278,
+      "tv_sim_vs_sim": 0.968621,
+      "jsd_nsf_vs_sim": 0.676534,
+      "tv_nsf_vs_sim": 0.991672
+    },
+    {
+      "N": 5000,
+      "jsd_sim_vs_sim": 0.185719,
+      "tv_sim_vs_sim": 0.438566,
+      "jsd_nsf_vs_sim": 0.693144,
+      "tv_nsf_vs_sim": 0.999999
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "truth": {
+    "h": 0.67,
+    "OmegaM": 0.3,
+    "sigma8": 0.85
+  },
+  "grid_shape": [
+    12,
+    12
+  ],
+  "nsim_lo": 10000,
+  "nsim_hi": 40000,
+  "seeds": [
+    100,
+    777,
+    2024
+  ],
+  "locations": {
+    "sim_nsim10000_seed100": {
+      "OmegaM": {
+        "MAP": 0.32727272727272727,
+        "mean": 0.3348,
+        "std": 0.0136
+      },
+      "sigma8": {
+        "MAP": 0.7590909090909091,
+        "mean": 0.7468,
+        "std": 0.0349
+      }
+    },
+    "sim_nsim10000_seed777": {
+      "OmegaM": {
+        "MAP": 0.36363636363636365,
+        "mean": 0.362,
+        "std": 0.0113
+      },
+      "sigma8": {
+        "MAP": 0.7227272727272728,
+        "mean": 0.7262,
+        "std": 0.0248
+      }
+    },
+    "sim_nsim10000_seed2024": {
+      "OmegaM": {
+        "MAP": 0.38181818181818183,
+        "mean": 0.3417,
+        "std": 0.049
+      },
+      "sigma8": {
+        "MAP": 0.6863636363636364,
+        "mean": 0.7735,
+        "std": 0.1096
+      }
+    },
+    "sim_nsim40000_seed100": {
+      "OmegaM": {
+        "MAP": 0.38181818181818183,
+        "mean": 0.3507,
+        "std": 0.0294
+      },
+      "sigma8": {
+        "MAP": 0.6863636363636364,
+        "mean": 0.7325,
+        "std": 0.0524
+      }
+    },
+    "nsf_compatible": {
+      "OmegaM": {
+        "MAP": 0.2,
+        "mean": 0.2159,
+        "std": 0.0349
+      },
+      "sigma8": {
+        "MAP": 1.05,
+        "mean": 1.0326,
+        "std": 0.0675
+      }
+    }
+  },
+  "sim_vs_sim_reproducibility_same_nsim": {
+    "sim_nsim10000_seed100 vs sim_nsim10000_seed777": {
+      "jsd": 0.677294,
+      "tv": 0.99067
+    },
+    "sim_nsim10000_seed100 vs sim_nsim10000_seed2024": {
+      "jsd": 0.621212,
+      "tv": 0.963999
+    },
+    "sim_nsim10000_seed777 vs sim_nsim10000_seed2024": {
+      "jsd": 0.433062,
+      "tv": 0.821502
+    }
+  },
+  "sim_mc_convergence_lo_vs_hi": {
+    "jsd": 0.36391,
+    "tv": 0.737452
+  },
+  "nsf_vs_sim_histat": {
+    "jsd": 0.649501,
+    "tv": 0.970858
+  }
+}
