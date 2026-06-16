@@ -43,21 +43,22 @@ CONFIG = dict(
     # --- optimization ---
     lr=1e-3,
     weight_decay=1e-5,
-    batch_size=32768,
-    epochs=120,
-    patience=15,
+    batch_size=65536,
+    epochs=200,
+    patience=30,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=4.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
-    # --- tail smoothness penalty (curvature of log dP/dlnmu; 0 disables) ---
-    smooth_weight=0.5,   # weight on mean (2nd derivative of log-density)^2 in tail
+    # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
+    smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
+    slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
     smooth_lo=4.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
-    smooth_npts=20,      # grid points
+    smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
     # --- runtime ---
-    time_budget_s=600,   # wall-clock training cap (fixed budget, comparable runs)
+    time_budget_s=1200,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
     seed=0,
 )
@@ -118,12 +119,15 @@ def train(cfg):
     flow = build_flow(cfg).to(dev)
     opt = torch.optim.AdamW(flow.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     n = Xtr.shape[0]; bs = cfg["batch_size"]
-    # smoothness grid: standardized lnmu over the tail (mu in [smooth_lo,smooth_hi]).
-    # A power-law tail is LINEAR in log p vs lnmu, so penalizing the 2nd derivative
-    # of log-density here drives the tail toward a clean power law (kills wiggles).
+    # slope grid: standardized lnmu over the tail (mu in [smooth_lo,smooth_hi]).
+    # "Regularize to slope": pin d log p / d lnmu in the tail to the benchmark
+    # power law dP/dmu ~ mu^-alpha (straight line in log-log), level left to data.
     sgrid = torch.linspace((np.log(cfg["smooth_lo"]) - lmean) / lstd,
                            (np.log(cfg["smooth_hi"]) - lmean) / lstd,
                            cfg["smooth_npts"], device=dev).reshape(-1, 1)
+    du_grid = float(sgrid[1] - sgrid[0])
+    # d log p_raw/dlnmu = -(alpha-1)  ->  d log p_u/du = lstd*-(alpha-1); per grid step:
+    slope_target = (-(cfg["slope_alpha"] - 1.0) * lstd) * du_grid
     best_val = float("inf"); best_state = None; no_improve = 0
     t0 = time.time()
     for epoch in range(1, cfg["epochs"] + 1):
@@ -139,14 +143,14 @@ def train(cfg):
                 loss = -(w * lp).sum() / w.sum()
             else:
                 loss = -lp.mean()
-            if cfg["smooth_weight"] > 0:   # tail log-density curvature penalty
+            if cfg["smooth_weight"] > 0:   # pin tail log-density slope to benchmark power law
                 cs = xb[:cfg["smooth_ctx"]]                       # (Nc,4) contexts
                 G = sgrid.shape[0]; Nc = cs.shape[0]
                 gx = sgrid.repeat(Nc, 1)                          # (Nc*G,1)
                 cx = cs.repeat_interleave(G, dim=0)               # (Nc*G,4)
                 lg = flow(cx).log_prob(gx).reshape(Nc, G)
-                d2 = lg[:, 2:] - 2 * lg[:, 1:-1] + lg[:, :-2]
-                loss = loss + cfg["smooth_weight"] * (d2 ** 2).mean()
+                d1 = lg[:, 1:] - lg[:, :-1]                       # d log p_u over u-grid
+                loss = loss + cfg["smooth_weight"] * ((d1 - slope_target) ** 2).mean()
             if not torch.isfinite(loss):
                 raise ValueError(f"non-finite loss at epoch {epoch}")
             loss.backward()
