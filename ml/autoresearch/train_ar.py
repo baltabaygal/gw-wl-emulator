@@ -34,8 +34,8 @@ from ml.autoresearch import prepare_ar
 # ============================= CONFIG (edit me) =============================
 CONFIG = dict(
     # --- architecture ---
-    bins=16,             # RQS bins
-    bound=12.0,          # RQS spline domain [-bound, bound] in standardized lnmu
+    bins=20,             # RQS bins
+    bound=16.0,          # RQS spline domain [-bound, bound] in standardized lnmu
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
     base="studentt",     # "normal" | "studentt"
@@ -58,9 +58,10 @@ CONFIG = dict(
     smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
     # --- runtime ---
-    time_budget_s=1200,   # wall-clock training cap (fixed budget, comparable runs)
+    time_budget_s=600,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
     seed=0,
+    n_subsample=1500000,  # subsample train for speed (body is over-sampled)
 )
 DATASET_DIR = "datasets_logz_1k"
 AR_DIR = Path(__file__).resolve().parent
@@ -112,6 +113,10 @@ def train(cfg):
     torch.manual_seed(cfg["seed"]); np.random.seed(cfg["seed"])
     dev = torch.device(cfg["device"])
     (Xtr, Ytr), (Xva, Yva), stats = load_standardized(cfg)
+    if cfg.get("n_subsample", 0) and cfg["n_subsample"] < Xtr.shape[0]:
+        sel = torch.from_numpy(np.random.default_rng(cfg["seed"]).choice(
+            Xtr.shape[0], cfg["n_subsample"], replace=False))
+        Xtr, Ytr = Xtr[sel], Ytr[sel]
     Xtr, Ytr, Xva, Yva = Xtr.to(dev), Ytr.to(dev), Xva.to(dev), Yva.to(dev)
     lstd = stats["lnmu_std"]; lmean = stats["lnmu_mean"]
     tail_thr_norm = (cfg["tail_thresh"] - lmean) / lstd
