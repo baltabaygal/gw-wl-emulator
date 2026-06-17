@@ -62,9 +62,9 @@ CONFIG = dict(
     time_budget_s=1000000000,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
     seed=0,
-    n_subsample=5000000,  # subsample train for speed (body is over-sampled)
+    n_subsample=1500000,  # subsample train for speed (body is over-sampled)
 )
-DATASET_DIR = ["datasets_logz_1k", "datasets_tailrich"]
+DATASET_DIR = "datasets_logz_1k"
 AR_DIR = Path(__file__).resolve().parent
 STATS_PATH = AR_DIR / "cache" / "stats_logz.json"
 MODEL_PATH = AR_DIR / "models" / "flow_ar.pt"
