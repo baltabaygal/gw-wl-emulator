@@ -50,9 +50,9 @@ CONFIG = dict(
     # --- tail-aware loss (0 disables) ---
     tail_weight=0.0,     # extra weight on samples with lnmu > tail_thresh (hard; causes shoulder)
     tail_thresh=1.5,
-    tail_tilt=0.45,       # smooth weighting by mu^tail_tilt (no threshold -> no shoulder)
+    tail_tilt=0.0,       # smooth weighting by mu^tail_tilt (no threshold -> no shoulder)
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
-    smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
+    smooth_weight=0.0,   # weight on mean (tail log-density slope - benchmark)^2
     slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
     smooth_lo=3.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
