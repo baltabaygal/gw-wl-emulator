@@ -33,8 +33,15 @@ def load_body_fn(path=AR / "models" / "flow_ar.pt"):
     return train_ar.make_log_prob_fn(flow, ckpt["stats"], torch.device("cpu")), ckpt
 
 
-def make_spliced_log_prob_fn(body_fn, mu_u=3.0, alpha=3.4, lnmu_min=-4.0):
-    """Body flow below mu_u; analytic mu^-alpha tail above, anchored by continuity."""
+def make_spliced_log_prob_fn(body_fn, mu_u=2.0, alpha=3.4, anchor="survival", lnmu_min=-4.0):
+    """Body flow below mu_u; analytic mu^-alpha tail above.
+
+    anchor="survival" (recommended): tail carries the flow's survival mass S_flow(mu_u)
+      (reliable at moderate mu_u, data-rich) redistributed as a power law. Auto-normalized.
+      S_spliced(mu>t) = S_flow(mu_u) * (t/mu_u)^-(alpha-1).
+    anchor="density": match the flow density at mu_u (continuity; sensitive to far-tail
+      undershoot of the body flow).
+    """
     lnu = float(np.log(mu_u)); k = float(alpha - 1.0)
     gb = np.linspace(lnmu_min, lnu, 2000)               # grid for body CDF up to threshold
 
@@ -42,14 +49,19 @@ def make_spliced_log_prob_fn(body_fn, mu_u=3.0, alpha=3.4, lnmu_min=-4.0):
         lnmu = np.asarray(lnmu, dtype=np.float64).ravel()
         pb = np.exp(np.asarray(body_fn(gb, z, theta), np.float64))
         cdf_u = float(_trapz(pb, gb))                   # P(lnmu <= lnu) from the flow body
-        anchor = float(np.exp(np.asarray(body_fn(np.array([lnu]), z, theta), np.float64))[0])
-        total = cdf_u + anchor / k                      # renormalization (tail mass = anchor/k)
+        if anchor == "survival":
+            s_tail = max(1.0 - cdf_u, 1e-12)            # flow's mass above mu_u (reliable)
+            p_u = k * s_tail                            # power-law density at lnu (mass-matched)
+            total = 1.0                                 # cdf_u + s_tail = 1 already
+        else:                                           # density continuity
+            p_u = float(np.exp(np.asarray(body_fn(np.array([lnu]), z, theta), np.float64))[0])
+            total = cdf_u + p_u / k
         out = np.empty_like(lnmu)
         below = lnmu <= lnu
         if below.any():
             out[below] = np.exp(np.asarray(body_fn(lnmu[below], z, theta), np.float64))
         if (~below).any():
-            out[~below] = anchor * np.exp(-k * (lnmu[~below] - lnu))
+            out[~below] = p_u * np.exp(-k * (lnmu[~below] - lnu))
         return np.log(np.maximum(out / total, 1e-300))
 
     return fn
