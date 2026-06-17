@@ -48,8 +48,9 @@ CONFIG = dict(
     patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=0.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=0.0,     # extra weight on samples with lnmu > tail_thresh (hard; causes shoulder)
     tail_thresh=1.5,
+    tail_tilt=1.0,       # smooth weighting by mu^tail_tilt (no threshold -> no shoulder)
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
     smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
     slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
@@ -143,7 +144,10 @@ def train(cfg):
             xb, yb = Xtr[idx], Ytr[idx]
             opt.zero_grad()
             lp = flow(xb).log_prob(yb)
-            if cfg["tail_weight"] > 0:
+            if cfg.get("tail_tilt", 0) > 0:                       # smooth mu^tilt weighting
+                w = torch.exp(cfg["tail_tilt"] * lstd * yb.squeeze(-1))
+                loss = -(w * lp).sum() / w.sum()
+            elif cfg["tail_weight"] > 0:
                 w = 1.0 + cfg["tail_weight"] * (yb.squeeze(-1) > tail_thr_norm).float()
                 loss = -(w * lp).sum() / w.sum()
             else:
@@ -169,7 +173,10 @@ def train(cfg):
             for i in range(0, Xva.shape[0], 65536):
                 vlp.append(flow(Xva[i:i+65536]).log_prob(Yva[i:i+65536]))
             vlp = torch.cat(vlp)
-            if cfg["tail_weight"] > 0:  # align selection with the tail objective
+            if cfg.get("tail_tilt", 0) > 0:  # align selection with the tail objective
+                wv = torch.exp(cfg["tail_tilt"] * lstd * Yva.squeeze(-1))
+                val = float(-(wv * vlp).sum() / wv.sum())
+            elif cfg["tail_weight"] > 0:
                 wv = 1.0 + cfg["tail_weight"] * (Yva.squeeze(-1) > tail_thr_norm).float()
                 val = float(-(wv * vlp).sum() / wv.sum())
             else:
