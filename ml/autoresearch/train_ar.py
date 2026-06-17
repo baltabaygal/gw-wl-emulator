@@ -38,7 +38,7 @@ CONFIG = dict(
     bound=16.0,          # RQS spline domain [-bound, bound] in standardized lnmu
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
-    base="normal",       # "normal" | "studentt"
+    base="studentt",     # "normal" | "studentt"
     df=4.0,              # StudentT degrees of freedom (heavier tail = smaller df)
     # --- optimization ---
     lr=1e-3,
@@ -52,7 +52,7 @@ CONFIG = dict(
     tail_thresh=1.5,
     tail_tilt=0.0,       # smooth weighting by mu^tail_tilt (no threshold -> no shoulder)
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
-    smooth_weight=0.0,   # weight on mean (tail log-density slope - benchmark)^2
+    smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
     slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
     smooth_lo=3.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
