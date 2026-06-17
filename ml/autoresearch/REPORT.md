@@ -64,3 +64,35 @@ to mu≈6-8 at z = 2, 3.5, 5, 8 (high-structure corner).
   A z/structure-dependent weight, or `tail_weight≈1.5`, could trade that off.
 - Not promoted to production (isolation from the other agent). To promote: retrain on
   the production dataset/stats and copy into `data/models/`.
+
+---
+
+## FINAL STATUS (supersedes the above; see RESEARCH_tails.md)
+
+The TLSE-only "winner" above (exp8) was **smooth-metric-blind**: its dP/dmu had a
+reweighting bump at mu~4.5 and spline wiggles. After adding a tail-SHAPE metric and
+researching the literature, the final model changed.
+
+**Best model = body-flow + conditional power-law tail splice** (R1).
+- Body: plain Normal-base flow (bound=16, bins=20, pure NLL) — faithful body, no heavy base.
+- Tail (mu>2): analytic mu^-3.4 power law, amplitude = flow's survival at mu=2 (conditional,
+  data-rich), redistributed. Smooth by construction.
+- Impl: `splice_tail.py::make_spliced_log_prob_fn(body_fn, mu_u=2.0, alpha=3.4, anchor="survival")`,
+  body checkpoint `models/flow_ar.pt`. Tagged `best-splice-model`.
+- In-panel TailShape 0.081, Rough 0.002; **held-out mean TLSE 0.181 vs production 1.64 (9x)**.
+
+**L1 downstream check (`l1_check.py`):** sigma_dm tail-insensitive (~10% even for the cutoff);
+sigma_mu fixed to ~4% and logL bias ~0.01 by the splice; rare-event rate P(mu>5) median -5%
+on held-out (production misses 100%).
+
+**Data-first experiment — NEGATIVE result:** a 10x-denser tail dataset (`datasets_tailrich`,
+100k/config) did NOT improve held-out (original 0.181, tail-rich 0.231, merged 0.217). For a
+conditional density, config coverage > samples/config; and the splice's survival-at-mu=2 anchor
+is already well-estimated with 10k/config. Held-out alpha sweep: alpha=3.4 best for P(mu>5).
+=> data lever exhausted; original-data splice remains best.
+
+**Remaining lever (optional, marginal):** conditional GPD — per-cosmology slope/scale fit to
+the (now-available) dense exceedances. Expected gain small (alpha=3.4 already -5% median P(mu>5)).
+
+**Recommendation:** strong stopping point. Productionize the splice (retrain body on full data,
+bundle the wrapper, run full validation), or stop. Not promoted to shared production.
