@@ -38,7 +38,7 @@ CONFIG = dict(
     bound=16.0,          # RQS spline domain [-bound, bound] in standardized lnmu
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
-    base="studentt",     # "normal" | "studentt"
+    base="normal",       # "normal" | "studentt"
     df=4.0,              # StudentT degrees of freedom (heavier tail = smaller df)
     # --- optimization ---
     lr=1e-3,
