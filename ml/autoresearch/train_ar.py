@@ -48,12 +48,12 @@ CONFIG = dict(
     patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
-    tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
+    tail_weight=0.0,     # extra weight on samples with lnmu > tail_thresh
     tail_thresh=1.5,
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
     smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
     slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
-    smooth_lo=4.0,       # tail grid lower mu
+    smooth_lo=3.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
     smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
