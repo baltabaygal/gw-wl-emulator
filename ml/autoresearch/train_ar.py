@@ -44,8 +44,8 @@ CONFIG = dict(
     lr=1e-3,
     weight_decay=1e-5,
     batch_size=65536,
-    epochs=200,
-    patience=30,
+    epochs=50,
+    patience=15,
     grad_clip=5.0,
     # --- tail-aware loss (0 disables) ---
     tail_weight=2.0,     # extra weight on samples with lnmu > tail_thresh
@@ -58,7 +58,7 @@ CONFIG = dict(
     smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
     # --- runtime ---
-    time_budget_s=600,   # wall-clock training cap (fixed budget, comparable runs)
+    time_budget_s=1000000000,   # wall-clock training cap (fixed budget, comparable runs)
     device="mps",
     seed=0,
     n_subsample=1500000,  # subsample train for speed (body is over-sampled)
@@ -179,6 +179,8 @@ def train(cfg):
         if val < best_val - 1e-5:
             best_val = val; best_state = {k: v.cpu().clone() for k, v in flow.state_dict().items()}
             no_improve = 0
+            MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)   # incremental save (robust to kills/stalls)
+            torch.save({"state_dict": best_state, "config": cfg, "stats": stats, "epoch": epoch}, MODEL_PATH)
         else:
             no_improve += 1
             if no_improve >= cfg["patience"]:
