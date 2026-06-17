@@ -64,7 +64,7 @@ CONFIG = dict(
     seed=0,
     n_subsample=5000000,  # subsample train for speed (body is over-sampled)
 )
-DATASET_DIR = "datasets_tailrich"
+DATASET_DIR = ["datasets_logz_1k", "datasets_tailrich"]
 AR_DIR = Path(__file__).resolve().parent
 STATS_PATH = AR_DIR / "cache" / "stats_logz.json"
 MODEL_PATH = AR_DIR / "models" / "flow_ar.pt"
@@ -90,10 +90,18 @@ def build_flow(cfg) -> nn.Module:
 
 
 def load_standardized(cfg):
-    ds = load_dataset(DATASET_DIR)
-    Xtr, Ytr = flatten_dataset(ds["train"], normalize=False)
-    Xva, Yva = (flatten_dataset(ds["validation"], normalize=False)
-                if "validation" in ds else (Xtr, Ytr))
+    dirs = DATASET_DIR if isinstance(DATASET_DIR, (list, tuple)) else [DATASET_DIR]
+    Xtr_l, Ytr_l, Xva_l, Yva_l = [], [], [], []
+    for d in dirs:
+        ds = load_dataset(d)
+        xt, yt = flatten_dataset(ds["train"], normalize=False)
+        Xtr_l.append(xt); Ytr_l.append(yt)
+        if "validation" in ds:
+            xv, yv = flatten_dataset(ds["validation"], normalize=False)
+            Xva_l.append(xv); Yva_l.append(yv)
+    Xtr = np.concatenate(Xtr_l); Ytr = np.concatenate(Ytr_l)
+    Xva = np.concatenate(Xva_l) if Xva_l else Xtr
+    Yva = np.concatenate(Yva_l) if Yva_l else Ytr
     cmean = Xtr.mean(0, dtype=np.float64); cstd = Xtr.std(0, dtype=np.float64)
     cstd[cstd == 0] = 1.0
     lmean = float(Ytr.mean(dtype=np.float64)); lstd = float(Ytr.std(dtype=np.float64)) or 1.0
