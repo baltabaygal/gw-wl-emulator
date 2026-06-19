@@ -39,7 +39,7 @@ CONFIG = dict(
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
     base="studentt",     # "normal" | "studentt"
-    df=2.5,              # StudentT degrees of freedom (heavier tail = smaller df)
+    df=4.0,              # StudentT degrees of freedom (heavier tail = smaller df)
     # --- optimization ---
     lr=1e-3,
     weight_decay=1e-5,
