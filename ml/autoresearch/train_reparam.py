@@ -52,6 +52,12 @@ def main():
     Xtr, Ytr, Xva, Yva = Xtr.to(dev), Ytr.to(dev), Xva.to(dev), Yva.to(dev)
 
     flow = train_ar.build_flow(cfg).to(dev)
+    if MODEL_PATH.exists():   # resume: accumulate progress across kills/stalls
+        try:
+            prev = torch.load(MODEL_PATH, map_location=dev, weights_only=False)
+            flow.load_state_dict(prev["state_dict"]); print("resumed from existing checkpoint", flush=True)
+        except Exception as e:
+            print("resume failed, fresh init:", e, flush=True)
     opt = torch.optim.AdamW(flow.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     n = Xtr.shape[0]; bs = cfg["batch_size"]
     best = float("inf"); best_state = None; bad = 0; t_start = time.time()
