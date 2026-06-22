@@ -38,12 +38,14 @@ PYBIND11_MODULE(gwlensing, m) {
         [](double z, double OmegaM, double sigma8, double h,
            int Nreal, std::uint64_t seed,
            bool filaments, bool bias, bool ell,
-           int Nhalos, bool strict_weak_lensing) {
+           int Nhalos, bool strict_weak_lensing,
+           double Mmin) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
             samp.Nreal  = Nreal;
@@ -79,14 +81,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias") = true,
         py::arg("ell") = true,
         py::arg("Nhalos") = 100,
-        py::arg("strict_weak_lensing") = false
+        py::arg("strict_weak_lensing") = false,
+        py::arg("Mmin") = 1e7
     );
 
 
     // ---- sample_lnmu_ml -----------------------------------------------------
     m.def(
         "sample_lnmu_ml",
-        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing) {
+        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -100,6 +103,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
             samp.Nreal  = nsamples;
@@ -131,6 +135,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("nsamples"),
         py::arg("seed") = py::none(),
         py::arg("strict_weak_lensing") = false,
+        py::arg("Mmin") = 1e7,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
