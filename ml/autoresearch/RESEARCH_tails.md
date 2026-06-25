@@ -1,5 +1,14 @@
 # Research: heavy / power-law tails in (conditional) density estimation
 
+> **CORRECTION (supersedes all α≈3.4 below).** The α≈3.3–3.5 "benchmark" cited in this doc was
+> a **truncation artifact**: it was a Hill fit on samples cut at μ≈12. The simulator tail
+> actually extends to μ~10⁵. Re-measured from **10M untruncated samples** (`measure_tail.py`,
+> `measured_tail.png`): **dP/dμ ∝ μ^(−α) with α ≈ 2.0** (Hill: 2.09/2.23/2.23 at z=2/5/8 for
+> μ>5; ~1.9 far out; log-log fit 2.0–2.13). It IS a clean power law (straight in log-log at 10M)
+> and only mildly z-dependent. So everywhere below, read **α ≈ 2.0 (not 3.4)**, GPD shape
+> ξ = 1/(α−1) ≈ 1.0 (not 0.42). The too-steep 3.4 is why earlier spliced/blended tails under-shot.
+
+
 Triggered by the residual we hit: a single *global* tail knob (tilt/reweight) can't fit a
 tail whose amplitude varies ~10x across the prior — it nails high-structure tails but
 overshoots thin low-structure tails (held-out TLSE 0.325 vs production 1.64). Question:
