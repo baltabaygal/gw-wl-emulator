@@ -39,7 +39,7 @@ CONFIG = dict(
     transforms=6,        # number of autoregressive transforms
     hidden=128,          # hypernetwork hidden width (x2 layers)
     base="studentt",     # "normal" | "studentt"
-    df=4.0,              # StudentT degrees of freedom (heavier tail = smaller df)
+    df=2.0,              # StudentT degrees of freedom (heavier tail = smaller df)
     # --- optimization ---
     lr=1e-3,
     weight_decay=1e-5,
@@ -52,9 +52,9 @@ CONFIG = dict(
     tail_thresh=1.5,
     tail_tilt=0.0,       # smooth weighting by mu^tail_tilt (no threshold -> no shoulder)
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
-    smooth_weight=1.0,   # weight on mean (tail log-density slope - benchmark)^2
-    slope_alpha=3.4,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
-    smooth_lo=3.0,       # tail grid lower mu
+    smooth_weight=2.0,   # weight on mean (tail log-density slope - benchmark)^2
+    slope_alpha=2.0,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
+    smooth_lo=2.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
     smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
@@ -126,6 +126,9 @@ def train(cfg):
         sel = torch.from_numpy(np.random.default_rng(cfg["seed"]).choice(
             Xtr.shape[0], cfg["n_subsample"], replace=False))
         Xtr, Ytr = Xtr[sel], Ytr[sel]
+    if Xva.shape[0] > 100000:   # subsample val (4.3M full val is slow per epoch)
+        vs = torch.from_numpy(np.random.default_rng(1).choice(Xva.shape[0], 100000, replace=False))
+        Xva, Yva = Xva[vs], Yva[vs]
     Xtr, Ytr, Xva, Yva = Xtr.to(dev), Ytr.to(dev), Xva.to(dev), Yva.to(dev)
     lstd = stats["lnmu_std"]; lmean = stats["lnmu_mean"]
     tail_thr_norm = (cfg["tail_thresh"] - lmean) / lstd
