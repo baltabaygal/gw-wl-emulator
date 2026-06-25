@@ -23,7 +23,7 @@ AR = Path(__file__).resolve().parent
 MODEL_PATH = AR / "models" / "flow_reparam.pt"
 
 CFG = dict(bins=20, bound=16.0, transforms=6, hidden=128, base="normal",
-           lr=1e-3, weight_decay=1e-5, batch_size=65536, epochs=int(__import__("os").environ.get("EPOCHS","50")), patience=15,
+           lr=5e-4, weight_decay=1e-5, batch_size=32768, epochs=int(__import__("os").environ.get("EPOCHS","50")), patience=40,
            grad_clip=5.0, device="mps", seed=0, n_subsample=600000,
            muc=2.0, k=1.0,            # tail-compression: start at mu=muc, strength k
            df=4.0, tail_weight=0.0, tail_tilt=0.0, smooth_weight=0.0)  # (unused knobs for build_flow)
