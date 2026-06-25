@@ -1,47 +1,56 @@
-# Training throttling / kills — diagnosis & fix
+# Training slowdown / kills — diagnosis & fix
 
-## Symptoms observed
-- Background training epochs ~53–65 s each; a short *foreground* probe was ~4.5 s/epoch
-  (400k) — roughly a **3× slowdown** in the background.
-- No fan, no heat, machine stays cool during the "slow" runs.
-- Long background runs get **killed** after ~30–40 min (before finishing 50 epochs).
-- A short *synchronous* run was **SIGKILLed (exit 137)** almost immediately, right after
-  "resumed", before epoch 1.
+Stated as **observations** (measured) vs **explanations** (inferred, with confidence).
 
-## Evidence gathered
-- `pmset -g therm`: **no thermal warning, no performance warning**; low-power-mode off. → not thermal.
-- `top`: system shows **~30% idle CPU** while training crawls → process is **under-scheduled**,
-  not starved of hardware.
-- Process tree: `python ← caffeinate ← zsh ← claude.app` (PID 5849, Claude Code Bash tool).
-  `nice` = 0 (not niced). So it's a **detached, non-interactive GUI-launched job**.
-- Memory: `top` showed **~240 MB unused, ~7 GB memory compressor**, heavy swap counters. → the
-  machine is **memory-starved**; loading the dataset OOM-kills the process (exit 137).
+## Observations (well supported)
+- **Not thermal.** `pmset -g therm`: no thermal/performance warning; low-power-mode off; cool, no fan.
+- **Foreground vs background throughput differs ~3×.** A short *synchronous* probe ran ~4.5 s/epoch
+  (400k rows); long *backgrounded* runs ran ~53–65 s/epoch. Same machine, same code.
+- **Long/background runs get terminated** (exit 137 = SIGKILL; one earlier 144) before finishing.
+- **System had idle CPU** (~30%) during the slow runs (`top`).
+- **No OS OOM events.** `log show --last 2h` for `jetsam`/`memorystatus`/`lowswap` returned
+  **nothing**; `memory_pressure` reports **~54% free**. (The `top` "~240 MB unused" was misleading —
+  macOS keeps RAM full with *reclaimable* compressor/cache.)
 
-## Root causes (two, compounding)
-1. **macOS background QoS / App Nap.** Claude Code's Bash tool auto-detaches long commands; macOS
-   gives detached non-interactive jobs a low scheduling class → ~3× slower, cool, idle CPU free.
-   (A foreground/synchronous command runs at full QoS — confirmed by the fast probe.)
-2. **Memory pressure → OOM (SIGKILL/137).** Only ~240 MB free; `load_standardized` loads the FULL
-   dataset (4.5M rows) into memory before subsampling, on top of Claude.app + other apps → OOM.
+## Explanations (inferred — confidence noted)
+1. **Execution environment is the dominant factor** (high confidence on *effect*, mechanism
+   unverified). Long commands launched via Claude Code's Bash tool are auto-detached and run ~3×
+   slower than equivalent foreground runs, and are terminated after a while. The behavior is
+   *consistent with* reduced scheduling priority / background QoS (App Nap) on detached
+   GUI-launched processes, **but the exact scheduling mechanism has not been directly measured.**
+   The terminations are **not** OS OOM (no jetsam logs) → most likely the execution environment
+   itself ending long/detached jobs.
+   - Caveat: idle CPU + slow ≠ proof of QoS; it can also reflect page faults, compressed-memory
+     waits, I/O, or sync stalls. Those look less likely here but aren't excluded.
+2. **Memory pressure — possible secondary, NOT confirmed.** `top` showed little "unused" RAM and a
+   large compressor, and `load_standardized` eagerly loads all ~4.5M rows before subsampling. But
+   no jetsam events were logged and memory_pressure shows 54% free, so memory is **not** the proven
+   cause of the kills. Treat as a defensive concern, not a diagnosis.
 
-Neither is a PyTorch/model problem.
+## Fixes
+1. **Run training in a real Terminal.app / iTerm window** (not via the assistant). Foreground +
+   interactive → full QoS, no auto-detach, no ~3× penalty, no tool-imposed termination. The
+   assistant's Bash tool auto-backgrounds long commands, so it *cannot* hold a true-foreground
+   long job — this is the clean fix. Exact command at the bottom.
+2. **Lazy-load / subsample the dataset at read time** (elevated to equal priority). Loading only the
+   needed subset instead of all 4.5M rows cuts peak memory by several GB and removes that failure
+   class *regardless of where it runs*. (`load_standardized` currently loads everything then
+   subsamples.)
+3. **Through the assistant: short synchronous chunks** under the 10-min Bash limit (`EPOCHS=8`)
+   using the **resume** logic in `train_reparam.py` (loads `flow_reparam.pt`, continues, saves on
+   every improvement). Each chunk runs at full QoS; progress accumulates and survives terminations.
+4. **`caffeinate -dimsu`** to prevent idle-sleep on battery (a separate, earlier issue: unplugged +
+   idle suspended the job entirely → ~930 s stalls).
 
-## Fixes (in order of effectiveness)
-1. **Run in a real Terminal.app/iTerm window**, not via the assistant's Bash tool. Foreground,
-   interactive → full QoS, no auto-detach, no ~3× penalty. This is the clean fix; the assistant
-   can't launch a true-foreground long job through its tool (it auto-backgrounds).
-2. **Free memory** before training: quit other heavy apps; the machine has little headroom
-   (~240 MB free). Also make data loading lighter — load only a subsample, or stream — instead of
-   loading all 4.5M rows then subsampling. (Avoids exit 137.)
-3. If running through the assistant: **short synchronous chunks** under the 10-min Bash limit
-   (e.g. `EPOCHS=8`) using the **resume** logic in `train_reparam.py` (loads `flow_reparam.pt`,
-   continues, saves every improvement). Each chunk runs at full QoS; progress accumulates across
-   chunks and survives kills.
-4. Keep `caffeinate -dimsu` to stop idle-sleep when on battery (separate issue seen earlier when
-   the Mac was unplugged and idle: it suspended the job entirely → ~930 s stalls).
+## Run-it-yourself command (full speed)
+```bash
+cd /Users/baltabay/Desktop/gw-wl-emulator-ar
+KMP_DUPLICATE_LIB_OK=TRUE PYTHONPATH=. \
+  /Users/baltabay/miniforge3/envs/test/bin/python -u ml/autoresearch/train_reparam.py
+```
 
 ## Current state
-- Best reparam checkpoint (`models/flow_reparam.pt`) is at ~epoch 30, near-converged
-  (val NLL plateaued ~0.858): smooth single flow, Rough 0.039, TailShape 0.12, high-z far tail
-  near-exact (stress z=8 P(mu>5) 0.0099 vs sim 0.0101), weak only at z=2.
-- `train_reparam.py` now supports `EPOCHS=<n>` env override + resume for safe chunked training.
+- Best reparam checkpoint (`models/flow_reparam.pt`) ≈ epoch 30, near-converged (val NLL plateaued
+  ~0.858): smooth single flow, Rough 0.039, TailShape 0.12; high-z far tail near-exact
+  (stress z=8 P(mu>5) 0.0099 vs sim 0.0101), weak only at z=2.
+- `train_reparam.py` supports `EPOCHS=<n>` env override + resume for safe chunked training.
