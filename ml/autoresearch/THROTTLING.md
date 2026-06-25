@@ -1,5 +1,21 @@
 # Training slowdown / kills — diagnosis & fix
 
+## RESOLVED — root cause was a CODE bug, not the environment
+`train_reparam.py` evaluated the **entire 4.3M-row validation set in one unbatched MPS
+forward every epoch** → ~34–60 s/epoch. `train_ar.py` *batches* its validation, so it was
+fast. My earlier "foreground 4.5 s vs background 55 s" comparison was **invalid**: it compared
+*different code* (train_ar batched-val probe vs train_reparam unbatched-val run), not
+foreground vs background. Evidence this is the real cause:
+- `log show … jetsam` = **no OOM events** (ruled out memory-kill);
+- the user's run in a **real Terminal was also ~60 s/epoch** (rules out the assistant's
+  backgrounding / QoS);
+- **subsampling the val to 100k → 2 s/epoch** (60s→2s) — fix confirmed.
+So the QoS / App-Nap / OOM theories below were **wrong**; kept only as a record of what was
+checked. The earlier on-battery idle-suspension (~930 s stalls) was a separate, real issue.
+
+---
+## (superseded) earlier hypotheses — kept for the record
+
 Stated as **observations** (measured) vs **explanations** (inferred, with confidence).
 
 ## Observations (well supported)
