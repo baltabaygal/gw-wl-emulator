@@ -49,6 +49,10 @@ def main():
     lmean = float(stats["lnmu_mean"]); lstd = float(stats["lnmu_std"])
     t0 = (np.log(cfg["muc"]) - lmean) / lstd
     cfg["t0"] = float(t0)
+    # subsample validation: 4.3M rows/epoch is the dominant per-epoch cost (and memory)
+    nval = min(100000, Xva.shape[0])
+    vsel = torch.from_numpy(np.random.default_rng(1).choice(Xva.shape[0], nval, replace=False))
+    Xva, Yva = Xva[vsel], Yva[vsel]
     Xtr, Ytr, Xva, Yva = Xtr.to(dev), Ytr.to(dev), Xva.to(dev), Yva.to(dev)
 
     flow = train_ar.build_flow(cfg).to(dev)
