@@ -10,6 +10,6 @@ rm -rf ./build
 mkdir -p ./build
 cd ./build
 
-cmake ../cpp -DCMAKE_BUILD_TYPE=Release
+cmake ../cpp -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/Users/baltabay/miniforge3/envs/test/bin/python
 cmake --build . -j
 echo "Build completed."

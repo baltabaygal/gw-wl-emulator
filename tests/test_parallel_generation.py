@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import shutil
 import h5py
@@ -10,7 +11,7 @@ def test_parallel_dataset_generation():
         shutil.rmtree(test_dir)
         
     cmd = [
-        "python3",
+        sys.executable,
         "python/generate_dataset.py",
         "--num_points", "3",
         "--nsamples", "100",

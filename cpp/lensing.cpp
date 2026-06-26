@@ -3,6 +3,7 @@
 // #include <functional>
 #include <functional>  // For std::function
 #include <algorithm>
+#include <chrono>
 #include <limits>
 
 double Sigmacf(cosmology &C, double zs, double zl) {
@@ -324,12 +325,26 @@ double findkappathr(int N, function<double(double)> Nf) {
 // sample lnmu from the PDF of amplifications
 
 vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
+    using Clock = std::chrono::steady_clock;
+    auto elapsed_seconds = [](Clock::time_point start) {
+        return std::chrono::duration<double>(Clock::now() - start).count();
+    };
+    auto total_start = Clock::now();
+    LensingProfile *profile = cfg.profile;
+    if (profile != nullptr) {
+        profile->reset(C.NM);
+        profile->Nreal = cfg.Nreal;
+        profile->zs = zs;
+        for (int jM = 0; jM < C.NM; jM++) {
+            profile->M_host[jM] = C.Mlist[jM];
+        }
+    }
     
     // fix threshold kappa
     function<double(double)> NfNFW = [&C, zs](double kappa) {
         return NhfNFW(C, zs, kappa);
     };
-    double kappathrH = findkappathr(cfg.Nhalos, NfNFW);
+    double kappathrH = (cfg.custom_kappathr > 0.0) ? cfg.custom_kappathr : findkappathr(cfg.Nhalos, NfNFW);
     
     if (cfg.write > 0) {
         cout << kappathrH << endl;
@@ -347,10 +362,21 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         raw[j].kappa = PkappaW(mt);
         raw[j].gamma1 = 0.0;
         raw[j].gamma2 = 0.0;
+        raw[j].kappa_nosub = raw[j].kappa;   // paired baseline starts from the weak part
     }
     
     vector<vector<vector<double> > > dNH = deltaNhfNFW(C, zs, kappathrH);
     vector<vector<vector<double> > > dNF = deltaNhfCYL(C, zs, kappathrH);
+
+    // subhalo substructure tables (rebuilt per run; zs-independent physics)
+    if (cfg.subhalo) {
+        auto precompute_start = Clock::now();
+        subhalo_.m_floor = cfg.m_floor;
+        subhalo_.precompute(C, zs, cfg.subhalo_factor * kappathrH);
+        if (profile != nullptr) {
+            profile->subhalo_precompute_seconds = elapsed_seconds(precompute_start);
+        }
+    }
     if (cfg.write > 0) {
         writeToFile(C.zlist, C.Mlist, dNH, C.outdir/"dNH.dat");
         writeToFile(C.zlist, C.Mlist, dNF, C.outdir/"dNF.dat");
@@ -391,6 +417,79 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     kappa0baseF = rsF * 14.4*C.rhoc*LF / Sigmac;
                 }
 
+                auto add_host = [&](int j) {
+                    auto smooth_start = Clock::now();
+                    double rsH_eff = rsH;
+                    double kappa0H_eff = kappa0H;
+                    double epsilon_eff = epsilon;
+
+                    if (cfg.subhalo && cfg.subhalo_model == 1) {
+                        double g = subhalo_.gnorm[jz][jM];
+                        double M_host_eff = M;
+                        if (g > 0.0) {
+                            double psi_lo = 0.0;
+                            if (cfg.subhalo_brute) {
+                                psi_lo = cfg.m_floor / M;
+                            } else {
+                                const auto &rth = subhalo_.r_thr[jz];
+                                int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), r) - rth.begin());
+                                if (jlo < C.NM) {
+                                    psi_lo = std::max(C.Mlist[jlo], C.Mmin) / M;
+                                } else {
+                                    psi_lo = subhalo_.psi_max;
+                                }
+                            }
+                            if (psi_lo < subhalo_.psi_max) {
+                                double alpha = subhalo_.alpha;
+                                double f_s_res = g * (pow(subhalo_.psi_max, 1.0 + alpha) - pow(psi_lo, 1.0 + alpha)) / (1.0 + alpha);
+                                f_s_res = std::max(0.0, std::min(0.95, f_s_res));
+                                M_host_eff = (1.0 - f_s_res) * M;
+                            }
+                        }
+                        vector<double> NFWp = interpolate2(zl, M_host_eff, C.zlist, C.Mlist, C.NFWlist);
+                        rsH_eff = NFWp[0];
+                        kappa0H_eff = kappa0NFW(rsH_eff, NFWp[1], Sigmac);
+                        if (cfg.ell > 0) epsilon_eff = epsilonNFW(C, zl, M_host_eff);
+                    }
+
+                    kappagamma = kappagammaNFWeps(epsilon_eff, kappa0H_eff, r/rsH_eff, phiH);
+                    raw[j].kappa += kappagamma[0];
+                    raw[j].gamma1 += cos(phi)*kappagamma[1];
+                    raw[j].gamma2 += sin(phi)*kappagamma[1];
+
+                    // kappa_nosub tracks the full unperturbed host (NFW at M_total)
+                    if (cfg.subhalo && cfg.subhalo_model == 1) {
+                        auto kg_full = kappagammaNFWeps(epsilon, kappa0H, r/rsH, phiH);
+                        raw[j].kappa_nosub += kg_full[0];
+                    } else {
+                        raw[j].kappa_nosub += kappagamma[0];
+                    }
+
+                    if (profile != nullptr) {
+                        profile->smooth_host_seconds[jM] += elapsed_seconds(smooth_start);
+                        profile->host_events[jM]++;
+                        if (cfg.subhalo && subhalo_.fsub[jz][jM] > 0.0) {
+                            profile->fsub_weighted_sum[jM] += subhalo_.fsub[jz][jM];
+                            profile->nsub_mean_weighted_sum[jM] += subhalo_.Nsub[jz][jM];
+                        }
+                    }
+
+                    if (cfg.subhalo) {
+                        auto subhalo_start = Clock::now();
+                        int Nc = subhalo_.addClumps(C, jz, jM, zl, M, Sigmac, r, phi, mt,
+                                                     raw[j].kappa, raw[j].gamma1, raw[j].gamma2,
+                                                     cfg.subhalo_model, cfg.subhalo_brute,
+                                                     cfg.subhalo_threads, cfg.subhalo_parallel_threshold);
+                        if (profile != nullptr) {
+                            profile->subhalo_seconds[jM] += elapsed_seconds(subhalo_start);
+                            profile->subhalo_calls[jM]++;
+                            profile->subhalo_clumps[jM] += static_cast<uint64_t>(Nc);
+                        }
+                    }
+
+                    NtotH++;
+                };
+
                 for (int j = 0; j < cfg.Nreal; j++) {
                     
                     // bias
@@ -407,14 +506,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                             r = sqrt(randomreal(0.0,1.0,mt))*rmaxH; // distance from the line-of-sight
                             phi = randomreal(0.0,2*PI,mt); // polar angle of r vector
                             phiH = randomreal(0.0,2*PI,mt); // orientation of the halo ellipticity
-                            
-                            kappagamma = kappagammaNFWeps(epsilon, kappa0H, r/rsH, phiH);
-                            
-                            raw[j].kappa += kappagamma[0];
-                            raw[j].gamma1 += cos(phi)*kappagamma[1];
-                            raw[j].gamma2 += sin(phi)*kappagamma[1];
-                            
-                            NtotH++;
+                            add_host(j);
                         }
                     } else { // for larger lambda, generate number of halos from Poisson distribution (slower)
                         PN = poisson_distribution<int>(lambda*barNH);
@@ -424,14 +516,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                 r = sqrt(randomreal(0.0,1.0,mt))*rmaxH; // distance from the line-of-sight
                                 phi = randomreal(0.0,2*PI,mt); // polar angle of r vector
                                 phiH = randomreal(0.0,2*PI,mt); // orientation of the halo ellipticity
-                                
-                                kappagamma = kappagammaNFWeps(epsilon, kappa0H, r/rsH, phiH);
-                                
-                                raw[j].kappa += kappagamma[0];
-                                raw[j].gamma1 += cos(phi)*kappagamma[1];
-                                raw[j].gamma2 += sin(phi)*kappagamma[1];
-                                
-                                NtotH++;
+                                add_host(j);
                             }
                         }
                     }
@@ -447,9 +532,10 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                 kappagamma = {kappaCYL2(r, rsF, kappa0F), gammaCYL2(r, rsF, kappa0F)};
                                 
                                 raw[j].kappa += kappagamma[0];
+                                raw[j].kappa_nosub += kappagamma[0];
                                 raw[j].gamma1 += cos(phi)*kappagamma[1];
                                 raw[j].gamma2 += sin(phi)*kappagamma[1];
-                                
+
                                 NtotF++;
                             }
                         } else { // for larger lambda, generate number of halos from Poisson distribution (slower)
@@ -464,9 +550,10 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                     kappagamma = {kappaCYL2(r, rsF, kappa0F), gammaCYL2(r, rsF, kappa0F)};
                                     
                                     raw[j].kappa += kappagamma[0];
+                                    raw[j].kappa_nosub += kappagamma[0];
                                     raw[j].gamma1 += cos(phi)*kappagamma[1];
                                     raw[j].gamma2 += sin(phi)*kappagamma[1];
-                                    
+
                                     NtotF++;
                                 }
                             }
@@ -477,7 +564,9 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
             }
         }
     }
-    
+    if (profile != nullptr) {
+        profile->total_seconds = elapsed_seconds(total_start);
+    }
     return raw;
 }
 

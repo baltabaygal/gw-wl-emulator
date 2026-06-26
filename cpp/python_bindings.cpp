@@ -5,8 +5,12 @@
 #include "lnmu_wrapper.h"
 #include "cosmology.h"
 #include "lensing.h"
+#include <functional>
 
 namespace py = pybind11;
+
+double NhfNFW(cosmology &C, double zs, double kappathr);
+double findkappathr(int N, std::function<double(double)> Nf);
 
 static py::dict invalid_stats_to_dict(const InvalidSampleStats& s) {
     py::dict d;
@@ -39,7 +43,9 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nreal, std::uint64_t seed,
            bool filaments, bool bias, bool ell,
            int Nhalos, bool strict_weak_lensing,
-           double Mmin) {
+           double Mmin, bool subhalo, double m_floor,
+           int subhalo_threads, int subhalo_parallel_threshold,
+           int subhalo_model, bool subhalo_brute) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -55,6 +61,12 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.ell    = ell ? 1 : 0;
             samp.Nhalos = Nhalos;
             samp.strict_weak_lensing = strict_weak_lensing;
+            samp.subhalo = subhalo;
+            samp.m_floor = m_floor;
+            samp.subhalo_threads = subhalo_threads;
+            samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
+            samp.subhalo_model = subhalo_model;
+            samp.subhalo_brute = subhalo_brute;
 
             auto v = sample_lnmu(z, cosmo, samp);
 
@@ -82,14 +94,21 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ell") = true,
         py::arg("Nhalos") = 100,
         py::arg("strict_weak_lensing") = false,
-        py::arg("Mmin") = 1e7
+        py::arg("Mmin") = 1e7,
+        py::arg("subhalo") = false,
+        py::arg("m_floor") = 1e7,
+        py::arg("subhalo_threads") = 1,
+        py::arg("subhalo_parallel_threshold") = 200000,
+        py::arg("subhalo_model") = 1,
+        py::arg("subhalo_brute") = false
     );
 
 
     // ---- sample_lnmu_ml -----------------------------------------------------
     m.def(
         "sample_lnmu_ml",
-        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin) {
+        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -113,6 +132,12 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.ell    = 1;
             samp.Nhalos = 100;
             samp.strict_weak_lensing = strict_weak_lensing;
+            samp.subhalo = subhalo;
+            samp.m_floor = m_floor;
+            samp.subhalo_threads = subhalo_threads;
+            samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
+            samp.subhalo_model = subhalo_model;
+            samp.subhalo_brute = subhalo_brute;
 
             auto v = sample_lnmu(z, cosmo, samp);
 
@@ -136,13 +161,20 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("seed") = py::none(),
         py::arg("strict_weak_lensing") = false,
         py::arg("Mmin") = 1e7,
+        py::arg("subhalo") = false,
+        py::arg("m_floor") = 1e7,
+        py::arg("subhalo_threads") = 1,
+        py::arg("subhalo_parallel_threshold") = 200000,
+        py::arg("subhalo_model") = 1,
+        py::arg("subhalo_brute") = false,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
     // ---- sample_lnmu_ml_with_diagnostics -----------------------------------
     m.def(
         "sample_lnmu_ml_with_diagnostics",
-        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing) {
+        [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -155,6 +187,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
             samp.Nreal  = nsamples;
@@ -164,6 +197,12 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.ell    = 1;
             samp.Nhalos = 100;
             samp.strict_weak_lensing = strict_weak_lensing;
+            samp.subhalo = subhalo;
+            samp.m_floor = m_floor;
+            samp.subhalo_threads = subhalo_threads;
+            samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
+            samp.subhalo_model = subhalo_model;
+            samp.subhalo_brute = subhalo_brute;
 
             auto diag = sample_lnmu_with_diagnostics(z, cosmo, samp);
 
@@ -189,6 +228,13 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("nsamples"),
         py::arg("seed") = py::none(),
         py::arg("strict_weak_lensing") = false,
+        py::arg("Mmin") = 1e7,
+        py::arg("subhalo") = false,
+        py::arg("m_floor") = 1e7,
+        py::arg("subhalo_threads") = 1,
+        py::arg("subhalo_parallel_threshold") = 200000,
+        py::arg("subhalo_model") = 1,
+        py::arg("subhalo_brute") = false,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -196,7 +242,9 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "sample_lensing_raw_ml",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj,
-           bool filaments, bool bias, bool ell, int Nhalos) {
+           bool filaments, bool bias, bool ell, int Nhalos, bool subhalo, double m_floor,
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute,
+           double subhalo_factor, double custom_kappathr) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -233,26 +281,38 @@ PYBIND11_MODULE(gwlensing, m) {
             cfg.bias = bias ? 1 : 0;
             cfg.ell = ell ? 1 : 0;
             cfg.write = 0;
+            cfg.subhalo = subhalo;
+            cfg.m_floor = m_floor;
+            cfg.subhalo_threads = subhalo_threads;
+            cfg.subhalo_parallel_threshold = subhalo_parallel_threshold;
+            cfg.subhalo_model = subhalo_model;
+            cfg.subhalo_brute = subhalo_brute;
+            cfg.subhalo_factor = subhalo_factor;
+            cfg.custom_kappathr = custom_kappathr;
 
             auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
 
             py::array_t<double> kappa(raw.size());
             py::array_t<double> gamma1(raw.size());
             py::array_t<double> gamma2(raw.size());
+            py::array_t<double> kappa_nosub(raw.size());
             auto k = kappa.mutable_unchecked<1>();
             auto g1 = gamma1.mutable_unchecked<1>();
             auto g2 = gamma2.mutable_unchecked<1>();
+            auto kns = kappa_nosub.mutable_unchecked<1>();
 
             for (ssize_t i = 0; i < static_cast<ssize_t>(raw.size()); ++i) {
                 k(i) = raw[i].kappa;
                 g1(i) = raw[i].gamma1;
                 g2(i) = raw[i].gamma2;
+                kns(i) = raw[i].kappa_nosub;
             }
 
             py::dict out;
             out["kappa"] = kappa;
             out["gamma1"] = gamma1;
             out["gamma2"] = gamma2;
+            out["kappa_nosub"] = kappa_nosub;
             return out;
         },
         py::arg("z"),
@@ -265,6 +325,14 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias") = true,
         py::arg("ell") = true,
         py::arg("Nhalos") = 100,
+        py::arg("subhalo") = false,
+        py::arg("m_floor") = 1e7,
+        py::arg("subhalo_threads") = 1,
+        py::arg("subhalo_parallel_threshold") = 200000,
+        py::arg("subhalo_model") = 1,
+        py::arg("subhalo_brute") = false,
+        py::arg("subhalo_factor") = 1.0,
+        py::arg("custom_kappathr") = -1.0,
         "Return raw (kappa, gamma1, gamma2) realizations for diagnostics."
     );
 
@@ -276,6 +344,12 @@ PYBIND11_MODULE(gwlensing, m) {
         d["bias"] = true;
         d["ell"] = true;
         d["Nhalos"] = 100;
+        d["subhalo"] = false;
+        d["m_floor"] = 1e7;
+        d["subhalo_threads"] = 1;
+        d["subhalo_parallel_threshold"] = 200000;
+        d["subhalo_model"] = 1;
+        d["subhalo_brute"] = false;
         return d;
     }, "Returns hardcoded default physics toggles used by sample_lnmu_ml");
 
@@ -286,7 +360,9 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nreal, std::uint64_t seed,
            bool filaments, bool bias, bool ell,
            int Nhalos, bool strict_weak_lensing,
-           bool fast) {
+           bool fast, bool subhalo, double m_floor,
+           int subhalo_threads, int subhalo_parallel_threshold,
+           int subhalo_model, bool subhalo_brute) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -301,6 +377,12 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.ell    = ell ? 1 : 0;
             samp.Nhalos = Nhalos;
             samp.strict_weak_lensing = strict_weak_lensing;
+            samp.subhalo = subhalo;
+            samp.m_floor = m_floor;
+            samp.subhalo_threads = subhalo_threads;
+            samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
+            samp.subhalo_model = subhalo_model;
+            samp.subhalo_brute = subhalo_brute;
 
             LnmuStats s = fast
                 ? compute_lnmu_stats_fast(z, cosmo, samp)
@@ -324,6 +406,75 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ell") = true,
         py::arg("Nhalos") = 100,
         py::arg("strict_weak_lensing") = false,
-        py::arg("fast") = true
+        py::arg("fast") = true,
+        py::arg("subhalo") = false,
+        py::arg("m_floor") = 1e7,
+        py::arg("subhalo_threads") = 1,
+        py::arg("subhalo_parallel_threshold") = 200000,
+        py::arg("subhalo_model") = 1,
+        py::arg("subhalo_brute") = false
+    );
+
+    m.def(
+        "get_kappa_threshold",
+        [](double z, double h, double OmegaM, double sigma8, int Nhalos) {
+            cosmology C;
+            C.OmegaM = OmegaM;
+            C.sigma8 = sigma8;
+            C.h      = h;
+            C.OmegaB = 0.0493;
+            C.zeq    = 3402.0;
+            C.T0     = 2.7255;
+            C.ns     = 0.965;
+            C.Mmin   = 1e7;
+            C.Mmax   = 1e17;
+            C.NM     = 100;
+            C.zmin   = 0.01;
+            C.zmax   = 10.01;
+            C.Nz     = 100;
+            C.outdir = "dataL";
+            C.initialize(0);
+
+            std::function<double(double)> NfNFW = [&C, z](double kappa) {
+                return NhfNFW(C, z, kappa);
+            };
+            return findkappathr(Nhalos, NfNFW);
+        },
+        py::arg("z"),
+        py::arg("h"),
+        py::arg("OmegaM"),
+        py::arg("sigma8"),
+        py::arg("Nhalos"),
+        "Calculate the kappa threshold for a given number of resolved host halos."
+    );
+
+    m.def(
+        "get_sigma_background",
+        [](double z, double h, double OmegaM, double sigma8, double kappathr) {
+            cosmology C;
+            C.OmegaM = OmegaM;
+            C.sigma8 = sigma8;
+            C.h      = h;
+            C.OmegaB = 0.0493;
+            C.zeq    = 3402.0;
+            C.T0     = 2.7255;
+            C.ns     = 0.965;
+            C.Mmin   = 1e7;
+            C.Mmax   = 1e17;
+            C.NM     = 100;
+            C.zmin   = 0.01;
+            C.zmax   = 10.01;
+            C.Nz     = 100;
+            C.outdir = "dataL";
+            C.initialize(0);
+
+            return sigmakappaW(C, z, kappathr);
+        },
+        py::arg("z"),
+        py::arg("h"),
+        py::arg("OmegaM"),
+        py::arg("sigma8"),
+        py::arg("kappathr"),
+        "Calculate the background standard deviation for a given kappa threshold."
     );
 }

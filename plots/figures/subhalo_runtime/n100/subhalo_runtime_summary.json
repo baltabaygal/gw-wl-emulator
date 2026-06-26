@@ -1,0 +1,46 @@
+{
+  "parameters": {
+    "z": 1.0,
+    "h": 0.674,
+    "OmegaM": 0.315,
+    "sigma8": 0.811,
+    "Nreal": 100,
+    "seed": 42,
+    "Mmin": 10000000.0,
+    "m_floor": 10000000.0,
+    "bins": 160,
+    "mu_plot_range_quantiles": [
+      0.001,
+      0.999
+    ]
+  },
+  "machine": {
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "Apple M5",
+    "logical_cpus": "10",
+    "performance_cores": "4",
+    "efficiency_cores": "6"
+  },
+  "paper_reference": {
+    "source": "Vaskonen 2026, Sec. 3",
+    "reported": "single likelihood evaluation, including halo/filament mass functions and weak-lensing distributions at multiple source redshifts, approximately 20 seconds on Apple M1"
+  },
+  "results": [
+    {
+      "subhalo": false,
+      "seconds": 1.5657590839982731,
+      "valid_samples": 99,
+      "mean_mu": 1.0010535246802066,
+      "std_mu": 0.06006624161559831
+    },
+    {
+      "subhalo": true,
+      "seconds": 13.149522082996555,
+      "valid_samples": 100,
+      "mean_mu": 1.0052012778086843,
+      "std_mu": 0.08136547692727554
+    }
+  ],
+  "speed_ratio_subhalo_true_over_false": 8.398177099773452,
+  "plot": "plots/figures/subhalo_runtime/n100/subhalo_false_vs_true_dpdmu.png"
+}

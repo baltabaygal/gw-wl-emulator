@@ -26,8 +26,14 @@ bool fileExists(const string& filename);
 vector<double> linlist(double xmin, double xmax, int Nx);
 vector<double> loglist(double xmin, double xmax, int Nx);
 
-double randomreal(double x1, double x2, rgen &mt);
-double randomreal(double x1, double x2);
+inline double randomreal(double x1, double x2, rgen &mt) {
+    double r01 = (double)mt() * (1.0 / (double)mt.max());
+    return (x1 + (x2-x1)*r01);
+}
+inline double randomreal(double x1, double x2) {
+    double r01 = (double)rand() * (1.0 / (double)RAND_MAX);
+    return (x1 + (x2-x1)*r01);
+}
 
 double NPDF(double x, double mu, double sigma);
 double logNPDF(double x, double mu, double sigma);

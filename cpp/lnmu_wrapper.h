@@ -31,6 +31,12 @@ struct SamplingParams {
     int ell     = 1;
     int Nhalos  = 100;
     bool strict_weak_lensing = false;
+    bool subhalo = false;
+    double m_floor = 1.0e7;
+    int subhalo_threads = 1;
+    int subhalo_parallel_threshold = 200000;
+    int subhalo_model = 0;
+    bool subhalo_brute = false;
 };
 
 struct LnmuSampleDiagnostics {

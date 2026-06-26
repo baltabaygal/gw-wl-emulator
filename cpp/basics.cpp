@@ -48,15 +48,7 @@ vector<double> loglist(double xmin, double xmax, int Nx) {
     }
 }
 
-// random real number in the range (x_1,x_2)
-double randomreal(double x1, double x2, rgen &mt) {
-    long double r01 = mt()/(1.0*mt.max());
-    return (x1 + (x2-x1)*r01);
-}
-double randomreal(double x1, double x2) {
-    long double r01 = rand()/(1.0*RAND_MAX);
-    return (x1 + (x2-x1)*r01);
-}
+// randomreal is inlined in basics.h
 
 // normal distribution
 double NPDF(double x, double mu, double sigma) {

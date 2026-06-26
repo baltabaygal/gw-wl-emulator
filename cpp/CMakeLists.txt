@@ -17,6 +17,7 @@ add_library(gwcore
     cosmology.cpp
     lensing.cpp
     lnmu_wrapper.cpp
+    subhalo.cpp
 )
 
 target_include_directories(gwcore
@@ -38,6 +39,12 @@ target_link_libraries(main_sample_lnmu PRIVATE gwcore)
 
 add_executable(test_stats test_stats.cpp)
 target_link_libraries(test_stats PRIVATE gwcore)
+
+add_executable(main_vaskonen_timing main_vaskonen_timing.cpp)
+target_link_libraries(main_vaskonen_timing PRIVATE gwcore)
+
+add_executable(main_subhalo_profile main_subhalo_profile.cpp)
+target_link_libraries(main_subhalo_profile PRIVATE gwcore)
 
 # ===============================
 # Python bindings (pybind11)

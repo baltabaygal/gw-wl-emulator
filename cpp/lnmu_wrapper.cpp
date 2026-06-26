@@ -77,6 +77,13 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.bias   = sp.bias;
     cfg.ell    = sp.ell;
     cfg.write  = 0;
+    cfg.strict_weak_lensing = sp.strict_weak_lensing;
+    cfg.subhalo = sp.subhalo;
+    cfg.m_floor = sp.m_floor;
+    cfg.subhalo_threads = sp.subhalo_threads;
+    cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
+    cfg.subhalo_model = sp.subhalo_model;
+    cfg.subhalo_brute = sp.subhalo_brute;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
     auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
@@ -239,6 +246,12 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.ell    = sp.ell;
     cfg.write  = 0;
     cfg.strict_weak_lensing = sp.strict_weak_lensing;
+    cfg.subhalo = sp.subhalo;
+    cfg.m_floor = sp.m_floor;
+    cfg.subhalo_threads = sp.subhalo_threads;
+    cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
+    cfg.subhalo_model = sp.subhalo_model;
+    cfg.subhalo_brute = sp.subhalo_brute;
 
     LnmuSampleDiagnostics out;
     out.lnmu = L.sample_lnmu(C, z, mt, cfg);
