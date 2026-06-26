@@ -54,7 +54,7 @@ CONFIG = dict(
     # --- tail slope penalty: pin d log p/dlnmu to benchmark power law (0 disables) ---
     smooth_weight=2.0,   # weight on mean (tail log-density slope - benchmark)^2
     slope_alpha=2.0,     # benchmark power-law index (dP/dmu ~ mu^-alpha)
-    smooth_lo=2.0,       # tail grid lower mu
+    smooth_lo=4.0,       # tail grid lower mu
     smooth_hi=12.0,      # tail grid upper mu
     smooth_npts=16,      # grid points
     smooth_ctx=128,      # contexts per batch used for the penalty
