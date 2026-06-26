@@ -35,7 +35,6 @@ def build_ref():
 def main():
     ref = build_ref()
     ck = torch.load(AR/"models/flow_ar.pt", map_location="cpu", weights_only=False)
-    fn = train_ar.make_log_prob_fn(train_ar.build_flow(ck["config"]).eval(), ck["stats"], torch.device("cpu"))
     flow = train_ar.build_flow(ck["config"]); flow.load_state_dict(ck["state_dict"]); flow.eval()
     fn = train_ar.make_log_prob_fn(flow, ck["stats"], torch.device("cpu"))
     edges = ref["edges"]; ctr = np.sqrt(edges[:-1]*edges[1:]); bw = np.diff(edges)
