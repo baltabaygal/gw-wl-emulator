@@ -37,6 +37,7 @@ struct SamplingParams {
     int subhalo_parallel_threshold = 200000;
     int subhalo_model = 0;
     bool subhalo_brute = false;
+    double subhalo_factor = 1.0;
 };
 
 struct LnmuSampleDiagnostics {

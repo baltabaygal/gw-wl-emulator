@@ -84,6 +84,7 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
     cfg.subhalo_model = sp.subhalo_model;
     cfg.subhalo_brute = sp.subhalo_brute;
+    cfg.subhalo_factor = sp.subhalo_factor;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
     auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
@@ -252,6 +253,7 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
     cfg.subhalo_model = sp.subhalo_model;
     cfg.subhalo_brute = sp.subhalo_brute;
+    cfg.subhalo_factor = sp.subhalo_factor;
 
     LnmuSampleDiagnostics out;
     out.lnmu = L.sample_lnmu(C, z, mt, cfg);

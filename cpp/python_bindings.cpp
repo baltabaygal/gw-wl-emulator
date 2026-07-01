@@ -45,7 +45,7 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nhalos, bool strict_weak_lensing,
            double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
-           int subhalo_model, bool subhalo_brute) {
+           int subhalo_model, bool subhalo_brute, double subhalo_factor) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -67,6 +67,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
+            samp.subhalo_factor = subhalo_factor;
 
             auto v = sample_lnmu(z, cosmo, samp);
 
@@ -100,7 +101,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
-        py::arg("subhalo_brute") = false
+        py::arg("subhalo_brute") = false,
+        py::arg("subhalo_factor") = 1.0
     );
 
 
@@ -108,7 +110,7 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "sample_lnmu_ml",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
-           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute) {
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -138,6 +140,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
+            samp.subhalo_factor = subhalo_factor;
 
             auto v = sample_lnmu(z, cosmo, samp);
 
@@ -167,6 +170,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
+        py::arg("subhalo_factor") = 1.0,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
@@ -174,7 +178,7 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "sample_lnmu_ml_with_diagnostics",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
-           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute) {
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -203,6 +207,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
+            samp.subhalo_factor = subhalo_factor;
 
             auto diag = sample_lnmu_with_diagnostics(z, cosmo, samp);
 
@@ -235,6 +240,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
+        py::arg("subhalo_factor") = 1.0,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -350,6 +356,7 @@ PYBIND11_MODULE(gwlensing, m) {
         d["subhalo_parallel_threshold"] = 200000;
         d["subhalo_model"] = 1;
         d["subhalo_brute"] = false;
+        d["subhalo_factor"] = 1.0;
         return d;
     }, "Returns hardcoded default physics toggles used by sample_lnmu_ml");
 
@@ -362,7 +369,7 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nhalos, bool strict_weak_lensing,
            bool fast, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
-           int subhalo_model, bool subhalo_brute) {
+           int subhalo_model, bool subhalo_brute, double subhalo_factor) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -383,6 +390,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_parallel_threshold = subhalo_parallel_threshold;
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
+            samp.subhalo_factor = subhalo_factor;
 
             LnmuStats s = fast
                 ? compute_lnmu_stats_fast(z, cosmo, samp)
@@ -412,7 +420,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
-        py::arg("subhalo_brute") = false
+        py::arg("subhalo_brute") = false,
+        py::arg("subhalo_factor") = 1.0
     );
 
     m.def(
