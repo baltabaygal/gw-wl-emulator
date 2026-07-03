@@ -1,3 +1,8 @@
+# CAVEAT (2026-07-02): the "Delta" ratio printed below is NOT expected to be ~1.
+# The screen's dK2c/dK3c is the unclustered-Poisson clump component only; the C++ MC delta
+# additionally contains within-host clump clustering + host-clump covariance (dominant)
+# and the (1-f_s)M host reduction. For the split-vs-brute validation use
+# scripts/validate_split_vs_brute.py; see docs/subhalo_combining.md "Validation".
 import sys
 from pathlib import Path
 import numpy as np

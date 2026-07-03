@@ -159,8 +159,8 @@ def dN_dlnpsi(psi, g): return g*psi**ALPHA*np.exp(-BETA*psi**OMEGA)
 # ============================================================ the grid + threshold
 Mlist = np.logspace(7, 17, 100)
 zlist = np.logspace(np.log10(0.01), np.log10(10.01), 100)
-ZS_FID = 5.0                                          # source redshift (fiducial)
-ZS_SCAN = [2.0, 3.5, 5.0]
+ZS_FID = 1.0
+ZS_SCAN = [1.0]
 sig_c = {}
 _shmf_cache = {}
 
@@ -303,10 +303,10 @@ print(f"  Delta<kappa^2>_c / <kappa^2> = {fid['dK2c']/fid['K2_model']:.3%}")
 print(f"  Delta<kappa^3>_c / <kappa^3> = {fid['dK3c']/fid['K3_model']:.3%}")
 print(f"  skewness  <k^3>/<k^2>^1.5  : model {fid['skew_model']:.3f} -> +clumps {fid['skew_clumps']:.3f}")
 
-np.save('plots/screen_rows.npy', fid["rows"])
-np.save('plots/screen_rows_all.npy', fid["rows_all"])
+np.save('tmp/screen_zs1_rows.npy', fid["rows"])
+np.save('tmp/screen_zs1_rows_all.npy', fid["rows_all"])
 np.savez(
-    'plots/screen_zs_scan.npz',
+    'tmp/screen_zs1_scan.npz',
     zs=np.array([r["zs"] for r in results]),
     kthr=np.array([r["kthr"] for r in results]),
     K2_model=np.array([r["K2_model"] for r in results]),

@@ -4,6 +4,12 @@ Fast ML emulator for the GW weak-lensing magnification PDF, built on the C++ Mon
 engine from Vaskonen (2026). See `README.MD` for the project overview and `memory/MEMORY.md`
 (auto-loaded) for cross-session context.
 
+## 0. This file is a LIVING document
+Loaded into every session as project instructions. It is **not fixed** — improve it as
+tools, flags, and workflows change; date the changes. Keep **only verified commands**
+(ones actually run); delete anything that turned out wrong. If the user teaches you a
+preference, capture it here.
+
 ## Environment — IMPORTANT
 
 Use the **`test` conda env (Python 3.12)** for anything touching the C++ module or ACE.
@@ -70,11 +76,104 @@ Standalone Python (run with system python3.13 OR test env; no C++ needed for the
   of the screen against C++ raw-κ. **Needs the `test` env** (gwlensing + ACE).
 - `scripts/plot_gate_verdict.py` → `plots/gate_verdict.png` (summary figure).
 
-**Verdict (gate complete):** substructure is sub-dominant (few % on ⟨κ²⟩,⟨κ³⟩) vs the
-ACE−Vaskonen model gap (50–86%) and host-feature systematics — full module NOT warranted.
-See memory `subhalo_gate_verdict.md`. Screen validated against C++ raw-κ to ~1%.
+**Verdict (gate complete; numbers refreshed 2026-07-02 after the w̃_f fix):** the screen's
+unclustered-Poisson clump component is +3.2–3.4% on ⟨κ²⟩, +1.45% on ⟨κ³⟩ (zs=1–5); gate
+constants in `subhalo_gate.py` updated to `dK2c, dK3c = 2.307e-5, 1.077e-6`. **However the
+full MC substructure effect is larger** — +14.9% on ⟨κ²⟩, +4.5% on ⟨κ³⟩ at zs=5 (brute,
+`validate_split_vs_brute.py`) — because within-host clustering + host–clump covariance
+dominate over the Poisson term (see docs/subhalo_combining.md "Validation"). Still below
+the ACE−Vaskonen gap (50–86%), so the gate conclusion stands, but "few %" undersold it.
+Host moments: screen vs C++ raw-κ agree to ~0.1%.
+
+**Fix history 2026-07-02** (module rebuilt, 75 tests pass):
+1. **KEPT — w̃_f:** `exp(-1.0)` → `exp(-0.25)` (Giocoli+2007 e^{−2f³}, f=½) in
+   `cpp/subhalo.cpp` + 3 screen scripts + doc — old value inflated f_s by ~22–26%.
+2. **REVERTED by user/supervisor decision — shear stays single-angle** (original Vaskonen
+   convention). The spin-2 double-angle form is exactly right per realization
+   (`tmp/shear_convention_check.py`, convention-free Jacobian ground truth) but the
+   aggregate effect is ~0.5% on ⟨γ²⟩; consistency with the original code was preferred.
+   Do NOT re-apply without being asked.
+3. **REVERTED (wrong idea) — max(0, r−r200) floor:** NFW κ diverges on-axis so the
+   worst-case criterion degenerates to brute for every ray inside r200, making
+   `subhalo_factor` inert (caught by the factor-convergence scan). Floor is keyed to the
+   host-center distance r (original design); the r-vs-d bias is absorbed by tuning
+   `subhalo_factor` to the convergence plateau: `scripts/subhalo_factor_convergence.py`.
+   The earlier "94%/11×" split validation was contaminated by this bug — retracted.
+
+## NSF emulator — production model (final 2026-07-03, commit 0785dd0)
+The smooth production magnification PDF lives in the **`gw-wl-emulator-ar` worktree**
+(branch `autoresearch/jun16`, pushed to origin): `ml/autoresearch/smooth_model.py` →
+`load_smooth_fn()` = flow body `models/flow_smooth_lowz.pt` + conditional POT tail
+(Poisson-regressed exceedance survivals S2/S3/S8(ctx), 3-segment power law, μ⁻²
+asymptote, blend at μ_c=1.7) + empty-beam low-μ cutoff. Do NOT use `flow_ar.pt`.
+Full experiment log: `ml/autoresearch/REPORT.md` (exp18–24) + `results.tsv`.
+
+**Validated (REPORT.md 2026-07-03):** median KL 0.0073 (= ACE-Lensing's 0.007, and
+holds to μ=100 where they truncate at 6); PIT KS 3–10%; ⟨1/μ⟩=1 within 1%; posterior
+recovery on 16×1000-event mocks: model bias h −0.46±0.20 σ_post, Ωm +0.29±0.17.
+Fit for purpose to O(1000) events; for ≳4000 events first enforce ⟨1/μ⟩=1 (lnμ shift).
+
+**Retraining recipe (when new/subhalo-corrected training data lands):**
+1. regenerate datasets + `cache/lowz_aug.npz` (`gen_lowz_data.py`) — not in git (114MB);
+2. `train_smooth.py` (~7 min MPS) → new body;
+3. refit `prepare_fix.py` (edge) + `gen_tail_counts.py` + `fit_tail_amplitude.py` (tail);
+4. acceptance gates: `param_space_check.py` (needs fresh `param_space_ref`),
+   `validate_kl.py`, `validate_pit.py`, `validate_posterior.py` (control must be ~0σ).
+
+## The `halos` fork — production subhalo port (2026-07-01)
+The clean port of the subhalo model into the original Vaskonen code lives in
+**`~/Desktop/halos`** (clone of `github.com/vianvask/halos` — the upstream author's repo;
+branch `subhalo-production-integration`, commit `133eb00`). Design doc:
+`docs/subhalo_combining.md` here. Differences vs the prototype in `cpp/` here: the port
+adds the r-dependent resolved/unresolved split (option B: reduced smooth host
+`(1−f_s,res(r))·M` + Poisson clumps above the dynamic floor `m_res(r)` from the monotone
+`r_thr` table), and drops brute mode / per-clump `gslope` removal.
+
+Build (verified 2026-07-01, needs GSL from homebrew):
+```bash
+cd ~/Desktop/halos
+clang++ -std=c++17 -O2 -I/opt/homebrew/include -L/opt/homebrew/lib \
+  main_lensing.cpp basics.cpp cosmology.cpp lensing.cpp subhalo.cpp \
+  -lgsl -lgslcblas -o lensing
+```
+No CLI flag for substructure: set `L.subhalo = true` (+ `subhalo_factor`) in
+`main_lensing.cpp` by hand. RNG stream is unchanged when off (verified branch isolation).
+
+**Status (2026-07-02): what halos still needs (user pushes halos; Claude never does):**
+1. **wf bug (the one real fix to port):** halos `subhalo.cpp` uses `af =
+   0.815*exp(-1.0)/0.5^0.707` — misreads Giocoli+2007 α_f = 0.815·e^{−2f³}/f^0.707
+   (f=½ ⇒ `exp(-0.25)`). Gives w̃_f = 0.893 instead of ≈1.19 (eq. 10 of astro-ph/0611221)
+   ⇒ f_s overestimated ~22–26% (measured). Fixed in the emulator; NOT yet in halos.
+2. Shear convention: single-angle KEPT everywhere by user/supervisor decision — halos is
+   already as desired; do not change.
+3. Resolution floor: r-keyed (halos already matches). Set the halos default
+   `subhalo_factor` to the converged value from the emulator scan once fixed.
+4. halos-only cleanup: `subhalo_m_floor`/`m_floor` knob and `Nsub` table are dead there.
+5. Remaining model caveats (both repos, deferred): field-halo c(m,z), untruncated NFW
+   clumps; single-angle γ (~0.5% on ⟨γ²⟩, revisit only if shear becomes an observable).
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.
 - Substructure reference papers are in `papers/misc/` (JvdB14, vdB05, Han+16, BMO09, SatGen,
   CUSP). Lift fitting-function numbers from the PDFs, not from memory.
+
+## Multi-CLI delegation (offload token-heavy work; Claude orchestrates)
+Claude keeps judgment, physics, edits, and **all git/gh/push**. Delegates never commit.
+
+| Tool | Delegate to it for |
+|---|---|
+| **codex** (OpenAI, `/opt/homebrew/bin/codex`) | Large implementations, hard debugging, scientific/ML software, `codex exec review` |
+| **agy** (Antigravity, `~/.local/bin/agy`) | Bulk token-heavy reads, mechanical cross-checks (citations/units/notation) |
+| **gh copilot** | Shell one-liners (`gh copilot -p "…"`); plain `gh` = GitHub CLI, run by Claude |
+
+Verified invocations (2026-07-01):
+- codex read-only: `codex exec -s read-only --skip-git-repo-check -C DIR "<prompt>"`
+- codex write/run: `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check -C DIR -o out.txt "<prompt>"`
+  (⚠️ `-s workspace-write` alone HANGS in exec mode — verified 34-min silent hang.)
+- agy: `agy -p "<prompt>" --model "Gemini 3.5 Flash (High)" --add-dir DIR --dangerously-skip-permissions --print-timeout 15m`
+
+Standing rules: prompts must be fully self-contained (delegates see nothing from this
+conversation; include absolute paths + the env python path above); always monitor with a
+progress/timeout guard, never fire-and-forget; capture output to a file; sandbox read-only
+unless writes are needed; output is ADVISORY — reproduce numbers yourself, require
+file:line citations.

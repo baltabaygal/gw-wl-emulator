@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <gsl/gsl_sf_gamma.h>
+#include <limits>
 #include <thread>
 
 namespace {
@@ -35,6 +36,11 @@ struct ClumpAccum {
     double gamma1 = 0.0;
     double gamma2 = 0.0;
 };
+
+inline double safeNFWGammaCore(double x, const std::array<double, 2> &Fg) {
+    if (x < 1.0e-4) return 0.5;
+    return 2.0 * Fg[1] / (x * x) - Fg[0];
+}
 
 ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
                           double rcos, double rsin, double r200,
@@ -68,16 +74,18 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
         if (d > d_cut) continue;
 
         double inv_d = (d > 1e-30) ? 1.0 / d : 0.0;
+        // single-angle gamma projection, matching the original Vaskonen host convention
+        // (kept by decision 2026-07-02; see tmp/shear_convention_check.py for the spin-2 form)
         double cos_phid = dx * inv_d;
         double sin_phid = dy * inv_d;
 
         double rs_c, rhos_c;
         interpolateNFWMass(C, jz, m, log_m, log_Mmin, inv_dlogM, rs_c, rhos_c);
         double kappa0_c = kappa0NFW(rs_c, rhos_c, Sigmac);
-        double x_c = d / rs_c;
+        double x_c = std::max(d / rs_c, 1.0e-12);
         auto Fg = FgNFW(x_c);
         double kappa_c = 2.0 * kappa0_c * Fg[0];
-        double gamma_c = 2.0 * kappa0_c * (2.0 * Fg[1] / (x_c * x_c) - Fg[0]);
+        double gamma_c = 2.0 * kappa0_c * safeNFWGammaCore(x_c, Fg);
 
         acc.kappa += kappa_c;
         acc.gamma1 += cos_phid * gamma_c;
@@ -115,8 +123,8 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
     }
 
     const double s = (1.0 + alpha) / omega;
-    // formation-redshift weight (Giocoli+2012, f=0.5):  w_f = sqrt(2 ln(a_f+1))
-    const double af = 0.815 * exp(-1.0) / pow(0.5, 0.707);
+    // formation-redshift weight (Giocoli+2007, a_f = 0.815 e^{-2f^3}/f^0.707, f=0.5):  w_f = sqrt(2 ln(a_f+1))
+    const double af = 0.815 * exp(-0.25) / pow(0.5, 0.707);
     const double wf = sqrt(2.0 * log(af + 1.0));
     // SHMF normalization denominator (Gamma upper-incomplete), JvdB14 eq. 23
     const double gden = gsl_sf_gamma_inc(s, beta * pow(psi_res, omega)) - gsl_sf_gamma_inc(s, beta);
@@ -206,15 +214,16 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
 }
 
 // Add one host's discrete subhalos to (kappa, gamma1, gamma2).
-// Only clumps that exceed kappa_thr at the host's LoS distance r are resolved: the floor
-// m_res(r) is the inverse of the monotone clump-reach r_thr(m).
+// Only clumps above the dynamic floor are resolved. The floor is the inverse of the
+// monotone clump-reach r_thr(m), keyed to the host-center distance r; lensing.cpp uses
+// the same floor when reducing the smooth host mass.
 // Option B (default): host is already reduced to (1-f_s_res)*M in lensing.cpp; bare clumps added here.
 // Option A (legacy):  host stays at full M; each clump subtracts m*gslope to remove displaced mass.
 int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double Sigmac,
                         double r, double phi, rgen &mt,
                         double &kappa, double &gamma1, double &gamma2,
                         int subhalo_model, bool subhalo_brute,
-                        int /*threads*/, int /*parallel_threshold*/) {
+                        int threads, int parallel_threshold) {
     double g = gnorm[jz][jM];
     if (g <= 0.0) return 0;
 
@@ -222,7 +231,13 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
     if (subhalo_brute) {
         psi_lo = m_floor / M;
     } else {
-        // dynamic floor: smallest clump whose reach r_thr(m) >= r  (invert the monotone table)
+        // dynamic floor: smallest clump whose reach r_thr(m) >= r, keyed to the HOST-CENTER
+        // distance (MUST match lensing.cpp's f_s_res). This under-resolves clumps that land
+        // closer to the ray than r; a worst-case max(0, r - r200) criterion is NOT usable
+        // instead — NFW kappa diverges on-axis, so it degenerates to brute force for every
+        // ray inside r200. The bias is absorbed empirically by lowering subhalo_factor
+        // (rescales kappa_thr for clumps) until the kappa-variance converges to brute:
+        // see scripts/subhalo_factor_convergence.py.
         const vector<double> &rth = r_thr[jz];
         int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), r) - rth.begin());
         if (jlo >= C.NM) return 0;                       // nothing reaches kappa_thr at distance r
@@ -257,6 +272,34 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
     const double rcos = r * cos(phi), rsin = r * sin(phi);
     const double inv_alpha = 1.0 / alpha;
 
+    if (subhalo_model != 0 && threads > 1 && Nc >= parallel_threshold) {
+        int nthreads = std::min(threads, Nc);
+        vector<ClumpAccum> accs(nthreads);
+        vector<rgen> mts;
+        mts.reserve(nthreads);
+        for (int t = 0; t < nthreads; t++) mts.emplace_back(mt());
+
+        vector<std::thread> workers;
+        workers.reserve(nthreads);
+        const double d_cut = std::numeric_limits<double>::infinity();
+        for (int t = 0; t < nthreads; t++) {
+            int begin = (Nc * t) / nthreads;
+            int end = (Nc * (t + 1)) / nthreads;
+            workers.emplace_back([&, t, begin, end]() {
+                accs[t] = evalClumpRange(C, jz, M, Sigmac, rcos, rsin, r200, xcdf, Nu,
+                                         alpha, psi_lo, psi_max, log_Mmin, inv_dlogM,
+                                         d_cut, begin, end, mts[t]);
+            });
+        }
+        for (auto &worker : workers) worker.join();
+        for (const auto &acc : accs) {
+            kappa += acc.kappa;
+            gamma1 += acc.gamma1;
+            gamma2 += acc.gamma2;
+        }
+        return Nc;
+    }
+
     for (int k = 0; k < Nc; k++) {
         // clump mass (power-law inverse-CDF over [psi_lo, psi_max])
         double u = randomreal(0.0, 1.0, mt);
@@ -284,10 +327,10 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
         double rs_c, rhos_c;
         interpolateNFWMass(C, jz, m, log_m, log_Mmin, inv_dlogM, rs_c, rhos_c);
         double kappa0_c = kappa0NFW(rs_c, rhos_c, Sigmac);
-        double x_c = d / rs_c;
+        double x_c = std::max(d / rs_c, 1.0e-12);
         auto Fg = FgNFW(x_c);
         double kappa_c = 2.0 * kappa0_c * Fg[0];
-        double gamma_c = 2.0 * kappa0_c * (2.0 * Fg[1] / (x_c * x_c) - Fg[0]);
+        double gamma_c = 2.0 * kappa0_c * safeNFWGammaCore(x_c, Fg);
 
         if (subhalo_model == 0) {
             kappa += kappa_c - m * gslope;

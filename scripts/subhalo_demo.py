@@ -85,7 +85,7 @@ def sigma_M(M):                      # M in Msun ; top-hat radius from rho_m0
 # --------------------------------------------------- formation redshift (Eq. 25)
 def z_form(M0, z0, f=0.5):
     dc0 = 1.686/growth(z0)
-    af  = 0.815*np.exp(-2*f)/f**0.707
+    af  = 0.815*np.exp(-2*f**3)/f**0.707
     wf  = np.sqrt(2*np.log(af+1))
     rhs = dc0 + wf*np.sqrt(sigma_M(f*M0)**2 - sigma_M(M0)**2)
     g   = lambda zf: 1.686/growth(zf) - rhs       # solve dc(zf)=rhs

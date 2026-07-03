@@ -36,8 +36,9 @@ public:
     // in-loop: add one host's subhalos to the running (kappa, gamma1, gamma2).
     // (jz,jM): host bin; zl,M: host redshift/mass; Sigmac: critical surface density;
     // (r,phi): line-of-sight host-centric impact parameter and azimuth.
-    // Only clumps above the dynamic floor m_res(r) (those that exceed kappa_thr at the
-    // host's LoS distance) are drawn; mass conserved via per-clump removal m*dkappa_host/dM.
+    // Only clumps above the dynamic floor m_res(r) are drawn. In the default reduced-host
+    // model the same resolved mass fraction is removed from the smooth host in lensing.cpp;
+    // the legacy model instead subtracts m*dkappa_host/dM per clump.
     int addClumps(cosmology &C, int jz, int jM, double zl, double M, double Sigmac,
                    double r, double phi, rgen &mt,
                    double &kappa, double &gamma1, double &gamma2,

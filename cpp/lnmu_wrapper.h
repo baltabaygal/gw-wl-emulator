@@ -35,9 +35,9 @@ struct SamplingParams {
     double m_floor = 1.0e7;
     int subhalo_threads = 1;
     int subhalo_parallel_threshold = 200000;
-    int subhalo_model = 0;
+    int subhalo_model = 1;
     bool subhalo_brute = false;
-    double subhalo_factor = 1.0;
+    double subhalo_factor = 1.0e-5;  // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
 };
 
 struct LnmuSampleDiagnostics {

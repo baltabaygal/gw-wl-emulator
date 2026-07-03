@@ -72,7 +72,7 @@ def growthD(z):
     f=lambda zp:(1+zp)/Az(zp)**1.5; return (np.sqrt(Az(z))*quad(f,z,np.inf)[0])/(quad(f,0,np.inf)[0])
 def Dvir(z): d=OmegaMz(z)-1; return 18*np.pi**2+82*d-39*d*d
 def zform(M0,z0,f=0.5):
-    a=0.815*np.exp(-2*f)/f**0.707; w=np.sqrt(2*np.log(a+1))
+    a=0.815*np.exp(-2*f**3)/f**0.707; w=np.sqrt(2*np.log(a+1))
     rhs=1.686/growthD(z0)+w*np.sqrt(sig(f*M0)**2-sig(M0)**2)
     return brentq(lambda zf:1.686/growthD(zf)-rhs,z0,30)
 def Ntau(M0,z0):

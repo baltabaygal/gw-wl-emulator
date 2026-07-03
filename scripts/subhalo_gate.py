@@ -6,9 +6,10 @@ re-solve kappa_thr (Nhalos=100) and recompute <kappa^2>,<kappa^3> across a range
 of host-mass cutoffs M_min -- and ask whether the clump signal Delta<kappa^n>_c is
 distinguishable from simply moving M_min (rerunning Plnmuf with a different cutoff).
 
-Validated against scripts/subhalo_screen.py at the fiducial M_min=1e7:
+Validated against scripts/subhalo_screen.py at the fiducial M_min=1e7 (zs=1.0):
    kappa_thr ~ 1.276e-4,  <k^2>_host ~ 7.30e-4,  <k^3>_host ~ 7.42e-5.
-Clump correction (from that run): Delta<k^2>_c=2.85e-5, Delta<k^3>_c=1.33e-6.
+Clump correction (screen rerun 2026-07-02, corrected Giocoli+2007 w_f):
+   Delta<k^2>_c=2.31e-5, Delta<k^3>_c=1.08e-6  (3.16% / 1.45% of the host moments).
 """
 import numpy as np
 from scipy.integrate import quad
@@ -138,8 +139,9 @@ print("VALIDATION (M_min=1e7):  kappa_thr=%.3e  N=%.1f  <k2>_H=%.3e  <k3>_H=%.3e
       % (kf, Nf, K2f, K3f))
 print("   (screen.py gave        kappa_thr=1.276e-4         <k2>_H=7.30e-4   <k3>_H=7.42e-5)\n")
 
-# clump correction (from subhalo_screen.py run)
-dK2c, dK3c = 2.850e-5, 1.327e-6
+# clump correction (from subhalo_screen.py at zs=1.0; 2026-07-02 rerun with the corrected
+# Giocoli+2007 w_f — a_f uses e^{-2f^3}; the old e^{-2f} inflated f_s and these by ~24%)
+dK2c, dK3c = 2.307e-5, 1.077e-6
 
 # ---------------- M_min scan ----------------
 print("M_min scan  (kappa_thr re-solved for Nhalos=100 each time):")

@@ -34,6 +34,11 @@ array<double,2> FgNFW(double x) {
     return {1.0/3.0, 1 + log(0.5)};
 }
 
+static inline double safeNFWGammaCore(double x, const array<double, 2> &Fg) {
+    if (x < 1.0e-4) return 0.5;
+    return 2.0 * Fg[1] / (x * x) - Fg[0];
+}
+
 double kappa0NFW(double rs, double rhos, double Sigmac) {
     return rs*rhos/Sigmac;
 }
@@ -50,15 +55,16 @@ array<double,2> kappagammaNFWeps(double epsilon, double kappa0, double x, double
     double a2eps = 1.0+epsilon;
     double x1eps = sqrt(a1eps)*cos(phi)*x;
     double x2eps = sqrt(a2eps)*sin(phi)*x;
-    double xeps = sqrt(pow(x1eps,2.0) + pow(x2eps,2.0));
-    double phieps = atan(x2eps/x1eps);
+    double xeps = max(sqrt(pow(x1eps,2.0) + pow(x2eps,2.0)), 1.0e-12);
+    double phieps = atan2(x2eps, x1eps);
     
     auto Fg = FgNFW(xeps);
     double kappaeps0 = 2.0*kappa0*Fg[0];
-    double gammaeps0 = 2.0*kappa0*(2.0*Fg[1]/(xeps*xeps) - Fg[0]);
+    double gammaeps0 = 2.0*kappa0*safeNFWGammaCore(xeps, Fg);
 
     double kappaeps = kappaeps0 + epsilon*cos(2.0*phieps)*gammaeps0;
-    double gammaeps = sqrt(pow(gammaeps0,2.0) + 2.0*epsilon*cos(2.0*phieps)*gammaeps0*kappaeps0 + pow(epsilon,2.0)*(pow(kappaeps0,2.0) - pow(cos(2.0*phieps)*gammaeps0,2.0)));
+    double gammaeps2 = pow(gammaeps0,2.0) + 2.0*epsilon*cos(2.0*phieps)*gammaeps0*kappaeps0 + pow(epsilon,2.0)*(pow(kappaeps0,2.0) - pow(cos(2.0*phieps)*gammaeps0,2.0));
+    double gammaeps = sqrt(max(0.0, gammaeps2));
     
     return {kappaeps, gammaeps};
 }
@@ -431,6 +437,8 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                             if (cfg.subhalo_brute) {
                                 psi_lo = cfg.m_floor / M;
                             } else {
+                                // dynamic floor keyed to host-center distance r; MUST match Subhalo::addClumps
+                                // (r-vs-d bias is absorbed by tuning subhalo_factor to convergence)
                                 const auto &rth = subhalo_.r_thr[jz];
                                 int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), r) - rth.begin());
                                 if (jlo < C.NM) {
@@ -454,6 +462,9 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
 
                     kappagamma = kappagammaNFWeps(epsilon_eff, kappa0H_eff, r/rsH_eff, phiH);
                     raw[j].kappa += kappagamma[0];
+                    // single-angle gamma projection, matching the original Vaskonen code (kept by
+                    // decision 2026-07-02; the spin-2 form would be -gamma_t (cos 2phi, sin 2phi) —
+                    // see tmp/shear_convention_check.py; difference is ~0.5% on <gamma^2>)
                     raw[j].gamma1 += cos(phi)*kappagamma[1];
                     raw[j].gamma2 += sin(phi)*kappagamma[1];
 

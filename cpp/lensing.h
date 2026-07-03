@@ -61,7 +61,7 @@ struct LensingConfig {
   LensingProfile *profile = nullptr;
   int subhalo_model = 1;       // 0 = Option A (gslope removal, legacy), 1 = Option B (host reduced to (1-f_s)M, correct)
   bool subhalo_brute = false;  // true = brute-force resolve down to m_floor (no dynamic floor)
-  double subhalo_factor = 1.0; // scales kappa_thr for the clump-resolution floor (<1 -> resolve more)
+  double subhalo_factor = 1.0e-5; // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
 
   // future nuisance params (Phase 2)
   // double c_norm = 1.0;
