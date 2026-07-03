@@ -1,0 +1,25 @@
+commit	SCORE	TLSE	BodyNLL	ValNLL	status	description
+3059291	2.8049	2.8049	-0.2086	1.2335	keep	baseline (bins8 bound5 normal) — reproduces tail collapse
+c77f677	1.8937	1.8937	-0.3384	1.2562	keep	exp1: bound 5->8 (normal) — recovers mu>2 tail
+1c43e78	0.5390	0.5390	-0.5289	0.5064	keep	exp2: StudentT base df=4 (+bound8) — tail AND body AND valNLL all improve
+aa77521	0.2925	0.2925	-0.5258	0.5566	keep	exp3: bound 8->12 — deep tail now z-dependent
+319096a	0.2000	0.2000	-0.5335	0.4404	keep	exp4: bins 8->16 — mu>2,3 near-perfect at high z
+315961d	0.2594	0.2594	-0.5354	0.4008	discard	exp5: bins 16->24 — val NLL better but TLSE worse (tail undertrained)
+19362b5	0.3681	0.3681	-0.5088	0.6691	discard	exp6: tail_weight=10 — overshoots tail (too high)
+6ae41ab	0.1425	0.1425	-0.5311	NA	keep	exp7: tail_weight=3 — best so far, balances deep tail
+39b024d	0.0464	0.0464	-0.5362	NA	keep	exp8: tail_weight=2 — WINNER, tail ~11% accurate (from collapsed)
+
+# --- shape-metric era (SCORE = TailShape + body guard) ---
+8e2f6ed	0.2596	0.2596	0.3692	-0.5362	ref	exp8 winner re-scored on shape metric (wiggly+bump)
+f975b01	0.3508	0.3508	0.0543	-0.5346	discard	exp9: smooth_w=2 too strong - smooth but tail amplitude collapses
+0238eeb	0.2926	0.2926	0.1138	-0.5358	discard	exp10: smooth_w=0.5 - smoother but tail still low (under-trained, penalty vs amplitude)
+5078d94	0.1129	0.1129	0.0741	-0.5276	keep	exp14: slope-penalty a=3.4 converged - SMOOTH (Rough0.07) + accurate (TailShape0.11)
+58e2137	0.1623	0.1623	0.0339	-0.5312	keep	exp17: tail_tilt=0.45 - smooth (Rough0.034) no shoulder, amplitude close (z5 exact)
+ae582dd	0.0806	0.0806	0.0022	-0.5319	WINNER	R1 splice: Normal-base body + survival-anchored mu^-3.4 tail (mu_u=2); heldout TLSE 0.181 vs prod 1.64
+uncommitted	0.1065	0.1922	-0.5231	0.5105	WINNER	exp18 2026-07-02 smoothness: 3x10-knot body + curvature penalty (train_smooth.py) + tanh blend mu_c=8 a=2 (smooth_model.py) - Rough 0.079->0.011, DenseRough 28.6->3.8, TLSE 0.238->0.192, no z=2 overshoot, kills spline-bound kink at mu=13.35
+uncommitted	0.1899	0.3037	-0.5016	0.5367	discard	exp19: d3 penalty (order3 w60) - WORSE everywhere incl low z; shoulder overshoot is NOT penalty-curvature bias
+uncommitted	0.1002	0.1720	-0.5241	NA	WINNER	exp20 2026-07-02: low-z aug (150 cfg x 40k, z 0.3-2.5) + exp18 recipe -> flow_smooth_lowz.pt; +edge cutoff in smooth_model (empty-beam bound, ridge fit resid 0.008); PRODUCTION
+uncommitted	0.1214	0.1933	-0.5281	NA	keep	exp21: hard z>1.6 penalty mask - z=1 shoulder MAE 0.31->0.23 but high-z 0.10->0.13; kept as low-z alternative (flow_smooth_zmask.pt)
+uncommitted	0.1296	0.1963	NA	NA	discard	exp22: soft z-ramp penalty weight - dominated by exp20 and exp21
+uncommitted	0.0611	0.0449	-0.5262	NA	WINNER	exp23 2026-07-02: conditional POT tail — Poisson-regressed exceedance amplitudes S3(ctx),S8(ctx) pooled over 637 configs, data-driven transition slope k(ctx), asymptotic mu^-2, tanh blend at mu_c=2.4 + edge cutoff. SCORE 0.100->0.061 (all-time best), TLSE 0.172->0.045, extMAE 0.159->0.099, z=1 MAE 0.31->0.20; PRODUCTION (smooth_model.load_smooth_fn)
+uncommitted	0.0507	0.0374	-0.5286	NA	WINNER	exp24 2026-07-02: +30 counting runs (1.5M ea, low-z/low-struct) for the amplitude fit; third threshold u=2; S3-anchored 3-segment POT tail; blend mu_c=1.7. extMAE 0.099->0.061, z=1 MAE 0.20->0.095, TLSE 0.045->0.037; PRODUCTION

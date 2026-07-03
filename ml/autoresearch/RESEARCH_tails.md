@@ -130,3 +130,47 @@ conditional-GPD-scale fit on the richer exceedance data.
 - Laszkiewicz et al. 2022, Marginal Tail-Adaptive Normalizing Flows — https://proceedings.mlr.press/v162/laszkiewicz22a/laszkiewicz22a.pdf
 - Flexible Tails for Normalizing Flows (TTF), ICML 2025 — https://arxiv.org/abs/2406.16971
 - Pasche & Engelke, Neural Networks for Extreme Quantile Regression (EQRN) — https://arxiv.org/abs/2208.07590
+
+---
+
+## 2026-07-02 — Round 2: the tail-amplitude problem (post exp18-22 review)
+
+**Measured failure (param_space_check + anchor check):** the flow's density at the
+blend anchor mu_c=8 is nearly CONSTANT across contexts (~1.1-1.4e-3 for all 15 panels)
+while the true value spans 5e-5 -> 7e-3 (x140). Anchor inflation: x23 (center z=1),
+x13 (low-structure z=2); DEFICIT x0.6 (high-structure z>=5). The blend then propagates
+this error to the whole tail. The flow has learned essentially NO context dependence
+of the tail amplitude — with ~10k samples/config there are single-digit counts near
+mu~8, so the conditional flow regresses to a context-averaged tail. NOT a training
+artifact of the imposed power law (the blend is inference-only); it is a tail-amplitude
+calibration gap, and more *uniform* data barely helps (exp20 lesson).
+
+**Literature (general ML/statistics, as requested):**
+1. Flows are known-bad in tails (Jaini+20 theorem: Lipschitz maps of Gaussian can't
+   make heavy tails). Fixes change the tail CLASS — heavy base (we have StudentT),
+   mTAF (ICML22), TTF/Flexible Tails (ICML25), Morphing-Flow (ICML25), anisotropic
+   tail-adaptive VI (Liang+22) — but none fix per-context tail CALIBRATION from
+   sparse tail samples. Not our missing piece.
+2. **EVT peaks-over-threshold with covariates = the standard answer**: above threshold
+   u, exceedances ~ GPD with covariate-dependent parameters fit by NN/regression
+   (EQRN Pasche&Engelke; GPD regression trees; deep GPD). Shape comes from theory,
+   so data only constrains a LOW-DIMENSIONAL amplitude/scale function -> pools
+   exceedance COUNTS across all configs instead of demanding tail density per config.
+   For us even stronger: physics fixes the shape exactly (alpha ~= 2.0 verified at all
+   z over mu in [15,150]).
+3. Actuarial composite/spliced models (lognormal body + Pareto/GPD tail, threshold +
+   continuity constraints, spliced REGRESSION with covariates) = literally our
+   body+blend architecture; validates the design, incl. bridge/blend for smoothness.
+4. Rare-event data levers: ML-based importance sampling, subset simulation,
+   multi-fidelity IS, active learning near the rare region. For us the cheap version
+   suffices: extra sims at selected configs where only exceedance COUNTS are kept.
+
+**Proposed v2 tail (conditional POT amplitude):**
+- Fit A(ctx) = S(mu>u | z,h,Om,s8) by Poisson regression on exceedance counts of all
+  637 configs (counts_i ~ Poisson(N_i * A(ctx_i))), u ~ 3; features like the edge fit
+  (or tiny MLP). Optionally enrich low-z counts with ~30 configs x 5M samples
+  (counting only — fast).
+- Tail density: p_tail(lnmu) = A(ctx)*(alpha-1)*exp(-(alpha-1)(lnmu - ln u)), alpha=2.
+- Keep flow body; tanh-blend at mu_c ~ 3-5 with amplitude from A(ctx), NOT from the
+  flow density -> removes both the x23 inflation and the x0.6 deficit; also shrinks
+  the z~1 shoulder error (blend takes over where the flow is data-starved).
