@@ -65,6 +65,26 @@ Two modes (both `subhalo_model=1`, the reduced-host option B):
 - `python_bindings.cpp`: expose `subhalo`, `m_floor`.
 - `cpp/CMakeLists.txt`: add `subhalo.cpp`.
 
+## Pre-publication reassessment (2026-07-03)
+Independent re-review of the current tree (`cpp/subhalo.{h,cpp}`, `cpp/lensing.cpp`) by
+Claude + codex (read-only), plus numerical invariants (`tmp/reassess_invariants.py`):
+- **Mass conservation EXACT.** The fraction removed from the host in `lensing.cpp`
+  (`f_s_res`) and the clump count/masses drawn in `addClumps` use the *same* `psi_lo`
+  (same `r_thr` lookup); ⟨Σ m_clump⟩ = f_s_res·M analytically (ratio 1.00000) and by MC
+  (0.999). Power-law inverse-CDF for clump mass and the anti-biased inverse radial CDF
+  both verified correct for α<0.
+- **Invariants pass:** subhalo=OFF bit-reproducible and leaves κ_nosub≡κ; subhalo=ON
+  deterministic at fixed seed; flux invariant ⟨1/μ⟩ = 1.001 both ON and OFF (substructure
+  does not break normalization).
+- **Fix applied:** invalid `subhalo_model` (∉{0,1}) now throws instead of silently adding
+  clumps without reducing the host (would inject ~f_s·M). Published runs use model=1.
+- **Non-issues for the published config** (model=1, threads=1, dynamic floor or brute@1e7),
+  documented not to block: (i) host-on-ray r=0 is prob 2⁻⁶⁴ and now clamped on both host
+  (`kappagammaNFWeps` xeps floor) and clump (`x_c` floor) paths; (ii) legacy model=0
+  `gslope` is unclamped at r=0 but non-default; (iii) `subhalo_threads>1` uses independent
+  RNG streams → not bit-reproducible across thread counts (default =1); (iv) Poisson int
+  overflow only at unphysically low brute `m_floor`. See codex log for details.
+
 ## Validation (2026-07-02; config = original Vaskonen conventions + corrected w̃_f)
 - host-only ⟨κ²⟩ = 7.23e-3 (zs=5, 40k) matches the analytic screen's host term (7.234e-3)
   to 0.1%.
@@ -75,8 +95,17 @@ Two modes (both `subhalo_model=1`, the reduced-host option B):
   1e-4 suffices at zs≤2 but sits ~7–8% low at zs=5–10 — so **default fixed at
   `subhalo_factor = 1e-5`, the cross-redshift plateau** (flat vs 3.16e-6/1e-6 at z=10;
   ~100–140 s per 40k, ~20× cheaper than brute). Old default 1.0 captured only ~14% of the
-  substructure variance at zs=1. Residual vs brute at the plateau: near-ray clumps of far
-  hosts (recruited only as f^(−1/3)). High factors give a significantly NEGATIVE excess
+  substructure variance at zs=1. **Gap closed 2026-07-04** (`tmp/z1_tail_scan.py`,
+  `data/subhalo_factor_z1_tail.csv`; fit by codex in `tmp/fit_factor_convergence.py` +
+  `_report.txt`): deep tail f=3.16e-6…1e-7 (4 points) rides the brute band; brute pooled
+  over 3 seeds = 6.35±0.22e-5 (the earlier single seed-42 brute, 6.77e-5, was a high
+  fluctuation); recruitment-model extrapolation E_inf agrees with pooled brute to +0.14σ
+  (χ²/dof=0.51); model-free f≤1e-5 pool −0.77σ. At the adopted 1e-5 the single point is
+  89±6% of pooled brute (−1.8σ); the f≤1e-4 plateau mean is 96%. Paper figure:
+  `scripts/plot_subhalo_factor_paper.py` →
+  `plots/figures/subhalo_factor_convergence_paper.{pdf,png}`.
+  Older text: residual vs brute at the plateau = near-ray clumps of far hosts
+  (recruited only as f^(−1/3)). High factors give a significantly NEGATIVE excess
   (−1.3e-5 at f=10): smooth-swap softening — the host loses central Σ but the Han+16
   anti-biased clump profile returns less mass near the ray. `m_floor` sensitivity
   (1e7→1e5, zs=1): flat — the 1e7 floor is deep in the convergent regime

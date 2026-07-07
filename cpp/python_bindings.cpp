@@ -45,12 +45,17 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nhalos, bool strict_weak_lensing,
            double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
-           int subhalo_model, bool subhalo_brute, double subhalo_factor) {
+           int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           double As, double OmegaB, double zeq, double ns) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.As     = As;
+            cosmo.OmegaB = OmegaB;
+            cosmo.zeq    = zeq;
+            cosmo.ns     = ns;
             cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
@@ -102,7 +107,11 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
-        py::arg("subhalo_factor") = 1.0e-5
+        py::arg("subhalo_factor") = 1.0e-5,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965
     );
 
 
@@ -110,7 +119,8 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "sample_lnmu_ml",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
-           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor) {
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           double As, double OmegaB, double zeq, double ns) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -124,6 +134,10 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.As     = As;
+            cosmo.OmegaB = OmegaB;
+            cosmo.zeq    = zeq;
+            cosmo.ns     = ns;
             cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
@@ -171,6 +185,10 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-5,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
@@ -178,7 +196,8 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "sample_lnmu_ml_with_diagnostics",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
-           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor) {
+           int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           double As, double OmegaB, double zeq, double ns) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -191,6 +210,10 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.As     = As;
+            cosmo.OmegaB = OmegaB;
+            cosmo.zeq    = zeq;
+            cosmo.ns     = ns;
             cosmo.Mmin   = Mmin;
 
             SamplingParams samp;
@@ -241,6 +264,10 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-5,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -250,7 +277,8 @@ PYBIND11_MODULE(gwlensing, m) {
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj,
            bool filaments, bool bias, bool ell, int Nhalos, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute,
-           double subhalo_factor, double custom_kappathr, double Mmin) {
+           double subhalo_factor, double custom_kappathr, double Mmin,
+           double As, double OmegaB, double zeq, double ns) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -263,10 +291,11 @@ PYBIND11_MODULE(gwlensing, m) {
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
-            C.OmegaB = 0.0493;
-            C.zeq    = 3402.0;
+            C.As     = As;
+            C.OmegaB = OmegaB;
+            C.zeq    = zeq;
             C.T0     = 2.7255;
-            C.ns     = 0.965;
+            C.ns     = ns;
             C.Mmin   = Mmin;
             C.Mmax   = 1e17;
             C.NM     = 100;
@@ -340,26 +369,58 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_factor") = 1.0e-5,
         py::arg("custom_kappathr") = -1.0,
         py::arg("Mmin") = 1e7,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
         "Return raw (kappa, gamma1, gamma2) realizations for diagnostics."
     );
 
 
     // ---- get_simulator_config -----------------------------------------------
-    m.def("get_simulator_config", []() {
-        py::dict d;
-        d["filaments"] = true;
-        d["bias"] = true;
-        d["ell"] = true;
-        d["Nhalos"] = 100;
-        d["subhalo"] = false;
-        d["m_floor"] = 1e7;
-        d["subhalo_threads"] = 1;
-        d["subhalo_parallel_threshold"] = 200000;
-        d["subhalo_model"] = 1;
-        d["subhalo_brute"] = false;
-        d["subhalo_factor"] = 1.0e-5;
-        return d;
-    }, "Returns hardcoded default physics toggles used by sample_lnmu_ml");
+    m.def("get_simulator_config",
+        [](double h, double OmegaM, double sigma8, double As,
+           double OmegaB, double zeq, double ns) {
+            py::dict d;
+            d["filaments"] = true;
+            d["bias"] = true;
+            d["ell"] = true;
+            d["Nhalos"] = 100;
+            d["subhalo"] = false;
+            d["m_floor"] = 1e7;
+            d["subhalo_threads"] = 1;
+            d["subhalo_parallel_threshold"] = 200000;
+            d["subhalo_model"] = 1;
+            d["subhalo_brute"] = false;
+            d["subhalo_factor"] = 1.0e-5;
+
+            // derived power spectrum normalization (cheap: no sigma(M)/HMF tables)
+            cosmology C;
+            C.OmegaM = OmegaM;
+            C.sigma8 = sigma8;
+            C.h      = h;
+            C.As     = As;
+            C.OmegaB = OmegaB;
+            C.zeq    = zeq;
+            C.T0     = 2.7255;
+            C.ns     = ns;
+            C.initialize_normalization();
+            d["amplitude_mode"] = (As > 0.0) ? "As" : "sigma8";
+            d["deltaH8"] = C.deltaH8;
+            d["sigma8_derived"] = C.sigma8_derived;
+            d["As_derived"] = C.As_derived;
+            d["OmegaR"] = C.OmegaR;
+            return d;
+        },
+        py::arg("h") = 0.674,
+        py::arg("OmegaM") = 0.315,
+        py::arg("sigma8") = 0.811,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
+        "Default physics toggles plus the derived P(k) normalization "
+        "(deltaH8, sigma8_derived, As_derived) for the given cosmology.");
 
     // ---- compute_lnmu_stats -------------------------------------------------
     m.def(
@@ -370,12 +431,17 @@ PYBIND11_MODULE(gwlensing, m) {
            int Nhalos, bool strict_weak_lensing,
            bool fast, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
-           int subhalo_model, bool subhalo_brute, double subhalo_factor) {
+           int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           double As, double OmegaB, double zeq, double ns) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
+            cosmo.As     = As;
+            cosmo.OmegaB = OmegaB;
+            cosmo.zeq    = zeq;
+            cosmo.ns     = ns;
 
             SamplingParams samp;
             samp.Nreal  = Nreal;
@@ -422,20 +488,26 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_parallel_threshold") = 200000,
         py::arg("subhalo_model") = 1,
         py::arg("subhalo_brute") = false,
-        py::arg("subhalo_factor") = 1.0e-5
+        py::arg("subhalo_factor") = 1.0e-5,
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965
     );
 
     m.def(
         "get_kappa_threshold",
-        [](double z, double h, double OmegaM, double sigma8, int Nhalos) {
+        [](double z, double h, double OmegaM, double sigma8, int Nhalos,
+           double As, double OmegaB, double zeq, double ns) {
             cosmology C;
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
-            C.OmegaB = 0.0493;
-            C.zeq    = 3402.0;
+            C.As     = As;
+            C.OmegaB = OmegaB;
+            C.zeq    = zeq;
             C.T0     = 2.7255;
-            C.ns     = 0.965;
+            C.ns     = ns;
             C.Mmin   = 1e7;
             C.Mmax   = 1e17;
             C.NM     = 100;
@@ -455,20 +527,26 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("OmegaM"),
         py::arg("sigma8"),
         py::arg("Nhalos"),
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
         "Calculate the kappa threshold for a given number of resolved host halos."
     );
 
     m.def(
         "get_sigma_background",
-        [](double z, double h, double OmegaM, double sigma8, double kappathr) {
+        [](double z, double h, double OmegaM, double sigma8, double kappathr,
+           double As, double OmegaB, double zeq, double ns) {
             cosmology C;
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
-            C.OmegaB = 0.0493;
-            C.zeq    = 3402.0;
+            C.As     = As;
+            C.OmegaB = OmegaB;
+            C.zeq    = zeq;
             C.T0     = 2.7255;
-            C.ns     = 0.965;
+            C.ns     = ns;
             C.Mmin   = 1e7;
             C.Mmax   = 1e17;
             C.NM     = 100;
@@ -485,6 +563,10 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("OmegaM"),
         py::arg("sigma8"),
         py::arg("kappathr"),
+        py::arg("As") = -1.0,
+        py::arg("OmegaB") = 0.0493,
+        py::arg("zeq") = 3402.0,
+        py::arg("ns") = 0.965,
         "Calculate the background standard deviation for a given kappa threshold."
     );
 }

@@ -50,10 +50,10 @@ def main():
     if val_loader:
         print(f"Val steps per epoch: {len(val_loader)}")
 
-    # 2. Initialize Model
+    # 2. Initialize Model (context dim follows the dataset: 7 for 1+6d, 4 legacy)
     model = ConditionalNSF(
         input_dim=1,
-        context_dim=4,
+        context_dim=len(np.asarray(stats["context_mean"]).ravel()),
         num_transforms=args.num_transforms,
         hidden_features=args.hidden_features,
         bins=args.bins

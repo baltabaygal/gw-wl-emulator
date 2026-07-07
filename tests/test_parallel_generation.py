@@ -41,9 +41,12 @@ def test_parallel_dataset_generation():
             assert "samples/z" in f
             assert "samples/h" in f
             assert "samples/OmegaM" in f
-            assert "samples/sigma8" in f
+            # schema 2.0 (1+6d, As-mode)
+            for k in ("As", "OmegaB", "ns", "zeq", "sigma8_derived"):
+                assert f"samples/{k}" in f
             assert "metadata" in f
-            assert f["metadata"].attrs.get("dataset_schema_version") == "1.1"
+            assert f["metadata"].attrs.get("dataset_schema_version") == "2.0"
+            assert f["metadata"].attrs.get("amplitude_mode") == "As"
             
     # Cleanup
     if os.path.exists(test_dir):

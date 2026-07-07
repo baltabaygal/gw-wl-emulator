@@ -4,23 +4,45 @@ from typing import Dict, Optional, Tuple
 import h5py
 import numpy as np
 
+from ml.params import CONTEXT_DIM, lnAs10_from_As
+
+# per-config parameter keys by dataset schema (schema 2.0 = 1+6d As-mode)
+_KEYS_LEGACY = ("h", "OmegaM", "sigma8")
+_KEYS_6D = ("h", "OmegaM", "As", "OmegaB", "ns", "zeq")
+
 
 def load_split(path: str) -> Dict[str, np.ndarray]:
-    """Load one HDF5 split into memory as numpy arrays."""
+    """Load one HDF5 split into memory as numpy arrays (legacy 1+3d or 1+6d)."""
     with h5py.File(path, "r") as f:
         out = {
             "lnmu": f["samples/lnmu"][:],
             "valid_counts": f["samples/valid_counts"][:],
             "z": f["samples/z"][:],
-            "h": f["samples/h"][:],
-            "OmegaM": f["samples/OmegaM"][:],
-            "sigma8": f["samples/sigma8"][:],
             "metadata": dict(f["metadata"].attrs.items()),
             "preprocessing": dict(f["metadata/preprocessing"].attrs.items()),
         }
+        keys = _KEYS_6D if "samples/As" in f else _KEYS_LEGACY
+        for k in keys:
+            out[k] = f[f"samples/{k}"][:]
+        if "samples/sigma8_derived" in f:
+            out["sigma8_derived"] = f["samples/sigma8_derived"][:]
         if "samples/split_type" in f:
             out["split_type"] = f["samples/split_type"][:]
     return out
+
+
+def config_contexts(split_data: Dict[str, np.ndarray]) -> np.ndarray:
+    """Per-config context matrix (C, D): (z, h, Om, lnAs10, Ob, ns, zeq/1000) for
+    1+6d datasets (D = CONTEXT_DIM), or legacy (z, h, OmegaM, sigma8) (D = 4)."""
+    z = np.asarray(split_data["z"], dtype=np.float64)
+    if "As" in split_data:
+        ctx = np.stack([z, split_data["h"], split_data["OmegaM"],
+                        lnAs10_from_As(split_data["As"]), split_data["OmegaB"],
+                        split_data["ns"], np.asarray(split_data["zeq"]) / 1000.0], axis=-1)
+        assert ctx.shape[1] == CONTEXT_DIM
+        return ctx
+    return np.stack([z, split_data["h"], split_data["OmegaM"],
+                     split_data["sigma8"]], axis=-1)
 
 
 def load_dataset(dataset_dir: str) -> Dict[str, Dict[str, np.ndarray]]:
@@ -42,18 +64,17 @@ def flatten_dataset(
     """Flatten padded lnmu rows into ML-ready (X, Y) arrays.
 
     Returns:
-      X: float32, shape (N_valid, 4), columns [z, h, OmegaM, sigma8]
+      X: float32, shape (N_valid, D) — context columns per config_contexts():
+         [z, h, Om, lnAs10, Ob, ns, zeq/1000] (D=7) for 1+6d datasets,
+         [z, h, OmegaM, sigma8] (D=4) for legacy ones.
       Y: float32, shape (N_valid, 1), values lnmu
     """
     lnmu = split_data["lnmu"]
     counts = split_data["valid_counts"].astype(np.int64)
-    z = split_data["z"]
-    h = split_data["h"]
-    om = split_data["OmegaM"]
-    s8 = split_data["sigma8"]
+    ctx = config_contexts(split_data)
 
     total_valid = int(np.sum(counts))
-    X = np.empty((total_valid, 4), dtype=np.float32)
+    X = np.empty((total_valid, ctx.shape[1]), dtype=np.float32)
     Y = np.empty((total_valid, 1), dtype=np.float32)
 
     if normalize:
@@ -71,10 +92,7 @@ def flatten_dataset(
             continue
         row = lnmu[i, :n]
 
-        X[cursor:cursor + n, 0] = z[i]
-        X[cursor:cursor + n, 1] = h[i]
-        X[cursor:cursor + n, 2] = om[i]
-        X[cursor:cursor + n, 3] = s8[i]
+        X[cursor:cursor + n, :] = ctx[i]
 
         if normalize:
             Y[cursor:cursor + n, 0] = (row - lnmu_mean) / lnmu_std
@@ -102,7 +120,7 @@ def load_histogram_dataset(
 
     Returns:
       dict mapping split name ("train", "validation", "test") to a tuple:
-        X: shape (C, 4) - parameters [z, h, OmegaM, sigma8]
+        X: shape (C, D) - config contexts per config_contexts() (D=7 or legacy 4)
         Y: shape (C, 100) - normalized bin probabilities (sum to 1.0)
         split_types: list of len C - config split types ('train', 'interpolation', 'ood')
     """
@@ -112,13 +130,10 @@ def load_histogram_dataset(
     for split_name, split_data in raw_data.items():
         lnmu = split_data["lnmu"]
         counts = split_data["valid_counts"]
-        z = split_data["z"]
-        h = split_data["h"]
-        om = split_data["OmegaM"]
-        s8 = split_data["sigma8"]
+        ctx = config_contexts(split_data)
 
         num_configs = lnmu.shape[0]
-        X = np.empty((num_configs, 4), dtype=np.float32)
+        X = ctx.astype(np.float32)
         Y = np.empty((num_configs, len(bin_edges) - 1), dtype=np.float32)
 
         split_types = []
@@ -128,7 +143,9 @@ def load_histogram_dataset(
                 for s in split_data["split_type"]
             ]
         else:
-            # Fallback for older datasets
+            # Fallback for older (legacy sigma8) datasets without split_type
+            om = split_data["OmegaM"]
+            s8 = split_data.get("sigma8", split_data.get("sigma8_derived"))
             for i in range(num_configs):
                 o_val = om[i]
                 s_val = s8[i]
@@ -141,11 +158,6 @@ def load_histogram_dataset(
                 split_types.append(st)
 
         for i in range(num_configs):
-            X[i, 0] = z[i]
-            X[i, 1] = h[i]
-            X[i, 2] = om[i]
-            X[i, 3] = s8[i]
-
             n = int(counts[i])
             if n > 0:
                 row = lnmu[i, :n]

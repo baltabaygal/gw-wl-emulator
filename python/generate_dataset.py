@@ -9,7 +9,9 @@ import hashlib
 import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import gwlensing as gw
+from ml.params import PRIOR_6D, WIDE_6D, PARAM_KEYS_6D, lnAs10_from_As, As_from_lnAs10
 
 try:
     from pyDOE3 import lhs
@@ -40,7 +42,7 @@ def get_git_branch():
         return "unknown"
 
 def simulate_config_worker(args_tuple):
-    z, h, om, s8, nsamples_per_point, seed, i = args_tuple
+    z, h, om, As, ob, ns, zeq, nsamples_per_point, seed, i = args_tuple
     import sys
     import os
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
@@ -48,8 +50,10 @@ def simulate_config_worker(args_tuple):
     import numpy as np
 
     sim_seed = None if seed is None else seed + i
+    # As-mode: sigma8 positional is ignored when As > 0
     result = gw.sample_lnmu_ml_with_diagnostics(
-        z, h, om, s8, nsamples_per_point, sim_seed, False
+        z, h, om, 0.811, nsamples_per_point, sim_seed, False,
+        As=As, OmegaB=ob, ns=ns, zeq=zeq
     )
     return i, list(result["lnmu"]), dict(result["invalid_stats"])
 
@@ -57,22 +61,25 @@ def simulate_config_worker(args_tuple):
 def partition_samples(params_dict, num_points, seed=None):
     """
     Partitions generated parameters into train, val, and test.
-    - In-Distribution (ID): OmegaM in [0.20, 0.40] AND sigma8 in [0.65, 1.05]
-    - True Out-of-Distribution (OoD): (OmegaM > 0.40 AND sigma8 > 1.05) OR (OmegaM < 0.20 AND sigma8 < 0.65)
+    - In-Distribution (ID): OmegaM and lnAs10 = ln(1e10 As) inside the PRIOR_6D box
+    - True Out-of-Distribution (OoD): both beyond the box on the same side
     - Boundary/intermediate points are filtered out.
+    (Amplitude analogue of the legacy OmegaM/sigma8 partition; As ~ sigma8^2.)
     """
     omega_m = params_dict['OmegaM']
-    sigma8 = params_dict['sigma8']
+    lnas = lnAs10_from_As(params_dict['As'])
+    om_lo, om_hi = PRIOR_6D['Om']
+    a_lo, a_hi = PRIOR_6D['lnAs10']
 
-    id_mask = (omega_m >= 0.20) & (omega_m <= 0.40) & (sigma8 >= 0.65) & (sigma8 <= 1.05)
-    ood_mask = ((omega_m > 0.40) & (sigma8 > 1.05)) | ((omega_m < 0.20) & (sigma8 < 0.65))
+    id_mask = (omega_m >= om_lo) & (omega_m <= om_hi) & (lnas >= a_lo) & (lnas <= a_hi)
+    ood_mask = ((omega_m > om_hi) & (lnas > a_hi)) | ((omega_m < om_lo) & (lnas < a_lo))
 
     train_mask = np.zeros(num_points, dtype=bool)
     val_mask = np.zeros(num_points, dtype=bool)
     test_mask = np.zeros(num_points, dtype=bool)
     split_types = ["" for _ in range(num_points)]
 
-    keys = ["z", "h", "OmegaM", "sigma8"]
+    keys = ["z"] + list(PARAM_KEYS_6D)
     checker_index_sum = np.zeros(num_points, dtype=np.int32)
 
     for key in keys:
@@ -194,9 +201,16 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         )
 
         g_samples.create_dataset("z", data=params['z'], compression="gzip")
-        g_samples.create_dataset("h", data=params['h'], compression="gzip")
-        g_samples.create_dataset("OmegaM", data=params['OmegaM'], compression="gzip")
-        g_samples.create_dataset("sigma8", data=params['sigma8'], compression="gzip")
+        for k in PARAM_KEYS_6D:
+            g_samples.create_dataset(k, data=params[k], compression="gzip")
+        # derived sigma8 per config (diagnostic; the amplitude input is As)
+        sigma8_derived = np.array([
+            gw.get_simulator_config(h=params['h'][i], OmegaM=params['OmegaM'][i],
+                                    As=params['As'][i], OmegaB=params['OmegaB'][i],
+                                    zeq=params['zeq'][i], ns=params['ns'][i])["sigma8_derived"]
+            for i in range(num_points)
+        ])
+        g_samples.create_dataset("sigma8_derived", data=sigma8_derived, compression="gzip")
 
         # Write split type dataset
         dt = h5py.special_dtype(vlen=str)
@@ -210,7 +224,9 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
         # Prepare parallel simulation tasks
         tasks = [
-            (params['z'][i], params['h'][i], params['OmegaM'][i], params['sigma8'][i], nsamples_per_point, seed, i)
+            (params['z'][i], params['h'][i], params['OmegaM'][i], params['As'][i],
+             params['OmegaB'][i], params['ns'][i], params['zeq'][i],
+             nsamples_per_point, seed, i)
             for i in range(num_points)
         ]
 
@@ -272,7 +288,7 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_pre.attrs["lnmu_min"] = float(min_lnmu) if min_lnmu is not None else 0.0
         g_pre.attrs["lnmu_max"] = float(max_lnmu) if max_lnmu is not None else 0.0
 
-        for k in ['z', 'h', 'OmegaM', 'sigma8']:
+        for k in ['z'] + list(PARAM_KEYS_6D):
             g_pre.attrs[f"{k}_mean"] = float(np.mean(params[k]))
             g_pre.attrs[f"{k}_std"] = float(np.std(params[k]))
             g_pre.attrs[f"{k}_min"] = float(np.min(params[k]))
@@ -312,8 +328,9 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_meta.attrs["git_branch"] = get_git_branch()
         g_meta.attrs["generation_timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
         g_meta.attrs["nsamples_per_point"] = nsamples_per_point
-        g_meta.attrs["dataset_schema_version"] = "1.1"
-        g_meta.attrs["dataset_version"] = "1.1"
+        g_meta.attrs["dataset_schema_version"] = "2.0"   # 1+6d: (z; h, Om, As, Ob, ns, zeq)
+        g_meta.attrs["dataset_version"] = "2.0"
+        g_meta.attrs["amplitude_mode"] = "As"
 
         sim_config = gw.get_simulator_config()
         g_meta.attrs["filaments"] = sim_config["filaments"]
@@ -323,7 +340,7 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
         # Parameter ranges metadata
         g_ranges = f.create_group("metadata/parameter_ranges")
-        for k in ['z', 'h', 'OmegaM', 'sigma8']:
+        for k in ['z'] + list(PARAM_KEYS_6D):
             g_ranges.attrs[k] = bounds[k]
 
         cfg_str = json.dumps({k: params[k].tolist() for k in params}) + str(seed) + str(nsamples_per_point)
@@ -354,25 +371,30 @@ def main():
     if args.seed is not None:
         np.random.seed(args.seed)
 
+    # LHS over the wide 6d box (Om, lnAs10 extend past the ID box for OoD corners).
+    # As is sampled log-uniformly via lnAs10 and stored in physical units.
     bounds = {
-        'h': (0.59, 0.76),
-        'OmegaM': (0.15, 0.45),
-        'sigma8': (0.4, 1.4),
+        'h': WIDE_6D['h'],
+        'OmegaM': WIDE_6D['Om'],
+        'lnAs10': WIDE_6D['lnAs10'],
+        'OmegaB': WIDE_6D['Ob'],
+        'ns': WIDE_6D['ns'],
+        'zeq': WIDE_6D['zeq'],
         'z': (args.z_min, args.z_max)
     }
 
-    keys = ['h', 'OmegaM', 'sigma8', 'z']
+    keys = ['h', 'OmegaM', 'lnAs10', 'OmegaB', 'ns', 'zeq', 'z']
 
     # Generate all LHS points
     # Need to generate enough points so splits get populated (scale by 4 due to filtering)
     total_points = args.num_points * 4
-    
+
     # Check if seed parameter is supported (pyDOE3)
     try:
-        lhs_samples = lhs(4, samples=total_points, seed=args.seed)
+        lhs_samples = lhs(len(keys), samples=total_points, seed=args.seed)
     except TypeError:
         # Fallback if pyDOE version doesn't support seed keyword
-        lhs_samples = lhs(4, samples=total_points)
+        lhs_samples = lhs(len(keys), samples=total_points)
 
     params = {}
     for i, k in enumerate(keys):
@@ -383,6 +405,9 @@ def main():
             params[k] = np.exp(np.log(low) + lhs_samples[:, i] * (np.log(high) - np.log(low)))
         else:
             params[k] = low + lhs_samples[:, i] * (high - low)
+
+    params['As'] = As_from_lnAs10(params.pop('lnAs10'))
+    bounds['As'] = tuple(As_from_lnAs10(np.array(bounds.pop('lnAs10'))))
 
     train_mask, val_mask, test_mask, split_types = partition_samples(params, total_points, args.seed)
 

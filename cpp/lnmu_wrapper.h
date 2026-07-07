@@ -8,6 +8,11 @@ struct CosmologyParams {
     double sigma8 = 0.811;
     double h      = 0.674;
 
+    // primordial amplitude: As > 0 normalizes P(k) directly (sigma8 ignored);
+    // As <= 0 keeps the sigma8 normalization.
+    double As     = -1.0;
+    double kpivot = 5.0e-5;   // comoving kpc^-1 (= 0.05 Mpc^-1)
+
     // grid defaults
     double OmegaB = 0.0493;
     double zeq    = 3402.0;

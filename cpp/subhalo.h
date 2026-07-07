@@ -12,7 +12,11 @@ class cosmology;                 // forward declaration (subhalo.cpp includes co
 class Subhalo {
 public:
     // --- evolved SHMF parameters (Jiang & van den Bosch 2014, all orders) ---
-    double alpha = -0.82, beta = 50.0, omega = 4.0, psi_res = 1.0e-4, psi_max = 0.1;
+    // psi_max = 1: full SHMF range as in JvdB14; the exp(-beta psi^omega) cutoff does the
+    // suppression near psi->1 and is applied EXACTLY via Poisson thinning in addClumps and
+    // via the incomplete-Gamma mass integral in lensing.cpp's f_s_res (changed 2026-07-04,
+    // previously truncated at psi_max=0.1 where the cutoff was negligible).
+    double alpha = -0.82, beta = 50.0, omega = 4.0, psi_res = 1.0e-4, psi_max = 1.0;
     double m_floor = 1.0e7;          // lensing-relevant lower clump mass [Msun]
 
     // built by precompute(); indexed [jz][jM]

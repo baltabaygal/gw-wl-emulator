@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <chrono>
 #include <limits>
+#include <stdexcept>
+#include <gsl/gsl_sf_gamma.h>
 
 double Sigmacf(cosmology &C, double zs, double zl) {
     // angular diameter distances
@@ -331,6 +333,12 @@ double findkappathr(int N, function<double(double)> Nf) {
 // sample lnmu from the PDF of amplifications
 
 vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
+    // guard: only subhalo_model 0 (legacy gslope) and 1 (reduced-host, default) are defined.
+    // Any other value would add full clumps in addClumps WITHOUT reducing the host in
+    // add_host, silently injecting ~f_s*M spurious mass. Reject rather than mis-simulate.
+    if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1) {
+        throw std::invalid_argument("subhalo_model must be 0 (legacy) or 1 (reduced-host, default)");
+    }
     using Clock = std::chrono::steady_clock;
     auto elapsed_seconds = [](Clock::time_point start) {
         return std::chrono::duration<double>(Clock::now() - start).count();
@@ -448,8 +456,13 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                 }
                             }
                             if (psi_lo < subhalo_.psi_max) {
-                                double alpha = subhalo_.alpha;
-                                double f_s_res = g * (pow(subhalo_.psi_max, 1.0 + alpha) - pow(psi_lo, 1.0 + alpha)) / (1.0 + alpha);
+                                // resolved mass fraction with the SHMF exponential cutoff included,
+                                // f_s_res = g/(omega beta^s) [Gamma(s, beta psi_lo^omega) - Gamma(s, beta psi_max^omega)],
+                                // s=(1+alpha)/omega — MUST equal the expectation of addClumps' thinned sampler.
+                                const double s_m = (1.0 + subhalo_.alpha) / subhalo_.omega;
+                                double f_s_res = g / (subhalo_.omega * pow(subhalo_.beta, s_m)) *
+                                    (gsl_sf_gamma_inc(s_m, subhalo_.beta * pow(psi_lo, subhalo_.omega)) -
+                                     gsl_sf_gamma_inc(s_m, subhalo_.beta * pow(subhalo_.psi_max, subhalo_.omega)));
                                 f_s_res = std::max(0.0, std::min(0.95, f_s_res));
                                 M_host_eff = (1.0 - f_s_res) * M;
                             }

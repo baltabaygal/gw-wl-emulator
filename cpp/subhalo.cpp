@@ -45,7 +45,8 @@ inline double safeNFWGammaCore(double x, const std::array<double, 2> &Fg) {
 ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
                           double rcos, double rsin, double r200,
                           const vector<double> &xcdf, int Nu,
-                          double alpha, double psi_min, double psi_max,
+                          double alpha, double beta, double omega,
+                          double psi_min, double psi_max,
                           double log_Mmin, double inv_dlogM, double d_cut,
                           int begin, int end, rgen &mt) {
     ClumpAccum acc;
@@ -55,8 +56,12 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
     const double log_M = std::log(M);
     for (int k = begin; k < end; k++) {
         double u = randomreal(0.0, 1.0, mt);
-        double log_m = inv_alpha * std::log(pa_min + u * (pa_max - pa_min)) + log_M;
-        double m = std::exp(log_m);
+        double psi = pow(pa_min + u * (pa_max - pa_min), inv_alpha);
+        // exact SHMF: thin the power-law proposal by the exponential cutoff.
+        // Poisson(N_powerlaw) + thinning == Poisson(N_exact)  (Poisson thinning theorem).
+        if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
+        double m = psi * M;
+        double log_m = std::log(m);
 
         double ur = randomreal(0.0, 1.0, mt);
         double tt = ur * (Nu - 1);
@@ -134,7 +139,7 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
         double dcz = C.deltac(z);
         for (int jM = 0; jM < NM; jM++) {
             double M = C.Mlist[jM];
-            if (M <= 10.0 * C.Mmin) continue;          // no clump fits under 0.1 M
+            if (M <= C.Mmin) continue;                 // no clump above the grid floor fits
 
             double sigM = interpolate(M, C.sigmalist);
             double sigH = interpolate(0.5 * M, C.sigmalist);
@@ -168,7 +173,8 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
 
             double psi_min = C.Mmin / M;
             if (psi_min >= psi_max) continue;
-            // mean clump count above floor (exp ~ 1 over clump range -> power law)
+            // mean PROPOSAL count above floor (pure power law; addClumps thins by the
+            // exponential cutoff, so the realized count is smaller — profiling only)
             double Nm = (gam / alpha) * (pow(psi_max, alpha) - pow(psi_min, alpha));
             if (Nm <= 0.0) continue;
 
@@ -287,8 +293,8 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
             int end = (Nc * (t + 1)) / nthreads;
             workers.emplace_back([&, t, begin, end]() {
                 accs[t] = evalClumpRange(C, jz, M, Sigmac, rcos, rsin, r200, xcdf, Nu,
-                                         alpha, psi_lo, psi_max, log_Mmin, inv_dlogM,
-                                         d_cut, begin, end, mts[t]);
+                                         alpha, beta, omega, psi_lo, psi_max, log_Mmin,
+                                         inv_dlogM, d_cut, begin, end, mts[t]);
             });
         }
         for (auto &worker : workers) worker.join();
@@ -301,10 +307,13 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
     }
 
     for (int k = 0; k < Nc; k++) {
-        // clump mass (power-law inverse-CDF over [psi_lo, psi_max])
+        // clump mass: power-law inverse-CDF proposal over [psi_lo, psi_max], thinned by the
+        // SHMF exponential cutoff (Poisson thinning => exact dN/dpsi incl. exp(-beta psi^omega))
         double u = randomreal(0.0, 1.0, mt);
-        double log_m = inv_alpha * std::log(pa_lo + u * (pa_hi - pa_lo)) + logM;
-        double m = std::exp(log_m);
+        double psi = pow(pa_lo + u * (pa_hi - pa_lo), inv_alpha);
+        if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
+        double m = psi * M;
+        double log_m = std::log(m);
 
         // clump 3D host-centric radius from the anti-biased profile, projected to 2D
         double ur = randomreal(0.0, 1.0, mt);
