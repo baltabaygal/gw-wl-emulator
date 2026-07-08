@@ -11,7 +11,11 @@ std::array<double,2> FgNFW(double x);
 double kappa0NFW(double rs, double rhos, double Sigmac);
 std::array<double,2> kappagammaNFWeps(double epsilon, double kappa0, double x, double phi);
 double rmaxfNFW(cosmology &C, double zs, double zl, double M, double kappathr);
-double sigmakappaW(cosmology &C, double zs, double kappathr);
+// eps_floor = convergence floor fraction: the outward radial integration stops when a
+// halo's kappa drops below eps_floor*kappathr (sets the faintest halo / largest impact
+// parameter included). Default 0.001 reproduces the original result; K2 is converged
+// w.r.t. it (see playground/k2_vs_floor.cpp).
+double sigmakappaW(cosmology &C, double zs, double kappathr, double eps_floor = 0.001);
 
 struct LensingProfile {
   int Nreal = 0;

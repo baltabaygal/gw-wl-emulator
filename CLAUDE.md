@@ -166,7 +166,11 @@ clang++ -std=c++17 -O2 -I/opt/homebrew/include -L/opt/homebrew/lib \
 No CLI flag for substructure: set `L.subhalo = true` (+ `subhalo_factor`) in
 `main_lensing.cpp` by hand. RNG stream is unchanged when off (verified branch isolation).
 
-**Status (2026-07-02): what halos still needs (user pushes halos; Claude never does):**
+**HARD RULE (2026-07-08): halos is under the user's exclusive control — Claude NEVER
+commits, pushes, builds, or runs anything there, and edits files there ONLY when the
+user explicitly asks, under their supervision.**
+
+**Status (2026-07-02): what halos still needs:**
 1. **wf bug (the one real fix to port):** halos `subhalo.cpp` uses `af =
    0.815*exp(-1.0)/0.5^0.707` — misreads Giocoli+2007 α_f = 0.815·e^{−2f³}/f^0.707
    (f=½ ⇒ `exp(-0.25)`). Gives w̃_f = 0.893 instead of ≈1.19 (eq. 10 of astro-ph/0611221)
@@ -178,6 +182,13 @@ No CLI flag for substructure: set `L.subhalo = true` (+ `subhalo_factor`) in
 4. halos-only cleanup: `subhalo_m_floor`/`m_floor` knob and `Nsub` table are dead there.
 5. Remaining model caveats (both repos, deferred): field-halo c(m,z), untruncated NFW
    clumps; single-angle γ (~0.5% on ⟨γ²⟩, revisit only if shear becomes an observable).
+6. **sigmakappaW fix (2026-07-08, supervisor-approved, APPLIED here):** (a) log-annulus
+   element is `2π r² dlnr`, not `π r²` — `PI` → `2.0*PI` in the accumulators; (b) Campbell's
+   theorem for Poisson halo counts — `return sqrt(kappa2)`, no `-kappa1^2/Nh` subtraction
+   (`Nh`/`kappa1` accumulators are then dead). halos patch applied 2026-07-08 at user
+   request, left UNCOMMITTED for user review (user compiles/commits/pushes halos).
+   Net σ²_W ≈ 2.10× original; ≤1% on Var(κ_total). Proofs + MC validation:
+   `docs/sigmakappaw_measure_note.md`, `playground/sigmakappaw_poisson_vs_fixed.cpp`.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

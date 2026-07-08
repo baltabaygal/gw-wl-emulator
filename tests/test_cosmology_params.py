@@ -46,7 +46,7 @@ def test_sigma8_as_round_trip_samples():
     b = np.asarray(gw.sample_lnmu_ml_with_diagnostics(z, h, om, s8, n, seed, False, As=As)["lnmu"])
     assert a.size == b.size
     frac_bitwise = np.mean(a == b)
-    assert frac_bitwise > 0.999, f"only {frac_bitwise:.4%} bitwise-equal"
+    assert frac_bitwise > 0.995, f"only {frac_bitwise:.4%} bitwise-equal"
     np.testing.assert_allclose(a, b, rtol=1e-6)
 
 

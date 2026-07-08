@@ -154,8 +154,8 @@ double NhfNFW(cosmology &C, double zs, double kappathr) {
 }
 
 // variance of kappa from weak lenses
-double sigmakappaW(cosmology &C, double zs, double kappathr) {
-    double Nh = 0.0, kappa1 = 0.0, kappa2 = 0.0;
+double sigmakappaW(cosmology &C, double zs, double kappathr, double eps_floor) {
+    double kappa2 = 0.0;
     double zl, dz, M, dlnM, dndlnM, r, kappar;
     int Nr = 100;
     double dlnr = 0.01;
@@ -180,17 +180,18 @@ double sigmakappaW(cosmology &C, double zs, double kappathr) {
                 double kappa0W = kappa0NFW(rsW, NFWpW[1], SigmacW);
 
                 kappar = kappathr;
-                while (kappar > 0.001*kappathr) {
+                while (kappar > eps_floor*kappathr) {
                     kappar = kappagammaNFWeps(0.0, kappa0W, r/rsW, 0.0)[0];
-                    Nh += 306.535*PI*pow((1.0+zl)*r,2.0)/C.Hz(zl)*dndlnM*dlnr*dlnM*dz;
-                    kappa1 += 306.535*PI*pow((1.0+zl)*r,2.0)/C.Hz(zl)*dndlnM*kappar*dlnr*dlnM*dz;
-                    kappa2 += 306.535*PI*pow((1.0+zl)*r,2.0)/C.Hz(zl)*dndlnM*pow(kappar,2.0)*dlnr*dlnM*dz;
+                    // Campbell's theorem for Poisson-distributed halo counts: Var = int n kappa^2,
+                    // with log-annulus area element d(pi r^2) = 2 pi r^2 dlnr
+                    // (see docs/sigmakappaw_measure_note.md)
+                    kappa2 += 306.535*2.0*PI*pow((1.0+zl)*r,2.0)/C.Hz(zl)*dndlnM*pow(kappar,2.0)*dlnr*dlnM*dz;
                     r = r*Edlnr;
                 }
             }
         }
     }
-    return sqrt(kappa2 - pow(kappa1,2.0)/Nh);
+    return sqrt(kappa2);
 }
 
 
