@@ -336,8 +336,11 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // guard: only subhalo_model 0 (legacy gslope) and 1 (reduced-host, default) are defined.
     // Any other value would add full clumps in addClumps WITHOUT reducing the host in
     // add_host, silently injecting ~f_s*M spurious mass. Reject rather than mis-simulate.
-    if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1) {
-        throw std::invalid_argument("subhalo_model must be 0 (legacy) or 1 (reduced-host, default)");
+    // model 2 = DIAGNOSTIC ONLY: bare clumps, no host reduction / no gslope (spurious mean mass,
+    // but Var(kappa)-Var(kappa_nosub) is the clean clump shot-noise). Used to isolate whether the
+    // subhalo_factor sensitivity is clump shot-noise vs the mass-subtraction bookkeeping.
+    if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1 && cfg.subhalo_model != 2) {
+        throw std::invalid_argument("subhalo_model must be 0 (legacy), 1 (reduced-host, default), or 2 (diagnostic bare)");
     }
     using Clock = std::chrono::steady_clock;
     auto elapsed_seconds = [](Clock::time_point start) {

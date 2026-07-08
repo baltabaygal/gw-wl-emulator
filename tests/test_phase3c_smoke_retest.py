@@ -4,7 +4,7 @@ from ml.phase3_common import load_npz_with_metadata
 
 def test_phase3c_smoke_retest_outputs_exist():
     result_path = Path("data/results/phase3c_smoke_retest.json")
-    report_path = Path("docs/phase3c_smoke_retest_report.md")
+    report_path = Path("docs/phase3/phase3c_smoke_retest_report.md")
     
     assert result_path.exists(), "Smoke retest JSON is missing"
     assert report_path.exists(), "Smoke retest markdown report is missing"

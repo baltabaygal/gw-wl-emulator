@@ -7,7 +7,7 @@ from ml.data import load_histogram_dataset, get_recommended_bin_edges
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Perform PCA representation analysis on weak-lensing PDFs.")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_medium")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/medium")
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2_representation")
     args = parser.parse_args()
 

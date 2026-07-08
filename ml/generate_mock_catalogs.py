@@ -131,7 +131,7 @@ def write_report(paths: list[Path], output_report: str | Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Phase 3 weak-lensing mock catalogs.")
     parser.add_argument("--output_dir", default="data/mock_catalogs/phase3")
-    parser.add_argument("--output_report", default="docs/phase3_mock_catalogs.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_mock_catalogs.md")
     parser.add_argument("--smoke", action="store_true", help="Generate the minimal N=1000 catalog set.")
     parser.add_argument("--mixed_z_bins", type=int, default=3)
     args = parser.parse_args()

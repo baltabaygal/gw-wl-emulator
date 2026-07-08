@@ -129,7 +129,7 @@ def main():
     parser.add_argument("--mlp_model_path", type=str, default="data/models/baseline_mlp_backend_current.pt")
     parser.add_argument("--output_json", type=str, default="data/results/phase2b_nsf_recovery_results.json")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2b_nsf_recovery")
-    parser.add_argument("--output_report", type=str, default="docs/phase2b_nsf_recovery_benchmark.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2b_nsf_recovery_benchmark.md")
     args = parser.parse_args()
     
     os.makedirs(os.path.dirname(args.output_json), exist_ok=True)

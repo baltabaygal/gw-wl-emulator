@@ -16,7 +16,7 @@ from ml.nsf_model import ConditionalNSF
 
 def main():
     parser = argparse.ArgumentParser(description="Train Conditional NSF Weak Lensing Emulator.")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_backend_current_1k")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/backend_current_1k")
     parser.add_argument("--epochs", type=int, default=150)
     parser.add_argument("--batch_size", type=int, default=16384)
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--bins", type=int, default=8)
     parser.add_argument("--output_model", type=str, default="data/models/conditional_nsf_backend_current.pt")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2b_nsf_training")
-    parser.add_argument("--output_report", type=str, default="docs/phase2b_nsf_training_report.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2b_nsf_training_report.md")
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 

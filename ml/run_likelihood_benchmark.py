@@ -117,7 +117,7 @@ def main() -> None:
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2_likelihood_benchmark")
     parser.add_argument("--artifact_dir", type=str, default="/Users/baltabay/.gemini/antigravity/brain/f3f9b801-1f10-4591-9e78-0368fe2e4a12")
     parser.add_argument("--output_json", type=str, default="data/benchmark_results.json")
-    parser.add_argument("--output_report", type=str, default="docs/backend_current_recovery_benchmark.md")
+    parser.add_argument("--output_report", type=str, default="docs/backend_current/backend_current_recovery_benchmark.md")
     parser.add_argument("--artifact_report", type=str, default=None)
     args = parser.parse_args()
     

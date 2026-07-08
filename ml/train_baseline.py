@@ -19,14 +19,14 @@ from ml.baselines import (
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Phase 2A baseline MLP emulator.")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_medium")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/medium")
     parser.add_argument("--epochs", type=int, default=500)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--patience", type=int, default=30)
     parser.add_argument("--output_model", type=str, default="data/models/baseline_mlp.pt")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2_baseline")
-    parser.add_argument("--output_report", type=str, default="docs/phase2_baseline_results.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2_baseline_results.md")
     parser.add_argument("--artifact_report", type=str, default=None)
     args = parser.parse_args()
 

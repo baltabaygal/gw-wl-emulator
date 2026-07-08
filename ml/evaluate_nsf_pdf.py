@@ -21,9 +21,9 @@ from ml.baselines import (
 def main():
     parser = argparse.ArgumentParser(description="Evaluate NSF continuous/binned densities against simulator.")
     parser.add_argument("--model_path", type=str, default="data/models/conditional_nsf_backend_current.pt")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_backend_current_1k")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/backend_current_1k")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2b_nsf_pdf_validation")
-    parser.add_argument("--output_report", type=str, default="docs/phase2b_nsf_pdf_validation.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2b_nsf_pdf_validation.md")
     args = parser.parse_args()
 
     os.makedirs(args.plots_dir, exist_ok=True)

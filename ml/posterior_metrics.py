@@ -175,7 +175,7 @@ def main() -> None:
     parser.add_argument("grid_files", nargs="*", default=[])
     parser.add_argument("--grid_dir", default="data/results/phase3_posterior_grids")
     parser.add_argument("--output_json", default="data/results/phase3_posterior_metrics.json")
-    parser.add_argument("--output_report", default="docs/phase3_posterior_metrics.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_posterior_metrics.md")
     args = parser.parse_args()
 
     files = [Path(p) for p in args.grid_files]

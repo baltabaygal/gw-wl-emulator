@@ -1,0 +1,141 @@
+{
+  "generated": "2026-07-07T11:44:38.052987Z",
+  "items": [
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.pdf",
+      "size": 168006,
+      "modified": "2026-07-07T14:44:32.523416",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_k_vs_kappa_threshold.py",
+        "generated": "2026-07-07T11:44:32.524069Z",
+        "git_commit": "bf16cad",
+        "source_data": "data/variance_sweep_data_z1.npz",
+        "output_png": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+      "size": 37701,
+      "modified": "2026-07-07T14:44:32.315849",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_k_vs_kappa_threshold.py",
+        "generated": "2026-07-07T11:44:32.524069Z",
+        "git_commit": "bf16cad",
+        "source_data": "data/variance_sweep_data_z1.npz",
+        "output_png": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.pdf",
+      "size": 169059,
+      "modified": "2026-07-07T14:44:33.325188",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_k_vs_subhalo_factor_paired.py",
+        "generated": "2026-07-07T11:44:33.325786Z",
+        "git_commit": "bf16cad",
+        "source_data": [
+          "data/variance_sweep_data_z1.npz",
+          "data/variance_sweep_data_z2.npz"
+        ],
+        "output_png": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+      "size": 32392,
+      "modified": "2026-07-07T14:44:33.146537",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_k_vs_subhalo_factor_paired.py",
+        "generated": "2026-07-07T11:44:33.325786Z",
+        "git_commit": "bf16cad",
+        "source_data": [
+          "data/variance_sweep_data_z1.npz",
+          "data/variance_sweep_data_z2.npz"
+        ],
+        "output_png": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper.pdf",
+      "size": 369637,
+      "modified": "2026-07-07T14:44:34.282604",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper.png",
+      "size": 99393,
+      "modified": "2026-07-07T14:44:34.408288",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_a.pdf",
+      "size": 275175,
+      "modified": "2026-07-07T14:44:34.632324",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_a.png",
+      "size": 49477,
+      "modified": "2026-07-07T14:44:34.692397",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+      "size": 257521,
+      "modified": "2026-07-07T14:44:34.856629",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_subhalo_factor_paper.py",
+        "generated": "2026-07-07T11:44:34.899671Z",
+        "git_commit": "bf16cad",
+        "outputs": [
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png"
+        ]
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png",
+      "size": 42297,
+      "modified": "2026-07-07T14:44:34.899069",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_subhalo_factor_paper.py",
+        "generated": "2026-07-07T11:44:34.899671Z",
+        "git_commit": "bf16cad",
+        "outputs": [
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png"
+        ]
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf",
+      "size": 174186,
+      "modified": "2026-07-07T14:44:37.742090",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "/Users/baltabay/Desktop/gw-wl-emulator/paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache /Users/baltabay/Desktop/gw-wl-emulator/data/vaskonen_fig3_linlin_subhalos_strict_n400000.json",
+        "generated": "2026-07-07T11:44:37.742962Z",
+        "git_commit": "bf16cad",
+        "seed": 240706,
+        "nreal": 400000
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png",
+      "size": 77927,
+      "modified": "2026-07-07T14:44:37.484212",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "/Users/baltabay/Desktop/gw-wl-emulator/paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache /Users/baltabay/Desktop/gw-wl-emulator/data/vaskonen_fig3_linlin_subhalos_strict_n400000.json",
+        "generated": "2026-07-07T11:44:37.742962Z",
+        "git_commit": "bf16cad",
+        "seed": 240706,
+        "nreal": 400000
+      }
+    }
+  ]
+}

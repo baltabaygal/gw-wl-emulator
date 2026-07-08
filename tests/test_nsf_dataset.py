@@ -10,7 +10,7 @@ import torch
 from ml.nsf_dataset import prepare_nsf_data, get_nsf_dataloaders
 
 def test_nsf_dataset_preprocessing_and_loading():
-    dataset_dir = "datasets_backend_current_1k"
+    dataset_dir = "datasets/backend_current_1k"
     stats_path = "data/models/nsf_preprocessing_stats_test.json"
     
     # Remove test stats file if it already exists

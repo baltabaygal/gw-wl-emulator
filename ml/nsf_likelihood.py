@@ -291,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_path", type=str, default="data/models/conditional_nsf_backend_current.pt")
     parser.add_argument("--output_json", type=str, default="data/results/phase2c_runtime_results.json")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2c_runtime")
-    parser.add_argument("--output_report", type=str, default="docs/phase2c_runtime_optimization.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2c_runtime_optimization.md")
     args = parser.parse_args()
     
     run_profiling(args.model_path, args.output_json, args.plots_dir, args.output_report)

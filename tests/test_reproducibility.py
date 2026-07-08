@@ -43,8 +43,9 @@ def test_bitwise_reproducibility():
                 continue
 
             with h5py.File(f1_path, 'r') as f1, h5py.File(f2_path, 'r') as f2:
-                # Check samples
-                for key in ["lnmu", "valid_counts", "z", "h", "OmegaM", "sigma8", "split_type"]:
+                # Check samples (schema 2.0: 1+6d As-mode)
+                for key in ["lnmu", "valid_counts", "z", "h", "OmegaM", "As",
+                            "OmegaB", "ns", "zeq", "sigma8_derived", "split_type"]:
                     p1 = f"samples/{key}"
                     p2 = f"samples/{key}"
                     assert p1 in f1 and p2 in f2, f"Missing key {key} in split {split}"
@@ -77,7 +78,7 @@ def test_bitwise_reproducibility():
                 # Check parameter ranges group
                 g1 = f1["metadata/parameter_ranges"]
                 g2 = f2["metadata/parameter_ranges"]
-                for p in ["z", "h", "OmegaM", "sigma8"]:
+                for p in ["z", "h", "OmegaM", "As", "OmegaB", "ns", "zeq"]:
                     assert p in g1.attrs and p in g2.attrs
                     np.testing.assert_array_equal(g1.attrs[p], g2.attrs[p])
 

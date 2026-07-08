@@ -127,7 +127,7 @@ def main() -> None:
     parser.add_argument("--coverage_json", default="data/results/phase3_coverage_results.json")
     parser.add_argument("--runtime_json", default="data/results/phase3_runtime_results.json")
     parser.add_argument("--output_dir", default="plots/figures/phase3_posterior_benchmark")
-    parser.add_argument("--output_report", default="docs/phase3_figures_summary.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_figures_summary.md")
     args = parser.parse_args()
 
     grid_file = Path(args.grid_file) if args.grid_file else None

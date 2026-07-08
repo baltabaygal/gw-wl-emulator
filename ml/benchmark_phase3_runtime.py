@@ -75,7 +75,7 @@ def write_report(results: dict, output_report: str | Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark Phase 3 end-to-end inference runtime.")
     parser.add_argument("--output_json", default="data/results/phase3_runtime_results.json")
-    parser.add_argument("--output_report", default="docs/phase3_runtime_benchmark.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_runtime_benchmark.md")
     parser.add_argument("--n_events", type=int, default=1000)
     parser.add_argument("--grid_resolution", type=int, default=8)
     args = parser.parse_args()

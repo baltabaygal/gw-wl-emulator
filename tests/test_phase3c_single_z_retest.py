@@ -3,7 +3,7 @@ from pathlib import Path
 
 def test_phase3c_single_z_retest_outputs_exist():
     result_path = Path("data/results/phase3c_single_z_retest.json")
-    report_path = Path("docs/phase3c_single_z_retest.md")
+    report_path = Path("docs/phase3/phase3c_single_z_retest.md")
     
     assert result_path.exists(), "Single-z retest JSON is missing"
     assert report_path.exists(), "Single-z retest markdown report is missing"

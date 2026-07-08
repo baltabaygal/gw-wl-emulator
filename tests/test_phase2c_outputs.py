@@ -14,11 +14,11 @@ def test_phase2c_output_files_exist():
         "data/results/phase2c_runtime_results.json",
         "data/results/phase2c_failure_map_results.json",
         # Markdown reports
-        "docs/phase2c_likelihood_surface_validation.md",
-        "docs/phase2c_tail_validation.md",
-        "docs/phase2c_runtime_optimization.md",
-        "docs/phase2c_nsf_failure_map.md",
-        "docs/phase2c_cache_reproducibility.md"
+        "docs/phase2/phase2c_likelihood_surface_validation.md",
+        "docs/phase2/phase2c_tail_validation.md",
+        "docs/phase2/phase2c_runtime_optimization.md",
+        "docs/phase2/phase2c_nsf_failure_map.md",
+        "docs/phase2/phase2c_cache_reproducibility.md"
     ]
     
     for rel_path in required_files:

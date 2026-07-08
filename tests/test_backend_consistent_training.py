@@ -13,7 +13,7 @@ def get_git_commit():
         return None
 
 def test_dataset_git_commit_consistency():
-    dataset_dir = "datasets_backend_current_1k"
+    dataset_dir = "datasets/backend_current_1k"
     git_head = get_git_commit()
     if git_head is None:
         pytest.skip("Git repository not accessible or git command failed")

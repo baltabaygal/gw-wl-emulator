@@ -20,7 +20,7 @@ def test_phase3b_local_density_residual_outputs_exist(tmp_path, monkeypatch):
     }
     write_local_density_outputs(payload)
     result_path = tmp_path / "data/results/phase3b_local_density_check.json"
-    report_path = tmp_path / "docs/phase3b_local_density_check.md"
+    report_path = tmp_path / "docs/phase3/phase3b_local_density_check.md"
     plot_path = tmp_path / "plots/figures/phase3b_local_density_check/residual_sum_by_z.png"
     assert result_path.exists()
     assert report_path.exists()

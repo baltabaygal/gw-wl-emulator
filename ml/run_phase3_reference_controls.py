@@ -86,7 +86,7 @@ def main():
     ap.add_argument("--nsim_hi", type=int, default=40000)
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--out_json", default="data/results/phase3_reference_controls.json")
-    ap.add_argument("--out_md", default="docs/phase3_reference_controls.md")
+    ap.add_argument("--out_md", default="docs/phase3/phase3_reference_controls.md")
     args = ap.parse_args()
 
     arrays, md = load_npz_with_metadata(args.catalog)

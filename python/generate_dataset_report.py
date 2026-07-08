@@ -125,7 +125,7 @@ def run_regression_summary() -> Tuple[str, str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_dir", type=str, default="datasets")
-    parser.add_argument("--output", type=str, default="docs/dataset_report.md")
+    parser.add_argument("--output", type=str, default="docs/reference/dataset_report.md")
     args = parser.parse_args()
 
     splits = ["train", "validation", "test"]

@@ -124,7 +124,7 @@ def main():
     ap.add_argument("--zs", type=float, nargs="+", default=[0.5, 1.5, 2.5])
     ap.add_argument("--model_path", default="data/models/conditional_nsf_backend_current.pt")
     ap.add_argument("--out_json", default="data/results/phase3_nscaling_control.json")
-    ap.add_argument("--out_md", default="docs/phase3_nscaling_control.md")
+    ap.add_argument("--out_md", default="docs/phase3/phase3_nscaling_control.md")
     args = ap.parse_args()
 
     truth = (0.67, 0.30, 0.85)

@@ -86,7 +86,7 @@ def train_custom_model(hidden_dims, X_train, Y_train, X_val, Y_val, epochs=500, 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run capacity study on MLP emulator.")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_large")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/large")
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2_representation")
     args = parser.parse_args()
 

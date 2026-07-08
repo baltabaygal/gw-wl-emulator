@@ -1,0 +1,56 @@
+{
+  "zs": 0.5,
+  "kappa_thr_host": 3.79403701e-05,
+  "E_prod_brute": 1.275646304878831e-05,
+  "total_barN": 100.02088056828919,
+  "rows": [
+    {
+      "subhalo_factor": 1e-05,
+      "kappa_thr_clump": 3.7940370100000004e-10,
+      "ratio_pop": 0.9958616957121847,
+      "bias_pct": -0.4138304287815253
+    },
+    {
+      "subhalo_factor": 3.162e-05,
+      "kappa_thr_clump": 1.199674502562e-09,
+      "ratio_pop": 0.9829485781975461,
+      "bias_pct": -1.7051421802453892
+    },
+    {
+      "subhalo_factor": 0.0001,
+      "kappa_thr_clump": 3.794037010000001e-09,
+      "ratio_pop": 0.9569796801335302,
+      "bias_pct": -4.302031986646981
+    },
+    {
+      "subhalo_factor": 0.0003162,
+      "kappa_thr_clump": 1.199674502562e-08,
+      "ratio_pop": 0.9167914331327751,
+      "bias_pct": -8.32085668672249
+    },
+    {
+      "subhalo_factor": 0.001,
+      "kappa_thr_clump": 3.79403701e-08,
+      "ratio_pop": 0.8633194373413687,
+      "bias_pct": -13.668056265863127
+    },
+    {
+      "subhalo_factor": 0.003162,
+      "kappa_thr_clump": 1.1996745025620001e-07,
+      "ratio_pop": 0.798107999813329,
+      "bias_pct": -20.189200018667098
+    },
+    {
+      "subhalo_factor": 0.01,
+      "kappa_thr_clump": 3.7940370100000005e-07,
+      "ratio_pop": 0.7222151010624647,
+      "bias_pct": -27.778489893753534
+    },
+    {
+      "subhalo_factor": 0.1,
+      "kappa_thr_clump": 3.7940370100000006e-06,
+      "ratio_pop": 0.5379260404777128,
+      "bias_pct": -46.20739595222872
+    }
+  ]
+}

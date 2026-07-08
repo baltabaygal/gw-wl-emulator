@@ -372,7 +372,7 @@ def main():
     with open(RESULTS_DIR / "phase3c_compatibility_patch.json", "w") as f:
         json.dump(patch_summary, f, indent=2)
         
-    # Write docs/phase3c_compatibility_patch.md
+    # Write docs/phase3/phase3c_compatibility_patch.md
     patch_md = f"""# Phase 3C — Compatibility Patch Summary
 
 The compatibility patch implements Option A: aligning the NSF likelihood definition with the simulator reference.

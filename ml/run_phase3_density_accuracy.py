@@ -59,7 +59,7 @@ def main():
     ap.add_argument("--nsim", type=int, default=200000)
     ap.add_argument("--model_path", default="data/models/conditional_nsf_backend_current.pt")
     ap.add_argument("--out_json", default="data/results/phase3_density_accuracy.json")
-    ap.add_argument("--out_md", default="docs/phase3_density_accuracy.md")
+    ap.add_argument("--out_md", default="docs/phase3/phase3_density_accuracy.md")
     args = ap.parse_args()
 
     bin_edges = load_bin_edges()

@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--mlp_model_path", type=str, default="data/models/baseline_mlp_backend_current.pt")
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2c_likelihood_surfaces")
     parser.add_argument("--output_json", type=str, default="data/results/phase2c_likelihood_surface_results.json")
-    parser.add_argument("--output_report", type=str, default="docs/phase2c_likelihood_surface_validation.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2c_likelihood_surface_validation.md")
     parser.add_argument("--use_cache", action="store_true", help="Enable metadata-safe cache load.")
     parser.add_argument("--overwrite_cache", action="store_true", help="Forces regenerations of cached grids.")
     args = parser.parse_args()

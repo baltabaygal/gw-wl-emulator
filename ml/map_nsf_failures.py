@@ -115,7 +115,7 @@ def main():
     parser.add_argument("--nsf_model_path", type=str, default="data/models/conditional_nsf_backend_current.pt")
     parser.add_argument("--output_json", type=str, default="data/results/phase2c_failure_map_results.json")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2c_failure_map")
-    parser.add_argument("--output_report", type=str, default="docs/phase2c_nsf_failure_map.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2c_nsf_failure_map.md")
     args = parser.parse_args()
     
     os.makedirs(os.path.dirname(args.output_json), exist_ok=True)

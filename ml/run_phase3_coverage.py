@@ -103,7 +103,7 @@ def main() -> None:
     parser.add_argument("--catalog_type", default="mixed_uniform")
     parser.add_argument("--cosmology_id", choices=sorted(TRUE_COSMOLOGIES), default="central")
     parser.add_argument("--output_json", default="data/results/phase3_coverage_results.json")
-    parser.add_argument("--output_report", default="docs/phase3_coverage_report.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_coverage_report.md")
     args = parser.parse_args()
     results = run_coverage(
         args.n_catalogs,

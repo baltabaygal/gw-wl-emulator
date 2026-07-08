@@ -2,7 +2,7 @@
 # The screen's dK2c/dK3c is the unclustered-Poisson clump component only; the C++ MC delta
 # additionally contains within-host clump clustering + host-clump covariance (dominant)
 # and the (1-f_s)M host reduction. For the split-vs-brute validation use
-# scripts/validate_split_vs_brute.py; see docs/subhalo_combining.md "Validation".
+# scripts/validate_split_vs_brute.py; see docs/subhalo/subhalo_combining.md "Validation".
 import sys
 from pathlib import Path
 import numpy as np

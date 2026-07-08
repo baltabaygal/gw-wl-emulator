@@ -168,7 +168,7 @@ def write_scaling_reports(results_by_type, sizes):
             "tv": {"A": tv_popt[0], "alpha": tv_popt[1], "B": tv_popt[2]},
         }
         
-    # Write docs/phase3d_scaling_metrics.md
+    # Write docs/phase3/phase3d_scaling_metrics.md
     metrics_lines = [
         "# Phase 3D — Posterior Scaling Metrics Report",
         "",
@@ -197,7 +197,7 @@ def write_scaling_reports(results_by_type, sizes):
     with open(DOCS_DIR / "phase3d_scaling_metrics.md", "w") as f:
         f.write("\n".join(metrics_lines) + "\n")
         
-    # Write docs/phase3d_scaling_report.md
+    # Write docs/phase3/phase3d_scaling_report.md
     report_lines = [
         "# Phase 3D — Posterior Statistics Scaling Report",
         "",
@@ -228,7 +228,7 @@ def write_scaling_reports(results_by_type, sizes):
     with open(DOCS_DIR / "phase3d_scaling_report.md", "w") as f:
         f.write("\n".join(report_lines) + "\n")
         
-    # Write docs/phase3d_redshift_scaling_decomposition.md
+    # Write docs/phase3/phase3d_redshift_scaling_decomposition.md
     decomp_lines = [
         "# Phase 3D — Low-z vs Mixed-catalog Scaling Decomposition",
         "",

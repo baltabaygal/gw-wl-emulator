@@ -26,7 +26,7 @@ def test_benchmark_results_structure():
 
 def test_validation_plots_and_reports():
     # Reports
-    assert os.path.exists("docs/backend_current_recovery_benchmark.md")
+    assert os.path.exists("docs/backend_current/backend_current_recovery_benchmark.md")
     
     # Figures
     fig_dir = "plots/figures/phase2_backend_current_training"
@@ -36,7 +36,7 @@ def test_validation_plots_and_reports():
 
 def test_likelihood_surface_validation_outputs():
     # Reports
-    assert os.path.exists("docs/backend_current_posterior_validation.md")
+    assert os.path.exists("docs/backend_current/backend_current_posterior_validation.md")
     
     # Figures for z=0.5, 1.5, 2.5
     fig_dir = "plots/figures/phase2_backend_current_training"

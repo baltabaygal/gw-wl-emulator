@@ -2,13 +2,13 @@
 
 help:
 	@echo "In-container targets:"
-	@echo "  build  - build C++ + pybind module (./scripts/build.sh)"
+	@echo "  build  - build C++ + pybind module (./scripts/build/build.sh)"
 	@echo "  test   - run python/testing_api.py"
 	@echo "  watch  - auto-rebuild on cpp/ changes"
 	@echo "  clean  - remove build"
 
 build:
-	./scripts/build.sh
+	./scripts/build/build.sh
 
 test:
 	python3 python/testing_api.py
@@ -23,7 +23,7 @@ generate-small-dataset:
 	python3 python/generate_dataset.py --num_points 10 --nsamples 1000 --seed 123
 
 watch:
-	./scripts/watch_build.sh
+	./scripts/build/watch_build.sh
 
 clean:
 	rm -rf build

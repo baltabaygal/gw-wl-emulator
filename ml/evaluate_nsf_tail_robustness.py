@@ -60,10 +60,10 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate Tail and Extreme-Quantile Validation for NSF.")
     parser.add_argument("--nsf_model_path", type=str, default="data/models/conditional_nsf_backend_current.pt")
     parser.add_argument("--mlp_model_path", type=str, default="data/models/baseline_mlp_backend_current.pt")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_backend_current_1k")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/backend_current_1k")
     parser.add_argument("--output_json", type=str, default="data/results/phase2c_tail_validation_results.json")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase2c_tail_validation")
-    parser.add_argument("--output_report", type=str, default="docs/phase2c_tail_validation.md")
+    parser.add_argument("--output_report", type=str, default="docs/phase2/phase2c_tail_validation.md")
     args = parser.parse_args()
     
     os.makedirs(os.path.dirname(args.output_json), exist_ok=True)

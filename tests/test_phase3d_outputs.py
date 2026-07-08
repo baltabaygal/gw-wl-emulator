@@ -2,10 +2,10 @@ from pathlib import Path
 
 def test_phase3d_output_reports_exist():
     reports = [
-        "docs/phase3d_scaling_report.md",
-        "docs/phase3d_scaling_metrics.md",
-        "docs/phase3d_redshift_scaling_decomposition.md",
-        "docs/phase3d_cache_reproducibility.md",
+        "docs/phase3/phase3d_scaling_report.md",
+        "docs/phase3/phase3d_scaling_metrics.md",
+        "docs/phase3/phase3d_redshift_scaling_decomposition.md",
+        "docs/phase3/phase3d_cache_reproducibility.md",
     ]
     for r in reports:
         assert Path(r).exists(), f"Phase 3D report {r} is missing"

@@ -6,7 +6,7 @@ import pytest
 
 def get_test_dataset_dir():
     # Helper to ensure at least a tiny dataset exists for testing
-    d = "datasets_test_suite"
+    d = "datasets/test_suite"
     if not os.path.exists(d):
         subprocess.run([
             sys.executable, "python/generate_dataset.py",

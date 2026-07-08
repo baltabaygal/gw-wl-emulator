@@ -9,7 +9,7 @@ import pytest
 def test_train_nsf_smoke():
     output_model = "data/models/test_nsf_checkpoint_smoke.pt"
     plots_dir = "plots/figures/phase2b_nsf_training_smoke"
-    output_report = "docs/phase2b_nsf_training_report_smoke.md"
+    output_report = "docs/phase2/phase2b_nsf_training_report_smoke.md"
     
     # Remove files if they exist
     for f in [output_model, output_report]:
@@ -20,7 +20,7 @@ def test_train_nsf_smoke():
         # Run train_nsf.py using the active conda environment's python
         cmd = [
             sys.executable, "ml/train_nsf.py",
-            "--dataset_dir", "datasets_tiny",
+            "--dataset_dir", "datasets/tiny",
             "--epochs", "2",
             "--batch_size", "256",
             "--patience", "2",

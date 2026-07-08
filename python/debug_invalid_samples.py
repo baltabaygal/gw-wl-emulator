@@ -260,7 +260,7 @@ def main() -> int:
     parser.add_argument("--OmegaM", type=float, default=0.315)
     parser.add_argument("--strict_weak_lensing", action="store_true")
     parser.add_argument("--output_dir", type=str, default="plots/figures/invalid_diagnostics")
-    parser.add_argument("--report", type=str, default="docs/invalid_sample_analysis.md")
+    parser.add_argument("--report", type=str, default="docs/reference/invalid_sample_analysis.md")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)

@@ -117,7 +117,7 @@ def main():
     parser.add_argument("--model_path", type=str, default="data/models/baseline_mlp_backend_current.pt")
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2_backend_current_training")
     parser.add_argument("--artifact_dir", type=str, default="/Users/baltabay/.gemini/antigravity/brain/f3f9b801-1f10-4591-9e78-0368fe2e4a12")
-    parser.add_argument("--output_report", type=str, default="docs/backend_current_posterior_validation.md")
+    parser.add_argument("--output_report", type=str, default="docs/backend_current/backend_current_posterior_validation.md")
     parser.add_argument("--artifact_report", type=str, default="/Users/baltabay/.gemini/antigravity/brain/f3f9b801-1f10-4591-9e78-0368fe2e4a12/backend_current_posterior_validation.md")
     args = parser.parse_args()
     

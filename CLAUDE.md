@@ -48,9 +48,36 @@ from ace_lensing import predict_pdf, predict_sigma, predict_mean
 `get_simulator_config`. Cosmology args: `Om`, `sigma8`, `h` (defaults Om=0.315, σ8=0.811);
 `Mmin` is exposed; `zs` is the source redshift; `Nhalos=100` sets the strong/weak κ split.
 
+### 1+6d parameterization (2026-07-07) — Θ = {h, z_eq, Ω_M, Ω_B, A_s, n_s}
+All entry points take trailing kwargs `As=-1.0, OmegaB=0.0493, zeq=3402.0, ns=0.965`.
+**A_s-mode:** `As > 0` normalizes P(k) directly via the analytic Bunn–White mapping
+(`deltaH8 = (2/5)·gfid·√As·(c·k_p/H0)^((1−ns)/2)/Ω_M`, k_p = 0.05 Mpc⁻¹, gfid = the
+CPT growth constant in `Dg`; see `cosmology.h::initialize_normalization`) and the
+sigma8 positional is IGNORED; `As <= 0` keeps the σ₈ normalization (default path is
+bit-identical to pre-change, seed-for-seed). `get_simulator_config(h,OmegaM,sigma8,As,
+OmegaB,zeq,ns)` returns `deltaH8`, `sigma8_derived`, `As_derived`, `OmegaR`,
+`amplitude_mode`. **Gotchas:** the code's σ₈ uses a smooth-k window (+4.3% vs tophat),
+so at Planck A_s=2.101e-9 the derived σ₈ is 0.860 (not 0.811) — expected, not a bug
+(`tests/test_cosmology_params.py`, `plots/As_mode_overlay.png`). `zeq` sets
+`OmegaR = Ω_M/(1+z_eq)` (freeing z_eq = freeing radiation). σ₈↔A_s round trip is
+exact to 1 ULP.
+
+**ML plumbing (ready, not retrained):** `ml/params.py` = single source of truth
+(FIDUCIAL, PRIOR_6D, WIDE_6D, `CONTEXT_KEYS = (z, h, Om, lnAs10, Ob, ns, zeq_k)`,
+lnAs10 = ln(1e10·A_s), zeq_k = zeq/1000). `generate_dataset.py` samples the 6d wide
+box (LHS, As-mode, HDF5 schema 2.0 + per-config `sigma8_derived`); `ml/data.py`
+auto-detects schema → X is (N,7) or legacy (N,4). In the **-ar worktree**: train_ar/
+train_smooth infer context dim from data (old checkpoints default 4);
+`ml/autoresearch/features.py` = shared edge/tail feature maps (legacy 10/14 exact,
+6d 16/20); smooth_model dispatches on len(theta) — 6d needs refit `*_6d.json` caches
++ a context=7 body. Retrain order unchanged (see §NSF recipe); regenerate
+`param_space_ref`, `groundtruth.npz`, `lowz_aug.npz`, `tail_counts_extra.npz` first.
+NOTE: the -ar worktree's `build/` module predates the As kwargs — rebuild there
+(or merge branches) before running its gen/validate scripts.
+
 ## Building the C++ module
 ```bash
-make build          # -> scripts/build.sh  (CMake + pybind11, target gwlensing)
+make build          # -> scripts/build/build.sh  (CMake + pybind11, target gwlensing)
 make test           # python/testing_api.py
 make pytest         # tests/
 ```
@@ -66,22 +93,22 @@ are commented out in `cosmology.cpp`, despite the spec/header suggesting otherwi
 
 ## Current work — subhalo substructure gate (§4)
 Standalone Python (run with system python3.13 OR test env; no C++ needed for these):
-- `scripts/subhalo_demo.py` — one host + evolved JvdB14 subhalo population (demo plot).
-- `scripts/subhalo_screen.py` — Campbell-cumulant screen: clump Δ⟨κ²⟩, Δ⟨κ³⟩ vs the model's
+- `scripts/subhalo_gate/subhalo_demo.py` — one host + evolved JvdB14 subhalo population (demo plot).
+- `scripts/subhalo_gate/subhalo_screen.py` — Campbell-cumulant screen: clump Δ⟨κ²⟩, Δ⟨κ³⟩ vs the model's
   own moments. Slow (~3 min, per-bin quads). Writes `plots/screen_rows.npy`.
-- `scripts/subhalo_gate.py` — vectorized/spline version; M_min-degeneracy scan, <2 s.
+- `scripts/subhalo_gate/subhalo_gate.py` — vectorized/spline version; M_min-degeneracy scan, <2 s.
   Validated against `subhalo_screen.py` at the fiducial M_min.
-- `scripts/plot_screen.py` — renders `plots/subhalo_screen.png`.
-- `scripts/ace_gap.py` — baseline 3: ACE vs Vaskonen convergence moments + cross-validation
+- `scripts/figures/plot_screen.py` — renders `plots/subhalo_screen.png`.
+- `scripts/subhalo_gate/ace_gap.py` — baseline 3: ACE vs Vaskonen convergence moments + cross-validation
   of the screen against C++ raw-κ. **Needs the `test` env** (gwlensing + ACE).
-- `scripts/plot_gate_verdict.py` → `plots/gate_verdict.png` (summary figure).
+- `scripts/figures/plot_gate_verdict.py` → `plots/gate_verdict.png` (summary figure).
 
 **Verdict (gate complete; numbers refreshed 2026-07-02 after the w̃_f fix):** the screen's
 unclustered-Poisson clump component is +3.2–3.4% on ⟨κ²⟩, +1.45% on ⟨κ³⟩ (zs=1–5); gate
 constants in `subhalo_gate.py` updated to `dK2c, dK3c = 2.307e-5, 1.077e-6`. **However the
 full MC substructure effect is larger** — +14.9% on ⟨κ²⟩, +4.5% on ⟨κ³⟩ at zs=5 (brute,
 `validate_split_vs_brute.py`) — because within-host clustering + host–clump covariance
-dominate over the Poisson term (see docs/subhalo_combining.md "Validation"). Still below
+dominate over the Poisson term (see docs/subhalo/subhalo_combining.md "Validation"). Still below
 the ACE−Vaskonen gap (50–86%), so the gate conclusion stands, but "few %" undersold it.
 Host moments: screen vs C++ raw-κ agree to ~0.1%.
 
@@ -97,7 +124,7 @@ Host moments: screen vs C++ raw-κ agree to ~0.1%.
    worst-case criterion degenerates to brute for every ray inside r200, making
    `subhalo_factor` inert (caught by the factor-convergence scan). Floor is keyed to the
    host-center distance r (original design); the r-vs-d bias is absorbed by tuning
-   `subhalo_factor` to the convergence plateau: `scripts/subhalo_factor_convergence.py`.
+   `subhalo_factor` to the convergence plateau: `scripts/subhalo_gate/subhalo_factor_convergence.py`.
    The earlier "94%/11×" split validation was contaminated by this bug — retracted.
 
 ## NSF emulator — production model (final 2026-07-03, commit 0785dd0)
@@ -124,7 +151,7 @@ Fit for purpose to O(1000) events; for ≳4000 events first enforce ⟨1/μ⟩=1
 The clean port of the subhalo model into the original Vaskonen code lives in
 **`~/Desktop/halos`** (clone of `github.com/vianvask/halos` — the upstream author's repo;
 branch `subhalo-production-integration`, commit `133eb00`). Design doc:
-`docs/subhalo_combining.md` here. Differences vs the prototype in `cpp/` here: the port
+`docs/subhalo/subhalo_combining.md` here. Differences vs the prototype in `cpp/` here: the port
 adds the r-dependent resolved/unresolved split (option B: reduced smooth host
 `(1−f_s,res(r))·M` + Poisson clumps above the dynamic floor `m_res(r)` from the monotone
 `r_thr` table), and drops brute mode / per-clump `gslope` removal.

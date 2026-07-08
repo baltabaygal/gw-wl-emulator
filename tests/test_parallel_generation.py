@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 
 def test_parallel_dataset_generation():
-    test_dir = "datasets_test_parallel"
+    test_dir = "datasets/test_parallel"
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
         

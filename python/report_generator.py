@@ -127,7 +127,7 @@ def run_reproducibility_check():
         if os.path.exists(dir1): shutil.rmtree(dir1)
         if os.path.exists(dir2): shutil.rmtree(dir2)
 
-def generate_report(dataset_dir, output_report_path="docs/dataset_validation_report.md"):
+def generate_report(dataset_dir, output_report_path="docs/reference/dataset_validation_report.md"):
     print(f"Generating report from dataset directory: {dataset_dir}...")
     
     splits = ["train", "validation", "test"]
@@ -234,7 +234,7 @@ class NumpyEncoder(json.JSONEncoder):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_dir", type=str, default="datasets")
-    parser.add_argument("--output", type=str, default="docs/dataset_validation_report.md")
+    parser.add_argument("--output", type=str, default="docs/reference/dataset_validation_report.md")
     parser.add_argument("--json_output", type=str, default=None)
     args = parser.parse_args()
     

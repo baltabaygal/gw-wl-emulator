@@ -1,0 +1,11 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_k_vs_subhalo_factor_paired.py",
+  "generated": "2026-07-08T08:37:03.911709Z",
+  "git_commit": "bf16cad",
+  "source_data": [
+    "data/variance_sweep_data_z1.npz",
+    "data/variance_sweep_data_z2.npz"
+  ],
+  "output_png": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.pdf"
+}

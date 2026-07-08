@@ -190,7 +190,7 @@ def recovery_worker(args_tuple):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Perform derivative failure audit.")
-    parser.add_argument("--dataset_dir", type=str, default="datasets_large_1k")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/large_1k")
     parser.add_argument("--output_dir", type=str, default="plots/figures/phase2_interpolation")
     parser.add_argument("--artifact_dir", type=str, default="/Users/baltabay/.gemini/antigravity/brain/f3f9b801-1f10-4591-9e78-0368fe2e4a12")
     args = parser.parse_args()

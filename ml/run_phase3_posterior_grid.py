@@ -218,7 +218,7 @@ def main() -> None:
     parser.add_argument("--grid_type", choices=["2d", "3d"], default="3d")
     parser.add_argument("--resolution", type=int, default=12)
     parser.add_argument("--output_dir", default="data/results/phase3_posterior_grids")
-    parser.add_argument("--output_report", default="docs/phase3_posterior_grid_engine.md")
+    parser.add_argument("--output_report", default="docs/phase3/phase3_posterior_grid_engine.md")
     parser.add_argument("--nsim_per_z", type=int, default=6000)
     parser.add_argument("--sim_max_workers", type=int, default=None)
     parser.add_argument("--overwrite_cache", action="store_true")

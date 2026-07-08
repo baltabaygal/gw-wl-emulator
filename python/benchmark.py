@@ -71,11 +71,11 @@ def run_benchmark():
 """
 
     os.makedirs("docs", exist_ok=True)
-    with open("docs/performance_report.md", "w") as f:
+    with open("docs/reference/performance_report.md", "w") as f:
         f.write(report)
 
     print(report)
-    print("Report saved to docs/performance_report.md")
+    print("Report saved to docs/reference/performance_report.md")
 
 if __name__ == "__main__":
     run_benchmark()

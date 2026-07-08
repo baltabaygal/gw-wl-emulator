@@ -37,3 +37,6 @@ ml/plots/
 
 # Forked external repo (independent git repo, tracked on its own fork)
 ace_lensing/
+
+# Local pyhalo virtualenv
+.venv_pyhalo/

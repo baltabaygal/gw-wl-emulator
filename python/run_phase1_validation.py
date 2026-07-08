@@ -19,10 +19,10 @@ def run_step(name: str, cmd: List[str]) -> Tuple[bool, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_dir", type=str, default="datasets_tiny")
+    parser.add_argument("--dataset_dir", type=str, default="datasets/tiny")
     parser.add_argument("--plots_dir", type=str, default="plots/figures/phase1_validation")
     parser.add_argument("--min_valid_fraction", type=float, default=DEFAULT_MIN_VALID_FRACTION)
-    parser.add_argument("--output_report", type=str, default="docs/dataset_validation_report.md")
+    parser.add_argument("--output_report", type=str, default="docs/reference/dataset_validation_report.md")
     parser.add_argument("--json_output", type=str, default=None)
     args = parser.parse_args()
 
