@@ -538,7 +538,7 @@ vector<vector<double> > cosmology::dclist() {
     
     for (int jz = 1; jz < Nz2; jz++) {
         d0[0] = z2;
-        d0[1] += (z2-z1)*306.535*exp((log(1.0/Hz(z2))+log(1.0/Hz(z1)))/2.0);
+        d0[1] += (z2-z1)*CLIGHT*exp((log(1.0/Hz(z2))+log(1.0/Hz(z1)))/2.0);
         dlist[jz] = d0;
         
         z1 = z2;

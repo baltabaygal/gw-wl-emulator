@@ -125,7 +125,7 @@ private:
     
     // CDM matter power spectrum
     double Deltak(double k, double deltaH) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TM(k),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TM(k),2.0));
     }
     double Plin(double z, double k, double deltaH) {
         return (2.0*pow(PI,2.0))*pow(Deltak(k, deltaH)*Dg(z), 2.0)/(pow(k,3.0));
@@ -133,7 +133,7 @@ private:
     
     // FDM matter power spectrum
     double DeltakF(double k, double deltaH, double m22) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMF(k,m22),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TMF(k,m22),2.0));
     }
     double PlinF(double z, double k, double deltaH, double m22) {
         return (2.0*pow(PI,2.0))*pow(DeltakF(k, deltaH, m22)*Dg(z), 2.0)/(pow(k,3.0));
@@ -141,7 +141,7 @@ private:
     
     // WDM matter power spectrum
     double DeltakW(double k, double deltaH, double m3) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMW(k,m3),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TMW(k,m3),2.0));
     }
     double PlinW(double z, double k, double deltaH, double m3) {
         return (2.0*pow(PI,2.0))*pow(DeltakW(k, deltaH, m3)*Dg(z), 2.0)/(pow(k,3.0));
@@ -315,12 +315,12 @@ public:
         // sigma8-mode inverts sigmaC as before. NOTE sigmaC uses the smooth window
         // Ws, not a tophat, so sigma8_derived vs CAMB agrees only to a few %.
         if (As > 0.0) {
-            deltaH8 = 0.4*gfid*sqrt(As)*pow(306.535*kpivot/H0,(1.0-ns)/2.0)/OmegaM;
+            deltaH8 = 0.4*gfid*sqrt(As)*pow(CLIGHT*kpivot/H0,(1.0-ns)/2.0)/OmegaM;
         } else {
             deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
         }
         sigma8_derived = deltaH8*sigmaC(M8, 1.0)[0];
-        As_derived = pow(deltaH8*OmegaM/(0.4*gfid), 2.0)*pow(306.535*kpivot/H0, ns-1.0);
+        As_derived = pow(deltaH8*OmegaM/(0.4*gfid), 2.0)*pow(CLIGHT*kpivot/H0, ns-1.0);
     }
 
     void initialize0() {

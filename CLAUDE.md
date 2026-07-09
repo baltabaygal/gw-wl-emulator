@@ -189,6 +189,44 @@ user explicitly asks, under their supervision.**
    request, left UNCOMMITTED for user review (user compiles/commits/pushes halos).
    Net σ²_W ≈ 2.10× original; ≤1% on Var(κ_total). Proofs + MC validation:
    `docs/sigmakappaw_measure_note.md`, `playground/sigmakappaw_poisson_vs_fixed.cpp`.
+7. **eps_floor parametrized + floor-consistent injection (2026-07-08, emulator only):**
+   `sigmakappaW(C, zs, kappathr, eps_floor=0.001)` — the outward stop is κ <
+   eps_floor·κ_thr. Converged: default keeps 99.90% of K2, missing variance ∝ ε
+   (`playground/k2_vs_floor.cpp`, `plots/k2_vs_floor.png`). The internal caller
+   (`lensing.cpp` sample path) now holds the ABSOLUTE floor at 0.001·κ_thr_default
+   so `custom_kappathr` sweeps don't drag it (old behavior collapsed σ_W at high
+   κ_thr); default path verified bit-identical (seed 12345). Variance partition
+   validated: measured total = √(σ²_explicit+σ²_W) flat at the full-Campbell 0.02728
+   (zs=1, halo-only) — `playground/sigmaW_vs_kthr.cpp`, `sigma_explicit_vs_kthr.cpp`,
+   `sweep_sigma_total_vs_kthr.py`, `plots/sigma_partition_vs_kthr.png`. Confirmed at
+   zs=0.2–10 (8 redshifts, `plots/sigma_partition_zs_study.png`): total/plateau mean
+   0.991–1.001 everywhere; σ_full grows 0.0036→0.109; handover NOT universal in
+   κ_thr/κ_thr_fid (midpoint drifts ~1 decade over the range).
+   **Analytic theory of σ_full(z_s)** (2026-07-09): exact moment decomposition
+   σ² = M₂ − 2M₃/χ_s + M₄/χ_s² (moments of one source density P(z); NFW kernel
+   constant C₂ = 1.4674011); proven σ ∝ z_s^{3/2} (z→0, coeff 0.0443 derived) and
+   saturation σ_∞ = 0.154 (z→∞, parabola in 1/χ_s); BPL fit = interpolant only.
+   See `docs/sigma_full_analytic_note.md`, `playground/campbell_moments.cpp`,
+   `plots/campbell_asymptotics.png`.
+   **Gotcha:** `paper_prod/scripts/plot_sigma_k_vs_kappa_threshold.py` plots
+   `data/variance_sweep_data_z1.npz`, which is the SUBHALO-factor sweep (written by
+   `scripts/figures/plot_variance_vs_factor.py`) — its x-axis label "κ_threshold" is
+   wrong; regenerate from the new sweep before using in the paper.
+8. **Wsub unresolved-subhalo term — derivation DONE, implementation NOT started
+   (2026-07-09):** per-host split κ_halo = reduced host (FULL f_s,b) + resolved clumps
+   + μ_unres(y) + N(0, σ²_unres(y)) is EXACT in mean/variance at ANY subhalo_factor
+   (Poisson restriction theorem; verified to 6 digits, factors 1e-5…1). Key finding:
+   the zero-mean Gaussian ALONE recovers almost nothing (0.844→0.851 at factor 1e-3) —
+   the deficit is dominated by the mean-profile mismatch, so the deterministic
+   μ_unres(y) table is REQUIRED and the host reduction must switch f_s,res(y) → f_s,b.
+   subhalo_factor then becomes a pure performance/Gaussianity knob (dropped-c₃ share
+   0.2%/0.7%/3% at 1e-3/1e-2/1e-1); m_floor absorbable too (sub-1e7 variance 0.4%).
+   Acceptance must be PDF-level (KL+tails vs brute), NOT σ². See
+   `docs/subhalo/wsub_gaussian_term_derivation.md`,
+   `playground/analytic/wsub_partition_proof.py`. Post-reorg stale imports
+   (`scripts.subhalo_factor_proxy_check` → `scripts.subhalo_gate.…`) fixed only in
+   `playground/analytic/subhalo_factor_analytic_deficit.py` +
+   `playground/dgate/subhalo_factor_dgate_area_scan.py`; other playground subdirs still stale.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

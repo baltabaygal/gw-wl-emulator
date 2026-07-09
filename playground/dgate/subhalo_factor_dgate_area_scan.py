@@ -33,7 +33,7 @@ import numpy as np
 ROOT = Path("/Users/baltabay/Desktop/gw-wl-emulator")
 sys.path.insert(0, str(ROOT))
 
-from scripts.subhalo_factor_proxy_check import (  # noqa: E402
+from scripts.subhalo_gate.subhalo_factor_proxy_check import (  # noqa: E402
     PSI_MAX,
     build_reach_interpolator,
     fg_kappa,

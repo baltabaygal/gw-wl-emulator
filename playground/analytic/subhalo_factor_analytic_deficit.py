@@ -37,11 +37,11 @@ import numpy as np
 ROOT = Path("/Users/baltabay/Desktop/gw-wl-emulator")
 sys.path.insert(0, str(ROOT))
 
-from scripts.subhalo_factor_proxy_check import (  # noqa: E402
+from scripts.subhalo_gate.subhalo_factor_proxy_check import (  # noqa: E402
     ALPHA, BETA, OMEGA, PSI_MAX,
     build_reach_interpolator, fg_kappa, gamma_norm, n_tau, nfw_params, sigma_crit,
 )
-from playground.subhalo_factor_dgate_area_scan import host_rmax  # noqa: E402
+from playground.dgate.subhalo_factor_dgate_area_scan import host_rmax  # noqa: E402
 
 
 def projected_profile(c_host: float, r200: float, n_grid: int = 2048):

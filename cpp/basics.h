@@ -19,6 +19,8 @@ namespace fs = filesystem;
 typedef mt19937_64 rgen;
 
 const double PI = 3.141592653589793238463;
+// Speed of light in internal units (kpc/Gyr); gives c/H(z) = CLIGHT/Hz(z) kpc comoving.
+const double CLIGHT = 306.535;
 
 string to_string_prec(const double a, const int n);
 bool fileExists(const string& filename);
