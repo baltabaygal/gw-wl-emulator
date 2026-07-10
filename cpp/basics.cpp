@@ -475,8 +475,10 @@ vector<vector<double> > readdataCSV(fs::path filename) {
     double A;
     
     ifstream infile;
-    infile.open(filename);
+    infile.open(filename); // skip the first row (column names)
     if (infile) {
+        getline(infile, line);
+
         while (getline(infile, line)) {
             stringstream ss(line);
             string token;
@@ -605,4 +607,3 @@ vector<vector<double> > MCMC_sampling(int N, int Nburnin, function<double(vector
     
     return samples;
 }
-

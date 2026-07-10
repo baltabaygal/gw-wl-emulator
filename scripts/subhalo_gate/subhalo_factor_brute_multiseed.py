@@ -137,6 +137,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nboot", type=int, default=120)
     parser.add_argument("--processes", type=int, default=4)
     parser.add_argument("--m-floor", type=float, default=1.0e7)
+    parser.add_argument("--subhalo-model", type=int, default=1,
+                        help="approx model for the dynamic (non-brute) arm (1=reduced host, 3=Wsub)")
+    parser.add_argument("--kappathr-flat", type=float, default=-1.0,
+                        help="host explicit-halo threshold rule: <=0 legacy <N>=Nhalos (default), >0 flat")
     parser.add_argument("--out", type=Path, default=None)
     return parser.parse_args()
 
@@ -159,14 +163,18 @@ def main() -> None:
         m_floor=float(args.m_floor),
         subhalo_threads=4,
         subhalo_parallel_threshold=1000,
-        subhalo_model=1,
+        subhalo_model=args.subhalo_model,
         custom_kappathr=-1.0,
+        kappathr_flat=float(args.kappathr_flat),
         Mmin=1.0e7,
     )
 
     jobs = []
     for seed in args.seeds:
-        jobs.append(("brute", int(seed), dict(common, subhalo_brute=True), args.nboot))
+        # brute = explicit-everything ground truth (independent of the approx model);
+        # model 3 forbids brute, so force a brute-compatible model for this arm.
+        jobs.append(("brute", int(seed),
+                     dict(common, subhalo_brute=True, subhalo_model=1), args.nboot))
         for factor in args.factors:
             label = f"{float(factor):.8g}"
             jobs.append(

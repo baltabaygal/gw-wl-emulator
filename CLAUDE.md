@@ -112,20 +112,11 @@ dominate over the Poisson term (see docs/subhalo/subhalo_combining.md "Validatio
 the ACE−Vaskonen gap (50–86%), so the gate conclusion stands, but "few %" undersold it.
 Host moments: screen vs C++ raw-κ agree to ~0.1%.
 
-**Fix history 2026-07-02** (module rebuilt, 75 tests pass):
-1. **KEPT — w̃_f:** `exp(-1.0)` → `exp(-0.25)` (Giocoli+2007 e^{−2f³}, f=½) in
-   `cpp/subhalo.cpp` + 3 screen scripts + doc — old value inflated f_s by ~22–26%.
-2. **REVERTED by user/supervisor decision — shear stays single-angle** (original Vaskonen
-   convention). The spin-2 double-angle form is exactly right per realization
-   (`tmp/shear_convention_check.py`, convention-free Jacobian ground truth) but the
-   aggregate effect is ~0.5% on ⟨γ²⟩; consistency with the original code was preferred.
-   Do NOT re-apply without being asked.
-3. **REVERTED (wrong idea) — max(0, r−r200) floor:** NFW κ diverges on-axis so the
-   worst-case criterion degenerates to brute for every ray inside r200, making
-   `subhalo_factor` inert (caught by the factor-convergence scan). Floor is keyed to the
-   host-center distance r (original design); the r-vs-d bias is absorbed by tuning
-   `subhalo_factor` to the convergence plateau: `scripts/subhalo_gate/subhalo_factor_convergence.py`.
-   The earlier "94%/11×" split validation was contaminated by this bug — retracted.
+**Fix history 2026-07-02** (module rebuilt, 75 tests pass): w̃_f `exp(-0.25)` fix KEPT;
+spin-2 double-angle shear REVERTED (single-angle kept by user/supervisor decision — do
+NOT re-apply without being asked); max(0, r−r200) floor REVERTED (wrong idea, made
+`subhalo_factor` inert; the "94%/11×" split validation was retracted). Full details:
+`docs/claude_md_archive.md`.
 
 ## NSF emulator — production model (final 2026-07-03, commit 0785dd0)
 The smooth production magnification PDF lives in the **`gw-wl-emulator-ar` worktree**
@@ -182,48 +173,60 @@ user explicitly asks, under their supervision.**
 4. halos-only cleanup: `subhalo_m_floor`/`m_floor` knob and `Nsub` table are dead there.
 5. Remaining model caveats (both repos, deferred): field-halo c(m,z), untruncated NFW
    clumps; single-angle γ (~0.5% on ⟨γ²⟩, revisit only if shear becomes an observable).
-6. **sigmakappaW fix (2026-07-08, supervisor-approved, APPLIED here):** (a) log-annulus
-   element is `2π r² dlnr`, not `π r²` — `PI` → `2.0*PI` in the accumulators; (b) Campbell's
-   theorem for Poisson halo counts — `return sqrt(kappa2)`, no `-kappa1^2/Nh` subtraction
-   (`Nh`/`kappa1` accumulators are then dead). halos patch applied 2026-07-08 at user
-   request, left UNCOMMITTED for user review (user compiles/commits/pushes halos).
-   Net σ²_W ≈ 2.10× original; ≤1% on Var(κ_total). Proofs + MC validation:
-   `docs/sigmakappaw_measure_note.md`, `playground/sigmakappaw_poisson_vs_fixed.cpp`.
+6. **sigmakappaW fix (2026-07-08, supervisor-approved, APPLIED here):** ×2 log-annulus
+   measure + Campbell no-subtraction; net σ²_W ≈ 2.10× original, ≤1% on Var(κ_total).
+   halos patch applied at user request, left UNCOMMITTED for user review. Details:
+   `docs/sigmakappaw_measure_note.md`, `docs/claude_md_archive.md`.
 7. **eps_floor parametrized + floor-consistent injection (2026-07-08, emulator only):**
-   `sigmakappaW(C, zs, kappathr, eps_floor=0.001)` — the outward stop is κ <
-   eps_floor·κ_thr. Converged: default keeps 99.90% of K2, missing variance ∝ ε
-   (`playground/k2_vs_floor.cpp`, `plots/k2_vs_floor.png`). The internal caller
-   (`lensing.cpp` sample path) now holds the ABSOLUTE floor at 0.001·κ_thr_default
-   so `custom_kappathr` sweeps don't drag it (old behavior collapsed σ_W at high
-   κ_thr); default path verified bit-identical (seed 12345). Variance partition
-   validated: measured total = √(σ²_explicit+σ²_W) flat at the full-Campbell 0.02728
-   (zs=1, halo-only) — `playground/sigmaW_vs_kthr.cpp`, `sigma_explicit_vs_kthr.cpp`,
-   `sweep_sigma_total_vs_kthr.py`, `plots/sigma_partition_vs_kthr.png`. Confirmed at
-   zs=0.2–10 (8 redshifts, `plots/sigma_partition_zs_study.png`): total/plateau mean
-   0.991–1.001 everywhere; σ_full grows 0.0036→0.109; handover NOT universal in
-   κ_thr/κ_thr_fid (midpoint drifts ~1 decade over the range).
-   **Analytic theory of σ_full(z_s)** (2026-07-09): exact moment decomposition
-   σ² = M₂ − 2M₃/χ_s + M₄/χ_s² (moments of one source density P(z); NFW kernel
-   constant C₂ = 1.4674011); proven σ ∝ z_s^{3/2} (z→0, coeff 0.0443 derived) and
-   saturation σ_∞ = 0.154 (z→∞, parabola in 1/χ_s); BPL fit = interpolant only.
-   See `docs/sigma_full_analytic_note.md`, `playground/campbell_moments.cpp`,
-   `plots/campbell_asymptotics.png`.
+   `sigmakappaW(..., eps_floor=0.001)`; internal caller holds the ABSOLUTE floor at
+   0.001·κ_thr_default so `custom_kappathr` sweeps don't drag it; default path verified
+   bit-identical (seed 12345); variance partition validated at zs=0.2–10. Analytic
+   σ_full(z_s) theory (z^{3/2} law, σ_∞=0.154): `docs/sigma_full_analytic_note.md`.
+   Full details + plot/script list: `docs/claude_md_archive.md`.
    **Gotcha:** `paper_prod/scripts/plot_sigma_k_vs_kappa_threshold.py` plots
    `data/variance_sweep_data_z1.npz`, which is the SUBHALO-factor sweep (written by
    `scripts/figures/plot_variance_vs_factor.py`) — its x-axis label "κ_threshold" is
    wrong; regenerate from the new sweep before using in the paper.
-9. **Flat kappa_thr default (2026-07-09, user+supervisor-approved):** the explicit-halo
-   threshold is now `kappathr_flat = 1e-3` (z_s-independent) instead of the `<N>=100`
-   rule (which inflated κ_thr with z_s: 1.28e-4 at z_s=1 → 1.37e-3 at z_s=10; flat 1e-3
-   gives ⟨N⟩ ≈ 0.4/11/146 at z_s=0.2/1/10). New kwarg `kappathr_flat` on all gwlensing
-   entry points; `kappathr_flat=-1` restores the legacy rule BIT-IDENTICALLY (guarded by
-   `test_backward_compat_bitwise`); `custom_kappathr` still overrides both; σ_W floor
-   becomes absolute 1e-6. Validated: clipped-core σ_κ invariant to 0.2% at z_s=1; raw σ_κ
-   differences are rare-tail seed noise (±20% per 5e4 draws — measure σ on ensembles!).
-   Gotcha: the BIAS layer is κ_thr-coupled (σ_b uses tube radius rmax(κ_thr)) — full-model
-   σ_κ blows up for κ_thr ≳ 3e-3, fine at 1e-3. Sub-threshold FILAMENTS have no weak
-   compensation (−2% at z_s=1, pre-existing). ML retraining note: training data generated
-   after this change has the new default; ml/params context unchanged.
+9. **Threshold rule — REVERTED to fixed-⟨N⟩=100 default (2026-07-10, user decision;
+   supervisor being informed):** the DEFAULT explicit-halo threshold is the legacy
+   `<N>=Nhalos` rule again (`kappathr_flat = -1` everywhere: `SamplingParams`,
+   `LensingConfig`, all py::args, and the `get_simulator_config` dict). Chosen for
+   **predictability** (bounded, constant per-LOS cost — 100 explicit halos at every z_s)
+   and **continuity with Vaskonen's convention**. The `kappathr_flat` kwarg / flat rule
+   still exists (`> 0` selects a z_s-independent threshold); `custom_kappathr` still
+   overrides both. Rebuilt + `test_backward_compat_bitwise` and all
+   `tests/test_cosmology_params.py` (11) pass; default path is now bit-identical to the
+   pre-6d reference again.
+   **The evidence behind the decision** (`scripts/figures/compare_kappathr_pdf_grid.py`,
+   `kappathr_convergence_decision.py`; JSD = Jensen–Shannon div of P(lnμ) vs a
+   κ_thr→0 "truth" run): κ_thr is a *numerical* split (explicit halo vs Gaussian bg),
+   truth = κ_thr→0. ⟨N⟩ ∝ 1/κ_thr diverges (no plateau; measured slope 1.05 at z_s=1)
+   while the PDF (JSD) plateaus below κ_thr≈1e-4 — so cost runs away for zero accuracy
+   gain past the knee. Convergence (JSD→truth): flat 1e-4 is z_s-uniform (3.3e-4 at z=1,
+   3.4e-4 at z=10); fixed-⟨N⟩ is tied at z=1 (3.5e-4) but drifts to 1.2e-3 at z=10 (its
+   κ_thr inflates 1.28e-4→1.37e-3), i.e. coarsest where the signal is strongest; flat
+   1e-3 = 2.5e-3 at z=1 (only ⟨N⟩≈11 explicit) but 8.6e-4 at z=10. **Known accepted cost
+   of this choice:** fixed-⟨N⟩ carries a z-correlated high-z error (~1.2e-3 JSD at z=10,
+   ~3.5× flat 1e-4) — still well below the emulator's own KL 7.3e-3 and 0.17% of the ln2 JSD max, so
+   immaterial at O(1000) events; if scaling to ≳4000 events, enforce ⟨1/μ⟩=1 (already
+   flagged). Trade note for later: on a z-spanning dataset flat 1e-3 is ~2× cheaper total
+   than fixed-⟨N⟩ (0.4/11/146 halos at z=0.2/1/10 vs a flat 100) and better-converged at
+   high z — revisit if compute becomes the bottleneck. Plots: `plots/kappathr_pdf_grid_1em04_{linlin,loglin,loglog}.png`,
+   `plots/kappathr_decision.png`.
+   Gotcha (unchanged): BIAS layer is κ_thr-coupled (σ_b uses tube radius rmax(κ_thr)) —
+   full-model σ_κ blows up for κ_thr ≳ 3e-3. Sub-threshold FILAMENTS have no weak
+   compensation (−2% at z_s=1, pre-existing). Raw σ_κ differences are rare-tail seed noise
+   (±20% per 5e4 draws — measure σ on ensembles!). **ML retraining note: training data
+   generated between 2026-07-09 and 2026-07-10 used the flat-1e-3 default — regenerate or
+   flag it; the default is fixed-⟨N⟩ again now.** ml/params context unchanged.
+   Subhalo (`subhalo_model=3`) re-validated vs brute under the fixed-⟨N⟩ default
+   (the clump anchor κ_thr,clump = subhalo_factor·κ_thr,host is z_s-dependent again):
+   paired Var(κ)−Var(κ_nosub), 4 seeds, N=1e4, factor 1e-5 → z_s=1 Δ=−1.7%±8.5%
+   (the stress case, κ_thr,host=1.28e-4 ≪ old flat 1e-3), z_s=5 Δ=−3.2%±2.8%; both
+   within the ±5% acceptance band, so model 3 still tracks brute. Runner now
+   parametrized: `scripts/subhalo_gate/subhalo_factor_brute_multiseed.py
+   --subhalo-model 3 --kappathr-flat -1` (brute arm forced to model 1; model-3+brute
+   throws).
 10. **Wsub unresolved-subhalo term — derivation + C++ implementation DONE
    (2026-07-09, `subhalo_model=3`, new default):** per-host split κ_halo = reduced host (FULL f_s,b) + resolved clumps
    + μ_unres(y) + N(0, σ²_unres(y)) is EXACT in mean/variance at ANY subhalo_factor
@@ -273,21 +276,7 @@ user explicitly asks, under their supervision.**
 
 ## Multi-CLI delegation (offload token-heavy work; Claude orchestrates)
 Claude keeps judgment, physics, edits, and **all git/gh/push**. Delegates never commit.
-
-| Tool | Delegate to it for |
-|---|---|
-| **codex** (OpenAI, `/opt/homebrew/bin/codex`) | Large implementations, hard debugging, scientific/ML software, `codex exec review` |
-| **agy** (Antigravity, `~/.local/bin/agy`) | Bulk token-heavy reads, mechanical cross-checks (citations/units/notation) |
-| **gh copilot** | Shell one-liners (`gh copilot -p "…"`); plain `gh` = GitHub CLI, run by Claude |
-
-Verified invocations (2026-07-01):
-- codex read-only: `codex exec -s read-only --skip-git-repo-check -C DIR "<prompt>"`
-- codex write/run: `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check -C DIR -o out.txt "<prompt>"`
-  (⚠️ `-s workspace-write` alone HANGS in exec mode — verified 34-min silent hang.)
-- agy: `agy -p "<prompt>" --model "Gemini 3.5 Flash (High)" --add-dir DIR --dangerously-skip-permissions --print-timeout 15m`
-
-Standing rules: prompts must be fully self-contained (delegates see nothing from this
-conversation; include absolute paths + the env python path above); always monitor with a
-progress/timeout guard, never fire-and-forget; capture output to a file; sandbox read-only
-unless writes are needed; output is ADVISORY — reproduce numbers yourself, require
-file:line citations.
+Available delegates: codex (large implementations/debugging), agy (bulk token-heavy
+reads, mechanical cross-checks), gh copilot (shell one-liners). ALWAYS invoke the
+`delegate` skill (`.claude/skills/delegate/SKILL.md`) before delegating — it has the
+verified command lines (incl. hang gotchas) and the standing rules.

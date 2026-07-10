@@ -356,7 +356,7 @@ double cosmology::fstar(double z, double M, double Mc, double Mt, double epsilon
 double cosmology::Dfstarperfstar(double z, double M, double Mc, double Mt, double epsilon, double alpha, double beta) {
     double Mtz = Mt*pow((1.0+z)/10.0,-3.0/2.0);
     if (alpha>0.0 && beta>0.0) {
-        return Mtz/pow(M,2.0) + (beta*alpha/M - alpha*beta/M)/(beta*pow(M/Mc,-alpha) + alpha*pow(M/Mc,beta));
+        return beta*((alpha+beta)/(alpha*pow(M/Mc,alpha+beta)+beta) - 1.0)/M + Mtz/pow(M,2.0);
     }
     return Mtz/pow(M,2.0);
 }
