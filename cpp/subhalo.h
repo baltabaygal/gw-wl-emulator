@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <vector>
 #include <random>
 
@@ -34,8 +35,30 @@ public:
     double log_Mmin = 0.0;
     double inv_dlogM = 0.0;
 
-    // build all (z,M)-grid tables; needs zs + kappathr for the clump-reach table r_thr.
-    void precompute(cosmology &C, double zs, double kappathr);
+    // --- Wsub unresolved-clump term (subhalo_model 3; 2026-07-09) -------------
+    // Campbell mean/std of the clumps BELOW the dynamic floor psi_lo(y), integrated
+    // over the true clump-ray distance (projected anti-biased profile), per active
+    // (jz,jM) bin on a uniform log-y grid up to the host rmax. Built only when
+    // precompute() gets kappathr_host > 0. The encounter then adds
+    //   muW(y) + sW(y) * N(0,1)
+    // to kappa, with the host reduced by the FULL bound fraction fsb (not the
+    // y-dependent resolved fraction) — exact per-encounter mean and variance at any
+    // subhalo_factor. Derivation: docs/subhalo/wsub_gaussian_term_derivation.md.
+    int NyW = 48;
+    vector<vector<vector<double>>> muW;   // [jz][jM][iy] unresolved mean kappa
+    vector<vector<vector<double>>> sW;    // [jz][jM][iy] unresolved std of kappa
+    vector<vector<std::array<double,2>>> lyW;  // [jz][jM] = {log y0, dlog y}
+    vector<vector<double>> fsb;           // full bound mass fraction (model-3 host reduction)
+
+    // build all (z,M)-grid tables; needs zs + kappathr (clump threshold) for the
+    // clump-reach table r_thr; kappathr_host > 0 additionally builds the Wsub tables.
+    void precompute(cosmology &C, double zs, double kappathr, double kappathr_host = 0.0);
+
+    // model-3 lookup: unresolved-clump mean and std at host-center ray distance r.
+    void wsubTerm(int jz, int jM, double r, double &mu, double &sigma) const;
+
+    // internal: build the Wsub tables for one active (jz, jM) bin.
+    void buildWsubBin(cosmology &C, double zs, int jz, int jM, double kappathr_host);
 
     // in-loop: add one host's subhalos to the running (kappa, gamma1, gamma2).
     // (jz,jM): host bin; zl,M: host redshift/mass; Sigmac: critical surface density;

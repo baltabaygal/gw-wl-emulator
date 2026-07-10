@@ -1,21 +1,17 @@
 # Paper Production — Plots & Plotters
 
-This folder holds the canonical plotters, notebooks, and final figures intended for paper submission. The goal is clear provenance and reproducibility: every figure in the manuscript should be reproducible from the scripts and minimal derived data stored here.
-This directory is the self-contained production bundle for paper figures. It contains
-only the files you need to reproduce final plots and to publish them with clear
-provenance.
+This folder holds the active production plots intended for paper submission. The goal is clear provenance and reproducibility: the current manuscript figure set should be reproducible from the scripts and minimal derived data stored here.
+This directory is the self-contained production bundle for the active paper figures. Retired figures, plotters, and related metadata have been moved to `paper_prod/archive/` so the live folder stays focused on the submission set.
 
 Layout
 
-- `scripts/` — production-ready plotters and small helpers. Each script should be
+- `scripts/` — active production plotters and small helpers. Each script should be
 	runnable from the repository root and write its outputs into `paper_prod/plots/figures/`.
-- `data/` — cached or derived inputs required by the plotters (small binary files,
-	CSVs, JSON). Large raw datasets remain at the repo root `data/` and are referenced.
-- `plots/figures/` — final publication-ready images (PDF/PNG/SVG). These are the
-	files to include with the manuscript.
-- `metadata/` — per-figure JSON provenance files (script, command, git commit, seed,
-	timestamp).
-- `manifest.json` — auto-generated index of figures + metadata (see `scripts/generate_manifest.py`).
+- `data/` — cached or derived inputs still needed by the active plotters. Large raw datasets remain at the repo root `data/` and are referenced.
+- `plots/figures/` — the current publication-ready images (PDF/PNG) that belong in the manuscript.
+- `metadata/` — per-figure JSON provenance files for the active figure set.
+- `archive/` — retired plots, plotters, metadata, and data kept for reference but excluded from the live production bundle.
+- `manifest.json` — auto-generated index of the active figures + metadata (see `scripts/generate_manifest.py`).
 
 Quick usage
 
@@ -28,9 +24,8 @@ conda activate test
 2. From the repository root, run a production script. Examples:
 
 ```bash
-python paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py
-python paper_prod/scripts/plot_subhalo_factor_paper.py
-python paper_prod/scripts/collect_sigma_k_prod.py
+python paper_prod/scripts/plot_sigma_partition_vs_kthr.py
+python paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache data/vaskonen_fig3_linlin_subhalos_strict_n400000.json
 ```
 
 3. Generate (or refresh) the manifest:
@@ -55,36 +50,15 @@ Conventions
 
 Files I added or updated
 
-- Production plotters: `paper_prod/scripts/*` (copies/wrappers of the canonical plotters).
-- Data caches copied to: `paper_prod/data/`.
-- Outputs collected at: `paper_prod/plots/figures/`.
-- Per-figure metadata: `paper_prod/metadata/`.
+- Active production plotters: `paper_prod/scripts/plot_sigma_partition_vs_kthr.py` and `paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py`.
+- Active outputs: `paper_prod/plots/figures/sigma_partition_vs_kthr.{png,pdf}` and `paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.{png,pdf}`.
+- Active metadata: `paper_prod/metadata/`.
+- Archived material: `paper_prod/archive/`.
 
-Next recommendations
+Current active production figures
 
-- Review `paper_prod/plots/figures/` and delete any intermediate images you don't intend
-	to publish.
-- If you want a single command to rebuild everything, I can add a `Makefile` or a
-	`run_all.py` that runs the production scripts and regenerates `manifest.json`.
-
-If you'd like, I can now (A) remove the production script copies and update the
-original scripts in-place to write into `paper_prod/` by default, or (B) keep the
-copies under `paper_prod/scripts/` and leave the originals unchanged. Tell me which
-option you prefer and I'll apply the change.
-
-Regenerating selected figures (already added)
-
-- `paper_prod/scripts/plot_vaskonen_fig3_prod.py` — runs the Vaskonen Fig.3 generator and writes `paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png` (+ metadata JSON).
-- `paper_prod/scripts/plot_subhalo_factor_paper_prod.py` — runs the subhalo-factor paper plot and copies panel (b) into `paper_prod/plots/figures/` (+ metadata JSON).
-- `paper_prod/scripts/collect_sigma_k_prod.py` — copies existing `sigma_k` images into `paper_prod/plots/figures/` and adds metadata; extendable to rerun generators if desired.
-
-Run examples (from repo root):
-
-```bash
-python paper_prod/scripts/plot_vaskonen_fig3_prod.py
-python paper_prod/scripts/plot_subhalo_factor_paper_prod.py
-python paper_prod/scripts/collect_sigma_k_prod.py
-```
+- `paper_prod/plots/figures/sigma_partition_vs_kthr.{png,pdf}`
+- `paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.{png,pdf}`
 
 Make the scripts executable if you prefer to run them directly as shell commands:
 

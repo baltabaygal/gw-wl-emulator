@@ -40,9 +40,10 @@ struct SamplingParams {
     double m_floor = 1.0e7;
     int subhalo_threads = 1;
     int subhalo_parallel_threshold = 200000;
-    int subhalo_model = 1;
+    int subhalo_model = 3;   // reduced-host + Wsub (default since 2026-07-09)
     bool subhalo_brute = false;
     double subhalo_factor = 1.0e-5;  // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
+    double kappathr_flat = -1.0;   // <= 0 = legacy <N>=Nhalos rule (default, reverted 2026-07-10); > 0 = flat explicit-halo threshold
 };
 
 struct LnmuSampleDiagnostics {

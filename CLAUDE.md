@@ -212,8 +212,20 @@ user explicitly asks, under their supervision.**
    `data/variance_sweep_data_z1.npz`, which is the SUBHALO-factor sweep (written by
    `scripts/figures/plot_variance_vs_factor.py`) — its x-axis label "κ_threshold" is
    wrong; regenerate from the new sweep before using in the paper.
-8. **Wsub unresolved-subhalo term — derivation DONE, implementation NOT started
-   (2026-07-09):** per-host split κ_halo = reduced host (FULL f_s,b) + resolved clumps
+9. **Flat kappa_thr default (2026-07-09, user+supervisor-approved):** the explicit-halo
+   threshold is now `kappathr_flat = 1e-3` (z_s-independent) instead of the `<N>=100`
+   rule (which inflated κ_thr with z_s: 1.28e-4 at z_s=1 → 1.37e-3 at z_s=10; flat 1e-3
+   gives ⟨N⟩ ≈ 0.4/11/146 at z_s=0.2/1/10). New kwarg `kappathr_flat` on all gwlensing
+   entry points; `kappathr_flat=-1` restores the legacy rule BIT-IDENTICALLY (guarded by
+   `test_backward_compat_bitwise`); `custom_kappathr` still overrides both; σ_W floor
+   becomes absolute 1e-6. Validated: clipped-core σ_κ invariant to 0.2% at z_s=1; raw σ_κ
+   differences are rare-tail seed noise (±20% per 5e4 draws — measure σ on ensembles!).
+   Gotcha: the BIAS layer is κ_thr-coupled (σ_b uses tube radius rmax(κ_thr)) — full-model
+   σ_κ blows up for κ_thr ≳ 3e-3, fine at 1e-3. Sub-threshold FILAMENTS have no weak
+   compensation (−2% at z_s=1, pre-existing). ML retraining note: training data generated
+   after this change has the new default; ml/params context unchanged.
+10. **Wsub unresolved-subhalo term — derivation + C++ implementation DONE
+   (2026-07-09, `subhalo_model=3`, new default):** per-host split κ_halo = reduced host (FULL f_s,b) + resolved clumps
    + μ_unres(y) + N(0, σ²_unres(y)) is EXACT in mean/variance at ANY subhalo_factor
    (Poisson restriction theorem; verified to 6 digits, factors 1e-5…1). Key finding:
    the zero-mean Gaussian ALONE recovers almost nothing (0.844→0.851 at factor 1e-3) —
@@ -221,12 +233,38 @@ user explicitly asks, under their supervision.**
    μ_unres(y) table is REQUIRED and the host reduction must switch f_s,res(y) → f_s,b.
    subhalo_factor then becomes a pure performance/Gaussianity knob (dropped-c₃ share
    0.2%/0.7%/3% at 1e-3/1e-2/1e-1); m_floor absorbable too (sub-1e7 variance 0.4%).
-   Acceptance must be PDF-level (KL+tails vs brute), NOT σ². See
-   `docs/subhalo/wsub_gaussian_term_derivation.md`,
+   IMPLEMENTED in C++: `Subhalo::buildWsubBin`/`wsubTerm` (mu/sigma tables per bin,
+   48-pt log-y grid, ~2 s precompute) + `add_host` model-3 branch (host reduced by
+   full `fsb`, `muW(y)+sW(y)*N(0,1)` added after addClumps); `subhalo_brute`
+   rejected for model 3. Defaults flipped to model 3 everywhere (LensingConfig,
+   SamplingParams, all py::args). Validated at z_s=1 (clipped-core excess, multi-
+   seed): model 3 flat at brute (±5% estimator noise) over factor 1e-5…1 while
+   model 1 collapses to −0.17 at factor 1; mean bookkeeping exact; 8–16 s vs brute
+   158 s per 3e4 realizations. Raw Var estimates are tail-noise-dominated (one κ~9
+   realization = 4e-4 shift) — compare clipped cores/ensembles only. REMAINING:
+   PDF-level acceptance (KL+tails vs brute) to pick the production subhalo_factor,
+   then regenerate ML training data. See
+   `docs/subhalo/wsub_gaussian_term_derivation.md` §7,
    `playground/analytic/wsub_partition_proof.py`. Post-reorg stale imports
    (`scripts.subhalo_factor_proxy_check` → `scripts.subhalo_gate.…`) fixed only in
    `playground/analytic/subhalo_factor_analytic_deficit.py` +
    `playground/dgate/subhalo_factor_dgate_area_scan.py`; other playground subdirs still stale.
+11. **Cost + parallelism of subhalo_model=3 (benchmarked 2026-07-10, flat κ_thr=1e-4,
+   10-core M-series):** model 3 is the dominant MC cost — s/1e4 realizations (subhalo off →
+   model 3): z_s=0.2 2.5→26 (10×), z_s=1 3.6→92 (26×), z_s=10 7.7→502 (66×). The ratio grows
+   with z_s because flat 1e-4 grows the explicit-halo count with z_s and each host then needs
+   the Wsub term. **`subhalo_threads`/`subhalo_parallel_threshold` do NOT give realization-level
+   speedup** — they parallelize the clump loop WITHIN one host (`subhalo.cpp:458`, fires only
+   when a single host's `Nc ≥ parallel_threshold`, default 2e5). At the production
+   `subhalo_factor=1e-5` hosts have few clumps, so it buys ≤1.09× and forcing it on
+   (`thr=1`) makes model 3 2–3× SLOWER (thread-spawn per host encounter). It only helps at
+   tiny `subhalo_factor` (huge Nc, non-production): factor=1e-8 → 2.76×. It also reseeds RNG
+   substreams (`subhalo.cpp:463`) → NOT bitwise-reproducible when it fires. **Correct lever =
+   process-level parallelism over seeds** (each realization independent, deterministic per
+   shard): ~**4.4× at 8 processes** for model 3 (z_s=1: 108→645 real/s). Sub-linear (memory-
+   bandwidth-bound, heavy NFW/invRad/Wsub table lookups), and **8 procs beats 10** on a 10-core
+   box (oversubscription). Small batches under-amortize the ~2 s/proc precompute (8k real →
+   only 2.8×). Bench scripts: `tmp/bench_kappathr.py`, `tmp/bench_threads.py`, `tmp/bench_mp.py`.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

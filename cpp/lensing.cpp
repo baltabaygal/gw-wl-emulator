@@ -340,8 +340,15 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // model 2 = DIAGNOSTIC ONLY: bare clumps, no host reduction / no gslope (spurious mean mass,
     // but Var(kappa)-Var(kappa_nosub) is the clean clump shot-noise). Used to isolate whether the
     // subhalo_factor sensitivity is clump shot-noise vs the mass-subtraction bookkeeping.
-    if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1 && cfg.subhalo_model != 2) {
-        throw std::invalid_argument("subhalo_model must be 0 (legacy), 1 (reduced-host, default), or 2 (diagnostic bare)");
+    if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1 && cfg.subhalo_model != 2
+        && cfg.subhalo_model != 3) {
+        throw std::invalid_argument("subhalo_model must be 0 (legacy), 1 (reduced-host resolved-only), "
+                                    "2 (diagnostic bare), or 3 (reduced-host + Wsub, default)");
+    }
+    // model 3 replaces the unresolved clumps by the analytic mu+Gaussian term keyed to the
+    // dynamic floor; brute mode resolves everything, so combining them double-counts.
+    if (cfg.subhalo && cfg.subhalo_model == 3 && cfg.subhalo_brute) {
+        throw std::invalid_argument("subhalo_brute is incompatible with subhalo_model 3 (use model 1 or 2 for brute references)");
     }
     using Clock = std::chrono::steady_clock;
     auto elapsed_seconds = [](Clock::time_point start) {
@@ -362,7 +369,9 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     function<double(double)> NfNFW = [&C, zs](double kappa) {
         return NhfNFW(C, zs, kappa);
     };
-    double kappathr_default = findkappathr(cfg.Nhalos, NfNFW);
+    double kappathr_default = (cfg.kappathr_flat > 0.0)
+        ? cfg.kappathr_flat
+        : findkappathr(cfg.Nhalos, NfNFW);
     double kappathrH = (cfg.custom_kappathr > 0.0) ? cfg.custom_kappathr : kappathr_default;
 
     if (cfg.write > 0) {
@@ -373,7 +382,9 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // ABSOLUTE default value kappa_min = 0.001*kappathr_default, so sweeping
     // custom_kappathr does not drag the floor with it (which would discard real
     // background variance at large thresholds). With custom_kappathr unset this
-    // reduces to eps_floor = 0.001 exactly (production path unchanged).
+    // reduces to eps_floor = 0.001 exactly. With the default (legacy <N>=Nhalos)
+    // rule kappathr_default is the per-z_s threshold, so the floor tracks it; with
+    // a flat threshold it is z_s-independent (kappa_min = 0.001*kappathr_flat).
     double skappaW = sigmakappaW(C, zs, kappathrH, 0.001*kappathr_default/kappathrH);
     normal_distribution<double> PkappaW(0.0, skappaW);
     if (skappaW < 0.0) {
@@ -395,7 +406,10 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     if (cfg.subhalo) {
         auto precompute_start = Clock::now();
         subhalo_.m_floor = cfg.m_floor;
-        subhalo_.precompute(C, zs, cfg.subhalo_factor * kappathrH);
+        // model 3 additionally builds the Wsub (unresolved mu/sigma) tables, which need
+        // the HOST threshold for the encounter-disc radius rmax per bin
+        subhalo_.precompute(C, zs, cfg.subhalo_factor * kappathrH,
+                            (cfg.subhalo_model == 3) ? kappathrH : 0.0);
         if (profile != nullptr) {
             profile->subhalo_precompute_seconds = elapsed_seconds(precompute_start);
         }
@@ -480,6 +494,18 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                         rsH_eff = NFWp[0];
                         kappa0H_eff = kappa0NFW(rsH_eff, NFWp[1], Sigmac);
                         if (cfg.ell > 0) epsilon_eff = epsilonNFW(C, zl, M_host_eff);
+                    } else if (cfg.subhalo && cfg.subhalo_model == 3) {
+                        // Wsub scheme: host reduced by the FULL bound fraction (y-independent);
+                        // the unresolved clumps' mean comes back via muW(y) below, so the
+                        // y-dependent incomplete-Gamma bookkeeping of model 1 is not needed.
+                        double f_b = subhalo_.fsb[jz][jM];
+                        if (f_b > 0.0) {
+                            double M_host_eff = (1.0 - f_b) * M;
+                            vector<double> NFWp = interpolate2(zl, M_host_eff, C.zlist, C.Mlist, C.NFWlist);
+                            rsH_eff = NFWp[0];
+                            kappa0H_eff = kappa0NFW(rsH_eff, NFWp[1], Sigmac);
+                            if (cfg.ell > 0) epsilon_eff = epsilonNFW(C, zl, M_host_eff);
+                        }
                     }
 
                     kappagamma = kappagammaNFWeps(epsilon_eff, kappa0H_eff, r/rsH_eff, phiH);
@@ -491,7 +517,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     raw[j].gamma2 += sin(phi)*kappagamma[1];
 
                     // kappa_nosub tracks the full unperturbed host (NFW at M_total)
-                    if (cfg.subhalo && cfg.subhalo_model == 1) {
+                    if (cfg.subhalo && (cfg.subhalo_model == 1 || cfg.subhalo_model == 3)) {
                         auto kg_full = kappagammaNFWeps(epsilon, kappa0H, r/rsH, phiH);
                         raw[j].kappa_nosub += kg_full[0];
                     } else {
@@ -513,6 +539,15 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                                      raw[j].kappa, raw[j].gamma1, raw[j].gamma2,
                                                      cfg.subhalo_model, cfg.subhalo_brute,
                                                      cfg.subhalo_threads, cfg.subhalo_parallel_threshold);
+                        if (cfg.subhalo_model == 3) {
+                            // unresolved-clump term: mean profile + Gaussian fluctuation,
+                            // exact per-encounter mean/variance at any subhalo_factor
+                            // (docs/subhalo/wsub_gaussian_term_derivation.md); kappa only,
+                            // like the field-level sigma_W.
+                            double muU, sU;
+                            subhalo_.wsubTerm(jz, jM, r, muU, sU);
+                            raw[j].kappa += muU + sU * pG(mt);
+                        }
                         if (profile != nullptr) {
                             profile->subhalo_seconds[jM] += elapsed_seconds(subhalo_start);
                             profile->subhalo_calls[jM]++;

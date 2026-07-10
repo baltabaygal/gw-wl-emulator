@@ -47,8 +47,20 @@ struct LensingProfile {
 
 struct LensingConfig {
   int Nreal = 400000;
-  int Nhalos = 100;
+  int Nhalos = 100;   // used only when kappathr_flat <= 0 (legacy <N>=Nhalos rule)
   int Nbins = 100;
+
+  // Explicit-halo threshold rule. Default (<= 0) is the legacy <N>=Nhalos rule:
+  // kappa_thr is chosen so exactly Nhalos are explicit at every z_s (this inflates
+  // kappa_thr with z_s: 1.28e-4 at z_s=1 -> 1.37e-3 at z_s=10). Set > 0 to use a
+  // fixed (z_s-independent) flat threshold instead, which lets <N> grow with path
+  // length and keeps the explicit/Gaussian split at a fixed physical kappa scale.
+  // Decision history: flat 1e-3 was the default 2026-07-09; reverted to fixed-<N>
+  // on 2026-07-10 for predictability + continuity with Vaskonen's convention (the
+  // flat rule stays converged uniformly in z_s but fixed-<N> gives a bounded,
+  // predictable per-LOS cost; the high-z accuracy cost is small, JSD ~1.2e-3 at
+  // z_s=10 vs ~3.4e-4 flat). custom_kappathr (sweep override) takes precedence.
+  double kappathr_flat = -1.0;
 
   // existing toggles
   int fil = 1;
@@ -63,7 +75,10 @@ struct LensingConfig {
   int subhalo_threads = 1;
   int subhalo_parallel_threshold = 200000;
   LensingProfile *profile = nullptr;
-  int subhalo_model = 1;       // 0 = Option A (gslope removal, legacy), 1 = Option B (host reduced to (1-f_s)M, correct)
+  int subhalo_model = 3;       // 0 = gslope removal (legacy), 1 = reduced-host resolved-only,
+                               // 2 = diagnostic bare clumps, 3 = reduced-host + Wsub term
+                               // (mu_unres(y) + Gaussian; exact mean/variance at any factor;
+                               // DEFAULT since 2026-07-09, see docs/subhalo/wsub_gaussian_term_derivation.md)
   bool subhalo_brute = false;  // true = brute-force resolve down to m_floor (no dynamic floor)
   double subhalo_factor = 1.0e-5; // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
 

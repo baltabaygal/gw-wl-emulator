@@ -13,18 +13,8 @@ SCRIPTS_DIR = ROOT / "paper_prod" / "scripts"
 
 PLOTTING_STEPS = [
     {
-        "name": "sigma_k vs kappa_threshold",
-        "script": "plot_sigma_k_vs_kappa_threshold.py",
-        "args": []
-    },
-    {
-        "name": "sigma_k vs subhalo_factor (paired)",
-        "script": "plot_sigma_k_vs_subhalo_factor_paired.py",
-        "args": []
-    },
-    {
-        "name": "subhalo factor paper figures",
-        "script": "plot_subhalo_factor_paper.py",
+        "name": "sigma partition vs kappa threshold",
+        "script": "plot_sigma_partition_vs_kthr.py",
         "args": []
     },
     {

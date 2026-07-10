@@ -197,7 +197,26 @@ Readings:
   analytic term exists it can absorb this for free, removing `m_floor` as a physical
   parameter too.
 
-## 7. Implementation sketch (for the next step; not yet built)
+## 7. Implementation (built 2026-07-09 as `subhalo_model = 3`, the new default)
+
+Implemented as sketched below: `Subhalo::buildWsubBin` (cpp/subhalo.cpp) tabulates
+mu_U(y), sigma_U(y) per active (jz, jM) bin on a 48-point log-y grid (built only for
+model 3; adds ~2 s to precompute), `Subhalo::wsubTerm` interpolates at encounter
+time, and `lensing.cpp::add_host` reduces the host by the full `fsb` and adds
+`muW(y) + sW(y)*N(0,1)` to kappa after `addClumps`. `subhalo_brute` is rejected in
+model 3 (double-count). C++ validation at z_s=1 (clipped-core excess
+Var(kappa)-Var(kappa_nosub), 3-6 seeds x 3e4): brute = 6.3e-5; model 3 =
+1.11/1.09/1.06/1.00 x brute at factor 1e-5/1e-3/1e-1/1 (flat within the ~5% estimator
+noise; the 1e-5 point rechecked with 6 seeds: model3-model1 gap 0.33+-0.29e-5,
+consistent with zero); model 1 collapses to 0.69/0.26/-0.17 at 1e-3/1e-1/1 as
+predicted. Mean bookkeeping: dmean(model 3) = brute at every factor while model 1's
+collapses. Runtime: 8-16 s vs brute 158 s per 3e4 realizations. CAUTION: raw
+(unclipped) Var estimates fluctuate wildly per seed (a single kappa~9 realization
+shifts the excess by 4e-4) — always compare clipped cores or seed ensembles.
+Still open: the PDF-level acceptance test (KL + far tails vs brute) to pick the
+production subhalo_factor.
+
+### Original sketch
 
 In `Subhalo::precompute`, per active $(jz, jM)$ bin, tabulate on a $y$ grid:
 

@@ -7,6 +7,8 @@
 #include <limits>
 #include <thread>
 
+double Sigmacf(cosmology &C, double zs, double zl);   // defined in lensing.cpp
+
 namespace {
 
 inline double linfast(double y1, double y2, double x1, double x2, double x) {
@@ -102,7 +104,7 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
 } // namespace
 
 // Build all (z,M)-grid subhalo tables. Cheap; called once per run.
-void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
+void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappathr_host) {
     int Nz = C.Nz, NM = C.NM;
     log_Mmin = std::log(C.Mlist[0]);
     double log_Mmax = std::log(C.Mlist[NM - 1]);
@@ -115,6 +117,10 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
     chost.assign(Nz, vector<double>(NM, 0.0));
     gnorm.assign(Nz, vector<double>(NM, 0.0));
     invRad.assign(Nz, vector<vector<double>>(NM));
+    muW.assign(Nz, vector<vector<double>>(NM));
+    sW.assign(Nz, vector<vector<double>>(NM));
+    lyW.assign(Nz, vector<std::array<double,2>>(NM, {0.0, 1.0}));
+    fsb.assign(Nz, vector<double>(NM, 0.0));
 
     // clump-reach table: r_thr[jz][jm] = distance at which a clump of mass Mlist[jm]
     // reaches kappa_thr (monotonic in mass).  m_res(r) = inverse of this, looked up
@@ -214,9 +220,180 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr) {
                 xu[k] = xs[lo] + t * (xs[hi] - xs[lo]);
             }
             invRad[jz][jM] = xu;
+
+            if (kappathr_host > 0.0) {
+                buildWsubBin(C, zs, jz, jM, kappathr_host);
+            }
         }
     }
     built = true;
+}
+
+// Wsub tables for one (jz, jM) bin: Campbell mean/std of the UNRESOLVED clumps
+// (psi < psi_lo(y), the exact addClumps floor) at ray impact parameter y, integrated
+// over the true clump-ray distance d with the projected anti-biased radial profile:
+//   mu(y)   = int dlnpsi dN/dlnpsi [1 - keep] int d^2x sigma2D(x) kappa_c(d)
+//   s2(y)   = same with kappa_c^2
+// plus the full bound fraction fsb for the model-3 host reduction. Quadrature grids
+// are coarse (few-% on a term whose variance share is ~1%); the validated reference
+// is playground/analytic/wsub_partition_proof.py.
+void Subhalo::buildWsubBin(cosmology &C, double zs, int jz, int jM, double kappathr_host) {
+    const double zl = C.zlist[jz], M = C.Mlist[jM];
+    const double g = gnorm[jz][jM];
+    if (g <= 0.0) return;
+    const double rmaxH = rmaxfNFW(C, zs, zl, M, kappathr_host);
+    if (rmaxH <= 0.0) return;                      // host never explicitly encountered
+    const double Sigmac = Sigmacf(C, zs, zl);
+    const double r200 = r200h[jz][jM];
+    const double c = chost[jz][jM];
+
+    const double psi_min = m_floor / M;            // same lower bound as brute sampling
+    if (psi_min >= psi_max) return;
+
+    // full bound fraction over [psi_min, psi_max] (exp-cutoff SHMF, host reduction)
+    const double s_m = (1.0 + alpha) / omega;
+    double fs_b = g / (omega * pow(beta, s_m)) *
+        (gsl_sf_gamma_inc(s_m, beta * pow(psi_min, omega)) -
+         gsl_sf_gamma_inc(s_m, beta * pow(psi_max, omega)));
+    fsb[jz][jM] = std::max(0.0, std::min(0.95, fs_b));
+
+    // projected anti-biased surface density sigma2D(R), cell-centered uniform Rhat grid
+    const int NR = 128, NUa = 96;
+    vector<double> p2(NR, 0.0);
+    auto p3 = [&](double x) {
+        if (x <= 0.0 || x > 1.0) return 0.0;
+        double B = 1.0 / sqrt(pow(x / 0.54, -2.5) + 1.0);
+        return x * x / pow(1.0 + c * x, 2.0) * B;
+    };
+    double p2norm = 0.0;
+    for (int i = 0; i < NR; i++) {
+        double Rh = (i + 0.5) / NR;
+        double umax = sqrt(std::max(1.0 - Rh * Rh, 0.0));
+        double du = umax / (NUa - 1), acc2 = 0.0;
+        for (int k = 0; k < NUa; k++) {
+            double u = k * du;
+            double w = (k == 0 || k == NUa - 1) ? 0.5 : 1.0;
+            acc2 += w * p3(sqrt(Rh * Rh + u * u)) * Rh / (Rh * Rh + u * u);
+        }
+        p2[i] = acc2 * du;
+        p2norm += p2[i] / NR;
+    }
+    if (p2norm <= 0.0) return;
+    // sigma2D at physical separation s [kpc]: p2(s/r200) / (2 pi (s/r200) r200^2)
+    auto sig2d = [&](double s) {
+        double Rh = s / r200;
+        if (Rh >= 1.0) return 0.0;
+        double t = Rh * NR - 0.5;
+        int i = (int)std::floor(t);
+        double p;
+        if (i < 0) p = p2[0] * (Rh * NR / 0.5);   // p2 ~ Rhat near 0
+        else if (i >= NR - 1) p = p2[NR - 1];
+        else p = p2[i] + (t - i) * (p2[i + 1] - p2[i]);
+        p /= p2norm;
+        return p / (2.0 * PI * std::max(Rh, 1e-12) * r200 * r200);
+    };
+
+    // grids
+    const int Ny = NyW, Nd = 48, Nth = 32, Nm = 32;
+    const double y0 = 0.05, y1 = std::max(rmaxH, 2.0 * y0);
+    const double ly0 = log(y0), dly = (log(y1) - ly0) / (Ny - 1);
+    lyW[jz][jM] = {ly0, dly};
+    const double d0 = 0.05, d1 = rmaxH + r200;
+    const double dld = (log(d1) - log(d0)) / (Nd - 1);
+    vector<double> dg(Nd);
+    for (int id = 0; id < Nd; id++) dg[id] = exp(log(d0) + id * dld);
+
+    // fd[iy][id] = [int_0^{2pi} sigma2D(s) dtheta] * d^2 * dlnd   (log-d quadrature)
+    vector<double> fd(Ny * Nd);
+    const double dth = PI / (Nth - 1);
+    for (int iy = 0; iy < Ny; iy++) {
+        double y = exp(ly0 + iy * dly);
+        for (int id = 0; id < Nd; id++) {
+            double d = dg[id], ang = 0.0;
+            for (int it = 0; it < Nth; it++) {
+                double w = (it == 0 || it == Nth - 1) ? 0.5 : 1.0;
+                double s2 = y * y + d * d - 2.0 * y * d * cos(it * dth);
+                ang += w * sig2d(sqrt(std::max(s2, 0.0)));
+            }
+            double wd = (id == 0 || id == Nd - 1) ? 0.5 : 1.0;
+            fd[iy * Nd + id] = 2.0 * ang * dth * d * d * dld * wd;
+        }
+    }
+
+    // clump kernels and J-integrals on the log-psi grid
+    const double lp0 = log(psi_min), dlp = (log(psi_max) - lp0) / (Nm - 1);
+    vector<double> J1(Nm * Ny), J2(Nm * Ny), wm(Nm), lpg(Nm);
+    vector<double> k1(Nd);
+    for (int im = 0; im < Nm; im++) {
+        double lp = lp0 + im * dlp;
+        lpg[im] = lp;
+        double psi = exp(lp), m = psi * M;
+        wm[im] = g * pow(psi, alpha) * exp(-beta * pow(psi, omega));   // dN/dlnpsi
+        double rs_c, rhos_c;
+        interpolateNFWMass(C, jz, m, std::log(m), log_Mmin, inv_dlogM, rs_c, rhos_c);
+        double kappa0 = kappa0NFW(rs_c, rhos_c, Sigmac);
+        for (int id = 0; id < Nd; id++)
+            k1[id] = 2.0 * kappa0 * FgNFW(std::max(dg[id] / rs_c, 1.0e-12))[0];
+        for (int iy = 0; iy < Ny; iy++) {
+            double a1 = 0.0, a2 = 0.0;
+            const double *f = &fd[iy * Nd];
+            for (int id = 0; id < Nd; id++) {
+                a1 += f[id] * k1[id];
+                a2 += f[id] * k1[id] * k1[id];
+            }
+            J1[im * Ny + iy] = a1;
+            J2[im * Ny + iy] = a2;
+        }
+    }
+
+    // per-y mass integral over the UNRESOLVED band [psi_min, psi_lo(y)), with the
+    // exact addClumps floor rule and a partial last trapezoid cell at the cut
+    muW[jz][jM].assign(Ny, 0.0);
+    sW[jz][jM].assign(Ny, 0.0);
+    const vector<double> &rth = r_thr[jz];
+    for (int iy = 0; iy < Ny; iy++) {
+        double y = exp(ly0 + iy * dly);
+        int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), y) - rth.begin());
+        double psi_lo = (jlo >= C.NM) ? psi_max : std::max(C.Mlist[jlo], C.Mmin) / M;
+        psi_lo = std::min(psi_lo, psi_max);
+        if (psi_lo <= psi_min) continue;           // everything resolved at this y
+        double lc = log(psi_lo);
+        double mu = 0.0, s2 = 0.0;
+        for (int im = 0; im < Nm - 1; im++) {
+            double la = lpg[im], lb = lpg[im + 1];
+            double F1a = wm[im] * J1[im * Ny + iy],     F1b = wm[im + 1] * J1[(im + 1) * Ny + iy];
+            double F2a = wm[im] * J2[im * Ny + iy],     F2b = wm[im + 1] * J2[(im + 1) * Ny + iy];
+            if (lc >= lb) {                        // full cell
+                mu += 0.5 * (F1a + F1b) * dlp;
+                s2 += 0.5 * (F2a + F2b) * dlp;
+            } else if (lc > la) {                  // partial cell up to the cut
+                double t = (lc - la) / dlp;
+                double F1c = F1a + t * (F1b - F1a);
+                double F2c = F2a + t * (F2b - F2a);
+                mu += 0.5 * (F1a + F1c) * (lc - la);
+                s2 += 0.5 * (F2a + F2c) * (lc - la);
+                break;
+            } else break;
+        }
+        muW[jz][jM][iy] = mu;
+        sW[jz][jM][iy] = sqrt(std::max(s2, 0.0));
+    }
+}
+
+// model-3 lookup: linear interpolation on the uniform log-y grid, clamped at both ends.
+void Subhalo::wsubTerm(int jz, int jM, double r, double &mu, double &sigma) const {
+    mu = 0.0; sigma = 0.0;
+    const vector<double> &m_ = muW[jz][jM];
+    if (m_.empty()) return;
+    const vector<double> &s_ = sW[jz][jM];
+    const double ly0 = lyW[jz][jM][0], dly = lyW[jz][jM][1];
+    double t = (std::log(std::max(r, 1.0e-12)) - ly0) / dly;
+    if (t <= 0.0) { mu = m_.front(); sigma = s_.front(); return; }
+    if (t >= (int)m_.size() - 1) { mu = m_.back(); sigma = s_.back(); return; }
+    int i = (int)t;
+    double f = t - i;
+    mu = m_[i] + f * (m_[i + 1] - m_[i]);
+    sigma = s_[i] + f * (s_[i + 1] - s_[i]);
 }
 
 // Add one host's discrete subhalos to (kappa, gamma1, gamma2).

@@ -5,7 +5,7 @@ import numpy as np
 from scipy.integrate import quad
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "subhalo_demo.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "subhalo_gate" / "subhalo_demo.py"
 
 
 def load_demo():
