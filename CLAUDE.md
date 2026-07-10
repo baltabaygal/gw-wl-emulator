@@ -219,6 +219,20 @@ user explicitly asks, under their supervision.**
    (±20% per 5e4 draws — measure σ on ensembles!). **ML retraining note: training data
    generated between 2026-07-09 and 2026-07-10 used the flat-1e-3 default — regenerate or
    flag it; the default is fixed-⟨N⟩ again now.** ml/params context unchanged.
+   **Subhalo-ON JSD re-test (2026-07-10, `scripts/subhalo_gate/kappathr_subhalo_jsd.py`
+   → `data/results/kappathr_subhalo_jsd/report.md`, `plots/kappathr_subhalo_jsd.png`):**
+   the halo-only decision re-checked with subhalo_model=3 (factor 1e-5), truth = flat
+   3e-5 split into two independent seed halves (proper finite-sample JSD floor — the
+   earlier halo-only z=1 JSDs of 3.3–3.5e-4 were AT the 80k/120-bin floor (B−1)/4N, so
+   z=1 was "converged", not "3.5e-4"). Result: conclusion UNCHANGED at the JSD level —
+   floor-subtracted excess, subhalo on: z=1 fixed-⟨N⟩ 0 / flat 1e-4 2e-5 / flat 1e-3
+   1.9e-3; z=10 fixed-⟨N⟩ 7.6e-4 / flat 1e-4 4e-5 / flat 1e-3 3.5e-4 (subhalo-off arm,
+   same protocol: 1.1e-3 / 5e-5 / 7.1e-4 ⇒ subhalos do NOT widen the global gap).
+   BUT the z=10 high-μ tail penalty becomes significant with subhalos on: fixed-⟨N⟩
+   q99.9 = 1.41× truth (95% CI [1.09,1.75]) vs flat 1e-4 at 1.04 [0.80,1.28]; q99.99
+   unmeasurable at N=1.2e5. If the tail matters at z_s≳5 (strong-lensing-ish events),
+   prefer flat 1e-4 there or hybrid max(κ_N=100, 1e-4); q99/⟨1/μ⟩/σ shifts stay ≲1%/
+   0.5%/4%. Cost note: model-3 truth runs ≈1.45e3 s/1e4 at z=10 (κ_thr=3e-5).
    Subhalo (`subhalo_model=3`) re-validated vs brute under the fixed-⟨N⟩ default
    (the clump anchor κ_thr,clump = subhalo_factor·κ_thr,host is z_s-dependent again):
    paired Var(κ)−Var(κ_nosub), 4 seeds, N=1e4, factor 1e-5 → z_s=1 Δ=−1.7%±8.5%
