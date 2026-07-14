@@ -80,13 +80,32 @@ struct LensingConfig {
                                // (mu_unres(y) + Gaussian; exact mean/variance at any factor;
                                // DEFAULT since 2026-07-09, see docs/subhalo/wsub_gaussian_term_derivation.md)
   bool subhalo_brute = false;  // true = brute-force resolve down to m_floor (no dynamic floor)
-  double subhalo_factor = 1.0e-5; // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
+  double subhalo_factor = 1.0e-2; // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12); ~10x cheaper than the old 1e-5, indistinguishable vs brute at z_s=1,5
 
   // future nuisance params (Phase 2)
   // double c_norm = 1.0;
   // double filament_density_norm = 1.0;
   // double filament_fraction = 1.0;
   double custom_kappathr = -1.0;
+
+  // Mean-kappa anchor for the flux-conservation compensation in sample_lnmu
+  // (2026-07-13, batch-anchor bug: the legacy empirical batch mean lets one
+  // kappa >> 1 monster ray shift the WHOLE batch by -2*kappa/n; see
+  // docs/convergence_mmin_nz_note.md Addendum and
+  // data/results/floor_permutation_null/report.md).
+  //   0 = legacy: empirical mean over ALL rays (default; bit-identical to the
+  //       pre-2026-07-13 behavior, seed-for-seed).
+  //   1 = robust: empirical mean over rays with kappa <= kappa_anchor_cut only
+  //       (recommended fix; kappa > 1 rays are outside weak-lensing validity
+  //       and already tracked by InvalidSampleStats). Residual coupling
+  //       O(kappa_anchor_cut/n). Falls back to mode 0 if every ray exceeds
+  //       the cut (pathological).
+  //   2 = external: use kappa_anchor_value directly (e.g. an analytically
+  //       derived <kappa>, or 0.0 for no compensation). The only mode with
+  //       exactly independent realizations within one call.
+  int kappa_anchor = 0;
+  double kappa_anchor_cut = 1.0;
+  double kappa_anchor_value = 0.0;
 };
 
 

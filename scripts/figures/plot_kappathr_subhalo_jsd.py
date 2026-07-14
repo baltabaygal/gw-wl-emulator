@@ -30,9 +30,14 @@ RULES = ("flat_1em4", "flat_1em3", "fixedN")
 
 
 def density(x, edges):
+    """True density: counts normalized by the FULL sample size, not the in-range
+    count — panel C plots a tail slice (mu > 1.5), and per-curve renormalization
+    over the slice would inflate every curve ~9x and distort rule-vs-truth
+    offsets by each rule's tail fraction (up to ~8%, same order as the effects
+    the panel compares)."""
     c, _ = np.histogram(x, bins=edges)
     w = np.diff(edges)
-    return c / (c.sum() * w)
+    return c / (x.size * w) if x.size else np.zeros_like(w, float)
 
 
 def main():
@@ -48,7 +53,9 @@ def main():
     axA, axB, axC, axD = axes
 
     # ---- A: floor-subtracted JSD --------------------------------------------
-    groups = [g for g in ("z1_on", "z1_off", "z10_on", "z10_off") if g in res]
+    groups = list(res)   # analyze() writes them in z-major, on-before-off order
+    if not groups:
+        raise SystemExit(f"no groups in {d / 'summary.json'} — run the sampler first")
     xg = np.arange(len(groups))
     width = 0.26
     for i, r in enumerate(RULES):
@@ -67,11 +74,14 @@ def main():
     axA.set_axisbelow(True)
     axA.legend(frameon=False, fontsize=8.6)
 
-    # ---- B/C: z=10 subhalo-on PDFs ------------------------------------------
-    gk = "z10_on"
-    smp = {r: np.load(d / f"z10_{'on'}_{r}.npy") for r in RULES}
-    truth = np.concatenate([np.load(d / "z10_on_truthA.npy"),
-                            np.load(d / "z10_on_truthB.npy")])
+    # ---- B/C/D: focus group — z10_on when present, else the last group ------
+    on_groups = [g for g in res if g.endswith("_on")]
+    gk = "z10_on" if "z10_on" in res else (on_groups[-1] if on_groups else groups[-1])
+    glab = gk.replace("_on", ", subhalo ON").replace("_off", ", subhalo OFF") \
+             .replace("z", "$z_s{=}$", 1)
+    smp = {r: np.load(d / f"{gk}_{r}.npy") for r in RULES}
+    truth = np.concatenate([np.load(d / f"{gk}_truthA.npy"),
+                            np.load(d / f"{gk}_truthB.npy")])
     edges = np.asarray(res[gk]["edges"])
     xc = 0.5 * (edges[:-1] + edges[1:])
     axB.plot(xc, density(truth, edges), color=INK, lw=2.4, label="truth (3e-5)")
@@ -79,7 +89,7 @@ def main():
         axB.plot(xc, density(smp[r], edges), color=COLORS[r], lw=1.5, label=LABELS[r])
     axB.set_yscale("log")
     axB.set_xlabel(r"$\ln\mu$"); axB.set_ylabel(r"$dP/d\ln\mu$")
-    axB.set_title("B. $z_s=10$, subhalo ON: $P(\\ln\\mu)$")
+    axB.set_title(f"B. {glab}: $P(\\ln\\mu)$")
     axB.grid(color=GRID, lw=0.7); axB.set_axisbelow(True)
     axB.legend(frameon=False, fontsize=8.6)
 
@@ -90,10 +100,10 @@ def main():
         axC.plot(mc, density(np.exp(smp[r]), mu_edges), color=COLORS[r], lw=1.5)
     axC.set_xscale("log"); axC.set_yscale("log")
     axC.set_xlabel(r"$\mu$"); axC.set_ylabel(r"$dP/d\mu$")
-    axC.set_title("C. $z_s=10$, subhalo ON: magnification tail")
+    axC.set_title(f"C. {glab}: magnification tail")
     axC.grid(color=GRID, lw=0.7, which="both"); axC.set_axisbelow(True)
 
-    # ---- D: tail quantile ratios (z=10 on) ----------------------------------
+    # ---- D: tail quantile ratios (focus group) ------------------------------
     qkeys = ("q99", "q999", "q9999")
     qlabs = ("$q_{99}$", "$q_{99.9}$", "$q_{99.99}$")
     xq = np.arange(len(qkeys))
@@ -108,7 +118,7 @@ def main():
     axD.axhline(1.0, color=INK, lw=1.2, ls="--")
     axD.set_xticks(xq); axD.set_xticklabels(qlabs)
     axD.set_ylabel("quantile / truth quantile")
-    axD.set_title("D. $z_s=10$, subhalo ON: tail vs truth\n(bars = conservative 95% CI)")
+    axD.set_title(f"D. {glab}: tail vs truth\n(bars = conservative 95% CI)")
     axD.grid(color=GRID, lw=0.7, axis="y"); axD.set_axisbelow(True)
 
     fig.suptitle("Threshold rule with substructure: subhalo_model=3, factor=1e-5; "

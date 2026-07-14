@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     fs::path outdir = (argc > 4) ? fs::path(argv[4]) : fs::path("plots/figures/subhalo_runtime/profile");
     int subhalo_threads = (argc > 5) ? std::atoi(argv[5]) : 1;
     int subhalo_parallel_threshold = (argc > 6) ? std::atoi(argv[6]) : 200000;
-    double subhalo_factor = (argc > 7) ? std::atof(argv[7]) : 1.0e-5;
+    double subhalo_factor = (argc > 7) ? std::atof(argv[7]) : 1.0e-2;
 
     fs::create_directories(outdir);
     run_one(false, Nreal, zs, seed, outdir, subhalo_threads, subhalo_parallel_threshold, subhalo_factor);

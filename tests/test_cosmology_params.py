@@ -18,18 +18,26 @@ PLANCK = dict(h=0.674, OmegaM=0.315, As=2.101e-9, OmegaB=0.0493, zeq=3402.0, ns=
 
 
 def test_backward_compat_bitwise():
-    """Legacy <N>=100 threshold path reproduces pre-change samples exactly.
+    """DEFAULT threshold path reproduces pre-change samples exactly.
 
     The DEFAULT threshold is the legacy <N>=Nhalos rule again (reverted
-    2026-07-10 from the 2026-07-09 flat-1e-3 default); kappathr_flat = -1
-    selects it explicitly here and must stay bit-identical to the pre-6d
-    reference (guards every other code path)."""
+    2026-07-10 from the 2026-07-09 flat-1e-3 default). The no-kwarg calls
+    below pin the DEFAULT itself to the pre-6d reference — do NOT add an
+    explicit kappathr_flat here, or a flipped default would go unguarded
+    (the guard this revert is about). The final call checks that the
+    explicit legacy selector kappathr_flat=-1 picks the same path."""
     d = np.load(REF)
     for i, (z, h, om, s8) in enumerate(d["points"]):
         r = gw.sample_lnmu_ml_with_diagnostics(
-            float(z), float(h), float(om), float(s8), int(d["nsamp"]), int(d["seed"]), False,
-            kappathr_flat=-1.0)
-        assert np.array_equal(np.asarray(r["lnmu"]), d[f"lnmu_{i}"]), f"point {i} diverged"
+            float(z), float(h), float(om), float(s8), int(d["nsamp"]), int(d["seed"]), False)
+        assert np.array_equal(np.asarray(r["lnmu"]), d[f"lnmu_{i}"]), \
+            f"point {i} diverged on the DEFAULT threshold path"
+    z, h, om, s8 = d["points"][0]
+    r = gw.sample_lnmu_ml_with_diagnostics(
+        float(z), float(h), float(om), float(s8), int(d["nsamp"]), int(d["seed"]), False,
+        kappathr_flat=-1.0)
+    assert np.array_equal(np.asarray(r["lnmu"]), d["lnmu_0"]), \
+        "explicit kappathr_flat=-1 diverged from the legacy reference"
 
 
 def test_sigma8_as_round_trip_deltaH8():

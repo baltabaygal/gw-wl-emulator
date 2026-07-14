@@ -1,0 +1,272 @@
+{
+ "z0.2_main_truthA": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "truthA",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 6.7468578877171014e-06,
+  "n": 120000
+ },
+ "z0.2_main_truthB": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "truthB",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 6.7468578877171014e-06,
+  "n": 120000
+ },
+ "z0.2_main_nz25": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "nz25",
+  "kwargs": {
+   "Nz": 25
+  },
+  "kthr_eff": 5.975402817065357e-06,
+  "n": 240000
+ },
+ "z0.2_main_nz50": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "nz50",
+  "kwargs": {
+   "Nz": 50
+  },
+  "kthr_eff": 6.3067365183605114e-06,
+  "n": 240000
+ },
+ "z0.2_main_nz100": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "nz100",
+  "kwargs": {
+   "Nz": 100
+  },
+  "kthr_eff": 6.567238860077028e-06,
+  "n": 240000
+ },
+ "z0.2_main_nz200": {
+  "z": 0.2,
+  "arm": "main",
+  "config": "nz200",
+  "kwargs": {
+   "Nz": 200
+  },
+  "kthr_eff": 6.656442541150112e-06,
+  "n": 240000
+ },
+ "z1_main_truthA": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "truthA",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.00013126956996187673,
+  "n": 120000
+ },
+ "z1_main_truthB": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "truthB",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.00013126956996187673,
+  "n": 120000
+ },
+ "z1_main_nz25": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "nz25",
+  "kwargs": {
+   "Nz": 25
+  },
+  "kthr_eff": 0.00011316468985189757,
+  "n": 240000
+ },
+ "z1_main_nz50": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "nz50",
+  "kwargs": {
+   "Nz": 50
+  },
+  "kthr_eff": 0.0001243731295673447,
+  "n": 240000
+ },
+ "z1_main_nz100": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "nz100",
+  "kwargs": {
+   "Nz": 100
+  },
+  "kthr_eff": 0.0001277748302018755,
+  "n": 240000
+ },
+ "z1_main_nz200": {
+  "z": 1.0,
+  "arm": "main",
+  "config": "nz200",
+  "kwargs": {
+   "Nz": 200
+  },
+  "kthr_eff": 0.00013126956996187673,
+  "n": 240000
+ },
+ "z5_main_truthA": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "truthA",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.0009284818905068838,
+  "n": 120000
+ },
+ "z5_main_truthB": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "truthB",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.0009284818905068838,
+  "n": 120000
+ },
+ "z5_main_nz25": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "nz25",
+  "kwargs": {
+   "Nz": 25
+  },
+  "kthr_eff": 0.0008334862458183858,
+  "n": 240000
+ },
+ "z5_main_nz50": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "nz50",
+  "kwargs": {
+   "Nz": 50
+  },
+  "kthr_eff": 0.0008797027254868204,
+  "n": 240000
+ },
+ "z5_main_nz100": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "nz100",
+  "kwargs": {
+   "Nz": 100
+  },
+  "kthr_eff": 0.000903763270798311,
+  "n": 240000
+ },
+ "z5_main_nz200": {
+  "z": 5.0,
+  "arm": "main",
+  "config": "nz200",
+  "kwargs": {
+   "Nz": 200
+  },
+  "kthr_eff": 0.0009160392078079959,
+  "n": 240000
+ },
+ "z10_main_truthA": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "truthA",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.001410633075014056,
+  "n": 120000
+ },
+ "z10_main_truthB": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "truthB",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.001410633075014056,
+  "n": 120000
+ },
+ "z10_main_nz25": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "nz25",
+  "kwargs": {
+   "Nz": 25
+  },
+  "kthr_eff": 0.001266307160044705,
+  "n": 240000
+ },
+ "z10_main_nz50": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "nz50",
+  "kwargs": {
+   "Nz": 50
+  },
+  "kthr_eff": 0.0013365233866589013,
+  "n": 240000
+ },
+ "z10_main_nz100": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "nz100",
+  "kwargs": {
+   "Nz": 100
+  },
+  "kthr_eff": 0.0013730783279736253,
+  "n": 240000
+ },
+ "z10_main_nz200": {
+  "z": 10.0,
+  "arm": "main",
+  "config": "nz200",
+  "kwargs": {
+   "Nz": 200
+  },
+  "kthr_eff": 0.001391729033980607,
+  "n": 240000
+ },
+ "z1_sub_truthA": {
+  "z": 1.0,
+  "arm": "sub",
+  "config": "truthA",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.00013126956996187673,
+  "n": 120000
+ },
+ "z1_sub_truthB": {
+  "z": 1.0,
+  "arm": "sub",
+  "config": "truthB",
+  "kwargs": {
+   "Nz": 400
+  },
+  "kthr_eff": 0.00013126956996187673,
+  "n": 120000
+ },
+ "z1_sub_nz100": {
+  "z": 1.0,
+  "arm": "sub",
+  "config": "nz100",
+  "kwargs": {
+   "Nz": 100
+  },
+  "kthr_eff": 0.0001277748302018755,
+  "n": 240000
+ }
+}

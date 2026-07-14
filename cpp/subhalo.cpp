@@ -26,6 +26,11 @@ inline void interpolateNFWMass(cosmology &C, int jz, double m, double log_m, dou
     } else {
         double val = (log_m - log_Mmin) * inv_dlogM;
         int jm = static_cast<int>(val) + 1;
+        // clamp: when m sits a few ULP below Mlist[NM-1], val can round to
+        // exactly NM-1 and jm to NM -> one-past-end read of NFWlist[jz]
+        // (null-deref segfault; hit by the Wsub psi-grid top point whenever
+        // log(m_floor/M) rounding lands badly, e.g. Mmin=1e6 + m_floor=1e7)
+        if (jm > NM - 1) jm = NM - 1;
         const double m1 = C.Mlist[jm - 1];
         const double m2 = C.Mlist[jm];
         rs = linfast(C.NFWlist[jz][jm - 1][0], C.NFWlist[jz][jm][0], m1, m2, m);

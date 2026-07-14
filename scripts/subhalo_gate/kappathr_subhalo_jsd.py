@@ -21,7 +21,8 @@ Protocol (agreed 2026-07-10):
 All configs use disjoint seed blocks (no common random numbers), so the
 half-vs-half floor applies directly to every comparison.
 
-Sampling is cached per config under data/results/kappathr_subhalo_jsd<tag>/;
+Sampling is cached per config under data/results/kappathr_subhalo_jsd<tag>/
+(finished shards under shards/, so an interrupted run resumes shard-granular);
 re-running skips finished configs and just re-analyzes.
 
 Usage:
@@ -48,31 +49,38 @@ SUBHALO_FACTOR = 1.0e-5
 TRUTH_KTHR = 3.0e-5
 NPROC = 8          # process-level parallelism sweet spot on the 10-core box
 NBINS = 120
+NHALOS_DEFAULT = 100   # mirrors py::arg("Nhalos") in cpp/python_bindings.cpp
 
-# rule -> kappathr_flat (-1 = legacy fixed-<N>=100)
+# rule -> (seed_block, kappathr_flat); -1 = legacy fixed-<N>=100.
+# seed_block is a PERMANENT per-rule RNG offset: cached samples are keyed by
+# rule NAME, so never renumber an existing rule — reordering blocks would mix
+# seed streams with stale caches and break the disjoint-seed-block assumption.
 RULES = {
-    "truthA": TRUTH_KTHR,
-    "truthB": TRUTH_KTHR,
-    "flat_1em4": 1.0e-4,
-    "flat_1em3": 1.0e-3,
-    "fixedN": -1.0,
+    "truthA": (0, TRUTH_KTHR),
+    "truthB": (1, TRUTH_KTHR),
+    "flat_1em4": (2, 1.0e-4),
+    "flat_1em3": (3, 1.0e-3),
+    "fixedN": (4, -1.0),
 }
-RULE_IDX = {r: i for i, r in enumerate(RULES)}
 
-# per-z sample sizes (truth halves get N_TRUTH_HALF each; candidates N_CAND)
-N_TRUTH_HALF = {1.0: 120_000, 10.0: 60_000}
-N_CAND = {1.0: 240_000, 10.0: 120_000}
+# per-z seed offsets and sample sizes (truth halves n_truth_half each);
+# extend this table to support more z_s values (zi must stay unique).
+Z_TABLE = {
+    1.0: dict(zi=1, n_truth_half=120_000, n_cand=240_000),
+    10.0: dict(zi=2, n_truth_half=60_000, n_cand=120_000),
+}
 ARMS = {"on": True, "off": False}
 
 
 def seed_base(z: float, arm: str, rule: str) -> int:
-    zi = {1.0: 1, 10.0: 2}[z]
+    zi = Z_TABLE[z]["zi"]
     ai = {"on": 0, "off": 1}[arm]
-    return 1_000_000 * zi + 100_000 * ai + 10_000 * RULE_IDX[rule]
+    return 1_000_000 * zi + 100_000 * ai + 10_000 * RULES[rule][0]
 
 
 def n_for(z: float, rule: str, scale: float) -> int:
-    n = N_TRUTH_HALF[z] if rule.startswith("truth") else N_CAND[z]
+    zt = Z_TABLE[z]
+    n = zt["n_truth_half"] if rule.startswith("truth") else zt["n_cand"]
     return max(NPROC * 250, int(round(n * scale / NPROC)) * NPROC)
 
 
@@ -93,14 +101,26 @@ def worker(task):
 # ---------------------------------------------------------------- sampling
 def run_sampling(outdir: Path, zs, arms, scale: float) -> dict:
     import gwlensing as gw
-    tasks, meta = [], {}
+    shard_dir = outdir / "shards"   # per-shard cache -> crash/resume granularity
+    shard_dir.mkdir(exist_ok=True)
+    tasks, meta, parts = [], {}, {}
+
+    def finish(key):
+        shards = parts.pop(key)
+        arr = np.concatenate([shards[i] for i in range(NPROC)])
+        np.save(outdir / f"{key}.npy", arr)
+        for i in range(NPROC):
+            (shard_dir / f"{key}_{i}.npy").unlink(missing_ok=True)
+        return arr
+
     for z in zs:
         for arm in arms:
-            for rule, kthr in RULES.items():
+            for rule, (_, kthr) in RULES.items():
                 key = f"z{z:g}_{arm}_{rule}"
                 f = outdir / f"{key}.npy"
                 n = n_for(z, rule, scale)
-                kthr_eff = kthr if kthr > 0 else gw.get_kappa_threshold(z, H, OM, S8, 100)
+                kthr_eff = (kthr if kthr > 0
+                            else gw.get_kappa_threshold(z, H, OM, S8, NHALOS_DEFAULT))
                 nexp = gw.get_expected_halo_count(z, H, OM, S8, kthr_eff)
                 meta[key] = dict(z=z, arm=arm, rule=rule, kthr=kthr,
                                  kthr_eff=float(kthr_eff), Nexp=float(nexp), n=n)
@@ -109,9 +129,15 @@ def run_sampling(outdir: Path, zs, arms, scale: float) -> dict:
                 per = n // NPROC
                 base = seed_base(z, arm, rule)
                 for s in range(NPROC):
+                    sf = shard_dir / f"{key}_{s}.npy"
+                    if sf.exists():   # shard survived an interrupted run
+                        parts.setdefault(key, {})[s] = np.load(sf)
+                        continue
                     # crude cost estimate for longest-first scheduling
                     cost = per * (nexp if arm == "on" else 0.05 * nexp + 5)
                     tasks.append((cost, (key, s, z, kthr, ARMS[arm], per, base + s)))
+                if len(parts.get(key, ())) == NPROC:
+                    finish(key)
 
     (outdir / "meta.json").write_text(json.dumps(meta, indent=1))
     if not tasks:
@@ -120,24 +146,26 @@ def run_sampling(outdir: Path, zs, arms, scale: float) -> dict:
 
     tasks.sort(key=lambda t: -t[0])
     print(f"[sample] {len(tasks)} shards over {NPROC} procs", flush=True)
-    parts, times = {}, {}
+    times = {}
     t0 = time.perf_counter()
     with mp.Pool(NPROC) as pool:
         for key, shard, lnmu, dt in pool.imap_unordered(worker, [t[1] for t in tasks]):
+            np.save(shard_dir / f"{key}_{shard}.npy", lnmu)
             parts.setdefault(key, {})[shard] = lnmu
             times[key] = times.get(key, 0.0) + dt
             if len(parts[key]) == NPROC:
-                arr = np.concatenate([parts[key][i] for i in range(NPROC)])
-                np.save(outdir / f"{key}.npy", arr)
+                arr = finish(key)
                 print(f"[done] {key:26s} n={arr.size:>7,}  cpu={times[key]:8.1f}s "
                       f"({times[key]/arr.size*1e4:7.2f} s/1e4)  "
                       f"wall so far {time.perf_counter()-t0:7.1f}s", flush=True)
-                del parts[key]
     print(f"[sample] total wall {time.perf_counter()-t0:.1f}s", flush=True)
     return meta
 
 
 # ---------------------------------------------------------------- analysis
+# density()/jsd() MUST stay bit-identical to the halo-only study
+# (scripts/figures/kappathr_convergence_decision.py) — the cross-study JSD
+# comparison depends on an identical estimator. Change both or neither.
 def density(x, edges):
     c, _ = np.histogram(x, bins=edges)
     w = np.diff(edges)
@@ -234,8 +262,12 @@ def main():
     ap.add_argument("--tag", default="")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--zs", type=float, nargs="+", default=[1.0, 10.0])
-    ap.add_argument("--arms", nargs="+", default=["on", "off"])
+    ap.add_argument("--arms", nargs="+", choices=["on", "off"], default=["on", "off"])
     args = ap.parse_args()
+    for z in args.zs:
+        if z not in Z_TABLE:
+            ap.error(f"--zs {z:g} unsupported (no seed/size entry); "
+                     f"supported: {sorted(Z_TABLE)} — extend Z_TABLE to add it")
 
     outdir = REPO / "data" / "results" / f"kappathr_subhalo_jsd{args.tag}"
     outdir.mkdir(parents=True, exist_ok=True)

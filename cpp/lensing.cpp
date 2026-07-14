@@ -567,7 +567,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     if (cfg.bias == 0) {
                         lambda = 1.0;
                     }
-                    
+                    // look at this.
                     // generate halos
                     if (lambda*barNH < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
                         if (lambda*barNH > randomreal(0.0, 1.0, mt)) {
@@ -642,11 +642,34 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
 vector<double> lensing::sample_lnmu(cosmology &C, double zs, rgen &mt, const LensingConfig &cfg) {
     
     auto raw = sample_lnmu_raw(C, zs, mt, cfg);
-    
+
+    // Flux-conservation anchor <kappa> = 0 (see LensingConfig::kappa_anchor).
     double meankappa = 0.0;
-    for (auto &r : raw)
-        meankappa += r.kappa;
-    meankappa /= raw.size();
+    if (cfg.kappa_anchor == 2) {
+        // external/analytic anchor: exactly independent realizations
+        meankappa = cfg.kappa_anchor_value;
+    } else if (cfg.kappa_anchor == 1) {
+        // robust anchor: exclude kappa > cut rays (outside weak-lensing
+        // validity) so a single monster ray cannot shift the whole batch
+        double sum = 0.0;
+        size_t nk = 0;
+        for (auto &r : raw) {
+            if (r.kappa <= cfg.kappa_anchor_cut) { sum += r.kappa; nk++; }
+        }
+        if (nk > 0) {
+            meankappa = sum / nk;
+        } else {  // pathological: every ray above cut -> legacy fallback
+            for (auto &r : raw) meankappa += r.kappa;
+            meankappa /= raw.size();
+        }
+    } else {
+        // legacy (default): empirical mean over ALL rays -- bit-identical to
+        // the pre-2026-07-13 behavior; one kappa>>1 ray shifts the batch by
+        // -2*kappa/n (batch-anchor bug, kept as default pending decision)
+        for (auto &r : raw)
+            meankappa += r.kappa;
+        meankappa /= raw.size();
+    }
     
     vector<double> lnmulist;
     lnmulist.reserve(raw.size());

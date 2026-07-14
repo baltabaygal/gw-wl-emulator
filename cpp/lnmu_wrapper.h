@@ -42,8 +42,11 @@ struct SamplingParams {
     int subhalo_parallel_threshold = 200000;
     int subhalo_model = 3;   // reduced-host + Wsub (default since 2026-07-09)
     bool subhalo_brute = false;
-    double subhalo_factor = 1.0e-5;  // cross-redshift plateau choice, scripts/subhalo_factor_redshift_check.py (2026-07-03)
+    double subhalo_factor = 1.0e-2;  // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12)
     double kappathr_flat = -1.0;   // <= 0 = legacy <N>=Nhalos rule (default, reverted 2026-07-10); > 0 = flat explicit-halo threshold
+    int kappa_anchor = 0;          // mean-kappa anchor: 0 legacy batch mean (default, bit-identical),
+    double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
+    double kappa_anchor_value = 0.0; // used only when kappa_anchor == 2
 };
 
 struct LnmuSampleDiagnostics {

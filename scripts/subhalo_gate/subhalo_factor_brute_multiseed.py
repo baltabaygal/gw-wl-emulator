@@ -147,7 +147,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    out = args.out or ROOT / "data" / f"subhalo_factor_brute_multiseed_z{args.zs:g}_N{args.n}.npz"
+    # encode every knob that changes the physics in the default filename, so
+    # runs with different configs can't silently overwrite each other
+    kthr_tag = "legacy" if args.kappathr_flat <= 0 else f"{args.kappathr_flat:g}"
+    out = args.out or ROOT / "data" / (
+        f"subhalo_factor_brute_multiseed_z{args.zs:g}_N{args.n}"
+        f"_m{args.subhalo_model}_kthr{kthr_tag}.npz"
+    )
 
     common = dict(
         z=args.zs,

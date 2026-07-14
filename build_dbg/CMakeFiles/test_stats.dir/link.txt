@@ -1,0 +1,1 @@
+/usr/bin/c++ -O2 -g -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/test_stats.dir/test_stats.cpp.o -o test_stats  libgwcore.a /opt/homebrew/Cellar/gsl/2.8/lib/libgsl.dylib /opt/homebrew/Cellar/gsl/2.8/lib/libgslcblas.dylib -lm

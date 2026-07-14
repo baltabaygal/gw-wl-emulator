@@ -88,15 +88,34 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
     cfg.kappathr_flat = sp.kappathr_flat;
+    cfg.kappa_anchor = sp.kappa_anchor;
+    cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
+    cfg.kappa_anchor_value = sp.kappa_anchor_value;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
     auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
 
-    // Compute meankappa
+    // Compute meankappa (same anchor options as lensing::sample_lnmu)
     double meankappa = 0.0;
-    for (auto &r : raw)
-        meankappa += r.kappa;
-    meankappa /= raw.size();
+    if (sp.kappa_anchor == 2) {
+        meankappa = sp.kappa_anchor_value;
+    } else if (sp.kappa_anchor == 1) {
+        double sum = 0.0;
+        size_t nk = 0;
+        for (auto &r : raw) {
+            if (r.kappa <= sp.kappa_anchor_cut) { sum += r.kappa; nk++; }
+        }
+        if (nk > 0) {
+            meankappa = sum / nk;
+        } else {
+            for (auto &r : raw) meankappa += r.kappa;
+            meankappa /= raw.size();
+        }
+    } else {
+        for (auto &r : raw)
+            meankappa += r.kappa;
+        meankappa /= raw.size();
+    }
 
     // First pass: compute lnmu values and mean
     std::vector<double> lnmu_values;
@@ -260,6 +279,9 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
     cfg.kappathr_flat = sp.kappathr_flat;
+    cfg.kappa_anchor = sp.kappa_anchor;
+    cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
+    cfg.kappa_anchor_value = sp.kappa_anchor_value;
 
     LnmuSampleDiagnostics out;
     out.lnmu = L.sample_lnmu(C, z, mt, cfg);

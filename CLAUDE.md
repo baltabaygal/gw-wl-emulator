@@ -47,6 +47,15 @@ from ace_lensing import predict_pdf, predict_sigma, predict_mean
 `sample_lensing_raw_ml` (returns raw `kappa`, `gamma`), `compute_lnmu_stats`,
 `get_simulator_config`. Cosmology args: `Om`, `sigma8`, `h` (defaults Om=0.315, σ8=0.811);
 `Mmin` is exposed; `zs` is the source redshift; `Nhalos=100` sets the strong/weak κ split.
+**Grid kwargs (2026-07-11, for the Mmin/Nz convergence studies):** all samplers +
+`compute_lnmu_stats` take trailing `NM=100, Nz=100` (mass/z grid sizes); the helpers
+`get_kappa_threshold`/`get_expected_halo_count`/`get_sigma_background` take trailing
+`Mmin=1e7, NM=100, Nz=100` (previously hard-coded); `get_simulator_config` dict now also
+reports `Mmin/NM/Nz`. Defaults verified bit-identical to the unpatched module (Linux
+sandbox side-by-side build: all samplers, subhalo-on model 3, explicit-legacy-kwargs
+paths); Mac `make build` + all 11 `tests/test_cosmology_params.py` (incl.
+`test_backward_compat_bitwise`) passed 2026-07-12. `compute_lnmu_stats` still does
+NOT expose `Mmin`.
 
 ### 1+6d parameterization (2026-07-07) — Θ = {h, z_eq, Ω_M, Ω_B, A_s, n_s}
 All entry points take trailing kwargs `As=-1.0, OmegaB=0.0493, zeq=3402.0, ns=0.965`.
@@ -123,18 +132,27 @@ The smooth production magnification PDF lives in the **`gw-wl-emulator-ar` workt
 (branch `autoresearch/jun16`, pushed to origin): `ml/autoresearch/smooth_model.py` →
 `load_smooth_fn()` = flow body `models/flow_smooth_lowz.pt` + conditional POT tail
 (Poisson-regressed exceedance survivals S2/S3/S8(ctx), 3-segment power law, μ⁻²
-asymptote, blend at μ_c=1.7) + empty-beam low-μ cutoff. Do NOT use `flow_ar.pt`.
-Full experiment log: `ml/autoresearch/REPORT.md` (exp18–24) + `results.tsv`.
+asymptote, blend at μ_c=1.7) + empty-beam low-μ cutoff (EDGE_W=0.01, 2026-07-11)
++ **flux calibration** (2026-07-11: lnμ shift δ=ln⟨1/μ⟩_model−ln F_trim(ctx) to the
+sim's support-restricted flux, `fit_flux_target.py` → `cache/flux_target_fit.json`;
+mean panel KL 0.0091→0.0035, z=1 shoulder ~fixed; do NOT target raw ⟨1/μ⟩=1 — sim's
+raw mean is corrupted by κ>1 rays). Do NOT use `flow_ar.pt`.
+Full experiment log: `ml/autoresearch/REPORT.md` (exp18–24 + 2026-07-11 rounds) + `results.tsv`.
 
-**Validated (REPORT.md 2026-07-03):** median KL 0.0073 (= ACE-Lensing's 0.007, and
-holds to μ=100 where they truncate at 6); PIT KS 3–10%; ⟨1/μ⟩=1 within 1%; posterior
-recovery on 16×1000-event mocks: model bias h −0.46±0.20 σ_post, Ωm +0.29±0.17.
-Fit for purpose to O(1000) events; for ≳4000 events first enforce ⟨1/μ⟩=1 (lnμ shift).
+**Validated (REPORT.md 2026-07-03, edge/flux update 2026-07-11):** median KL 0.0073
+(= ACE-Lensing's 0.007), post-calibration fine-binned panel KL median 0.0034; PIT
+KS ≤2.1% post-cal; posterior recovery pre-cal: h −0.46±0.20 σ_post, Ωm +0.29±0.17
+(16×1000-event mocks; post-cal rerun: h −0.20±0.22 = zero-consistent, Ωm +0.34±0.21
+unchanged — width-driven, not mean). Edge study 2026-07-11: fitted edge is
+oracle-level; Dyer–Roeder is NOT the sim edge (σ8-dep., e^-100 empty-beam prob.);
+tail exponent settled μ⁻² image-plane (μ⁻³ = source plane), Poisson race +1400–6800
+nats over μ⁻³. **Full findings + gotchas: `docs/edge_tail_flux_note.md`.**
 
 **Retraining recipe (when new/subhalo-corrected training data lands):**
 1. regenerate datasets + `cache/lowz_aug.npz` (`gen_lowz_data.py`) — not in git (114MB);
 2. `train_smooth.py` (~7 min MPS) → new body;
-3. refit `prepare_fix.py` (edge) + `gen_tail_counts.py` + `fit_tail_amplitude.py` (tail);
+3. refit `prepare_fix.py` (edge) + `gen_tail_counts.py` + `fit_tail_amplitude.py` (tail)
+   + `fit_flux_target.py` (flux calibration, 2026-07-11 — regenerate `cache/flux_grid.npz` too);
 4. acceptance gates: `param_space_check.py` (needs fresh `param_space_ref`),
    `validate_kl.py`, `validate_pit.py`, `validate_posterior.py` (control must be ~0σ).
 
@@ -240,7 +258,10 @@ user explicitly asks, under their supervision.**
    within the ±5% acceptance band, so model 3 still tracks brute. Runner now
    parametrized: `scripts/subhalo_gate/subhalo_factor_brute_multiseed.py
    --subhalo-model 3 --kappathr-flat -1` (brute arm forced to model 1; model-3+brute
-   throws).
+   throws). Its default output now encodes both knobs
+   (`…_m{model}_kthr{legacy|value}.npz`, 2026-07-10 code review): the old ambiguous
+   `…_z1_N10000.npz` was split into `…_m1_kthrlegacy.npz` (model-1 calibration,
+   restored from git 4b95454) and `…_m3_kthrlegacy.npz` (the model-3 rerun).
 10. **Wsub unresolved-subhalo term — derivation + C++ implementation DONE
    (2026-07-09, `subhalo_model=3`, new default):** per-host split κ_halo = reduced host (FULL f_s,b) + resolved clumps
    + μ_unres(y) + N(0, σ²_unres(y)) is EXACT in mean/variance at ANY subhalo_factor
@@ -258,9 +279,31 @@ user explicitly asks, under their supervision.**
    seed): model 3 flat at brute (±5% estimator noise) over factor 1e-5…1 while
    model 1 collapses to −0.17 at factor 1; mean bookkeeping exact; 8–16 s vs brute
    158 s per 3e4 realizations. Raw Var estimates are tail-noise-dominated (one κ~9
-   realization = 4e-4 shift) — compare clipped cores/ensembles only. REMAINING:
-   PDF-level acceptance (KL+tails vs brute) to pick the production subhalo_factor,
-   then regenerate ML training data. See
+   realization = 4e-4 shift) — compare clipped cores/ensembles only.
+   **PDF-level acceptance DONE (2026-07-12, `scripts/convergence/subhalo_factor_jsd.py`
+   → `data/results/subhalo_factor_jsd/report.md`, `plots/subhalo_factor_jsd.png`):**
+   brute truth (model-1 arm, 2×120k seed halves), model-3 candidates factor
+   1e-5/1e-3/1e-2/1e-1 + model-1@1e-2 contrast, 240k each, z_s∈{1,5}, fixed-⟨N⟩
+   rule, JSD protocol identical to the κ_thr/Mmin/Nz studies (seed namespace 6e8).
+   **factor=1e-2 PASSES**: JSD excess ≤3e-5 at both z (at the floor 1.1e-4;
+   indistinguishable from factor 1e-5), q99.9/q99.99 CIs overlap truth; even 1e-1
+   passes globally (mild σ/⟨1/μ⟩ drift at z=5). The no-Wsub contrast (model 1 @
+   1e-2) shows real excess 1.7e-4 at z=5 ⇒ the test resolves the Wsub term's
+   PDF-level contribution. **Cost: factor 1e-2 ≈ 10× faster than 1e-5** (fixed-⟨N⟩,
+   s/1e4: z=1 45.9→4.7, z=5 37.6→5.9 vs subhalo-off 3.6) — near subhalo-off cost.
+   Known factor-INDEPENDENT residual: ALL split arms (incl. 1e-5 and model 1) sit
+   ~2.3% below brute q99(μ) at z=5 (CIs disjoint; both truth halves agree) — a
+   split-vs-brute property, not a factor effect; global JSD unaffected.
+   **DEFAULT FLIPPED to subhalo_factor=1e-2 (2026-07-12, user decision):**
+   `lensing.h::LensingConfig`, `lnmu_wrapper.h::SamplingParams`, all 5 py::args,
+   `get_simulator_config` dict, `main_subhalo_profile.cpp` CLI. Rebuilt;
+   test_cosmology_params 11/11 incl. bitwise (default path has subhalo OFF —
+   unaffected); verified live (config dict reports 0.01; default ≡ explicit 1e-2
+   seed-for-seed, ≠ 1e-5). Subhalo-ON runs made before 2026-07-12 used 1e-5 —
+   pass `subhalo_factor=1e-5` explicitly to reproduce them. ML training data
+   regeneration still pending. NOTE (unrelated, pre-existing): `tests/
+   test_phase3b_local_density.py` fails because `write_local_density_outputs`
+   writes `docs/…` while the test asserts `docs/phase3/…` (stale docs reorg). See
    `docs/subhalo/wsub_gaussian_term_derivation.md` §7,
    `playground/analytic/wsub_partition_proof.py`. Post-reorg stale imports
    (`scripts.subhalo_factor_proxy_check` → `scripts.subhalo_gate.…`) fixed only in
@@ -272,8 +315,10 @@ user explicitly asks, under their supervision.**
    with z_s because flat 1e-4 grows the explicit-halo count with z_s and each host then needs
    the Wsub term. **`subhalo_threads`/`subhalo_parallel_threshold` do NOT give realization-level
    speedup** — they parallelize the clump loop WITHIN one host (`subhalo.cpp:458`, fires only
-   when a single host's `Nc ≥ parallel_threshold`, default 2e5). At the production
-   `subhalo_factor=1e-5` hosts have few clumps, so it buys ≤1.09× and forcing it on
+   when a single host's `Nc ≥ parallel_threshold`, default 2e5). At production-scale
+   subhalo_factor (1e-5 then; even fewer clumps at the 1e-2 default since 2026-07-12,
+   which cuts model-3 cost to ~1.3–1.6× subhalo-off — see #10) hosts have few
+   clumps, so it buys ≤1.09× and forcing it on
    (`thr=1`) makes model 3 2–3× SLOWER (thread-spawn per host encounter). It only helps at
    tiny `subhalo_factor` (huge Nc, non-production): factor=1e-8 → 2.76×. It also reseeds RNG
    substreams (`subhalo.cpp:463`) → NOT bitwise-reproducible when it fires. **Correct lever =
@@ -282,6 +327,124 @@ user explicitly asks, under their supervision.**
    bandwidth-bound, heavy NFW/invRad/Wsub table lookups), and **8 procs beats 10** on a 10-core
    box (oversubscription). Small batches under-amortize the ~2 s/proc precompute (8k real →
    only 2.8×). Bench scripts: `tmp/bench_kappathr.py`, `tmp/bench_threads.py`, `tmp/bench_mp.py`.
+
+12. **Mmin/Nz grid-convergence studies (2026-07-12) — both defaults KEPT:**
+   protocol = κ_thr-study JSD acceptance (two-seed-half truth floor), 240k/config,
+   z_s∈{0.2,1,5,10}, driver `scripts/convergence/convergence_scan.py` (axes mmin/
+   mmin_pd/nz, shard-cached; uses PLAIN SUBPROCESS shards — mp.Pool turns worker
+   segfaults into silent infinite hangs). **Nz=100 converged** (excess ≤1.2e-4 =
+   floor; Nz=25 costs 3.9e-3 at z_s=0.2 — low-z is the stress case; quadrature arm:
+   κ_thr/σ_W each ~2-4% low at Nz=100 but the shift cancels in P(lnμ)). **Mmin=1e7
+   NOT fully converged but immaterial**: excess 0.9e-4–1.0e-3 (worst z=1), knee at
+   1e5–1e6, missing 3–8% of σ²_W — 7–70× under the emulator KL 7.3e-3; subhalos do
+   NOT amplify it (model-3 spot-check at floor). **NM confound:** M-grid resolution
+   alone contributes few-e-4 JSD at z_s≥5 (NM=200 control + per-decade-matched axis);
+   treat (Mmin, NM) as a pair. **Far-tail pattern:** z=10 q99.9 tracks the κ_thr_eff
+   split point across ALL knob studies (~25-30% low at the default vs refined truths)
+   — not Mmin/Nz physics; flat-1e-4 recommendation for z≳5 tails unchanged.
+   **BUG FOUND+FIXED: grid-edge OOB in `interpolateNFWMass` (subhalo.cpp:31)** —
+   Wsub ψ-grid top point a few ULP under Mlist[NM-1] slipped past the edge guard →
+   jm=NM → one-past-end NFWlist read → null deref (presented as "model 3 +
+   Mmin<m_floor segfaults", but it's float-rounding luck, lldb-confirmed). Fixed by
+   clamping jm ≤ NM−1; default path bit-identical (11/11 tests incl. bitwise after
+   rebuild). Also: mp.Pool turns such worker segfaults into SILENT INFINITE HANGS
+   (task lost, idle respawn) — prefer subprocess shards for MC drivers.
+   ACE tie-in (support-clipped moments; raw moments are single-ray garbage at low
+   Mmin): ACE has NO halo mass floor (N-body particles projected, m_p≈1.8e9 M⊙,
+   Türker+2025 Table 1 verified) yet Vaskonen ⟨κ²⟩ sits 36–42% ABOVE ACE at z=1
+   for ALL Mmin 1e4–1e9 — wrong sign for a missing-low-mass explanation; Mmin
+   CANNOT close the ACE gap (only z=5 ⟨κ³⟩ partially closes, −46%→−27%).
+   Full findings: `docs/convergence_mmin_nz_note.md`; one-pager
+   `docs/convergence_onepager.md`; figures `plots/{mmin,nz}_convergence.png`,
+   `plots/ace_gap_vs_mmin.png`.
+   **⚠ BATCH-MEAN κ COMPENSATION BUG FOUND (2026-07-13, fix decision
+   pending):** a permutation-null calibration of the JSD floors
+   (`scripts/convergence/floor_permutation_null.py`) flagged 9 whole shards
+   (body-shifted −5.9…−63σ); Mac verification
+   (`verify_flagged_shards.py`) showed 7/9 REPRODUCE deterministically —
+   root cause: `cpp/lensing.cpp::sample_lnmu` (646–663) anchors ⟨κ⟩=0 with
+   the EMPIRICAL batch mean, so one κ≫1 monster ray shifts the whole batch
+   by −2κ/n (verified: predicted-vs-observed shift matches ~10% in all 9;
+   z5 truthB s4 had a κ≈1014 ray ⇒ −0.135). NOT stale cache, NOT corruption:
+   realizations within one sampler call are weakly coupled O(κ_max/n) — this
+   affects every ensemble ever drawn via `sample_lnmu`, materially only when
+   a batch catches a monster (refined-grid truths at 15–30k/batch; also the
+   old "mmin_pd sparse-tail floor" caveat and the ⟨1/μ⟩=5.3 truth-half
+   anomaly are THIS). Fix options: analytic mean; robust mean excluding κ>1
+   (recommended); larger batches. Do NOT quote the old mmin_pd
+   floors/excesses; the shard-excluded corrected numbers (worst Mmin excess
+   ~4.1e-4 pd z=1; NM z=10 confound 8.2e-4) are provisional until the
+   compensation is fixed + affected configs regenerated. Full analysis chain:
+   `data/results/floor_permutation_null/report.md`.
+   **Block-aware recalibration + exposure (same day,
+   `scripts/convergence/shard_screen.py` → `data/results/shard_screen/
+   report.md`, `plots/batch_anchor_diagonal.png`):** under batch coupling the
+   exchangeable unit is the SHARD — sample-level permutation p-values were
+   anti-conservative (exact C(16,8) block enumeration puts the original truth
+   splits at pctl 4–90 = typical; the earlier "pctl 98–100" was the wrong
+   test). Exposure screen of all 5 study caches: **κ_thr + subhalo_factor
+   decision studies CLEAN** (no anchor shards, block ≈ sample floors — both
+   default decisions stand); nz essentially clean; mmin plain mostly clean
+   EXCEPT z10 nm200ctl (−0.035 shift ⇒ the z≥5 NM-confound number is the most
+   exposed published value) and mild hits at z5 m1e7/m1e5; mmin_pd z1/z5 have
+   LOW RESOLUTION (block floors 8.3e-4/2.4e-3) — order-of-magnitude only.
+   Regen list post-fix (~10 shards, cheap): mmin_pd truths, mmin z10
+   nm200ctl + z5 m1e5/m1e7, nz z0.2 truthB + z1 nz50, mmin z1_sub truthB.
+   Future floors: use shard-level (block) resampling; record κ_max per shard.
+
+13. **BIAS layer couples a physical scale to the numerical grid — strong tail
+   is grid-defined, fix pending (2026-07-13/14):** Var(κ) convergence in Nz is
+   SUPPORT-DEPENDENT — |κ|<1 body converges (O(1/Nz), matches the analytic
+   count quadrature 0.967@Nz=100), but f(κ>1) grows unsaturated with Nz
+   (z=10: 0.45%→1.30% over Nz 25→1600; q99.99 2.05→8.8; raw-κ sweeps
+   `scripts/convergence/vark_vs_nz{,_frozen,_nobias}.py`, namespaces
+   8.0/8.1/8.2e8). Mechanism CONVICTED by three arms (frozen κ_thr: growth
+   unchanged; analytic counts: converge; bias=0: growth VANISHES): the bias
+   modulation amplitude σ_b = σ(M_b) uses the tube-SEGMENT mass with segment
+   length = shell width and radius = rmax(κ_thr) (`lensing.cpp:123`), drawn
+   INDEPENDENTLY per (jz,jM) cell — so Nz (and κ_thr via rmax: the known
+   "σ_b blows up ≳3e-3" gotcha is the SAME bug transversely; and NM via
+   per-jM independence) silently change the clustering model; no continuum
+   limit. The reference model's own validity condition ("Δz chosen so M_b ≫
+   typical lens masses") is exited by refinement. Do NOT quote bias-tail
+   quantities (f(κ>1), q≳99.9 at z_s≳5, wide-support ⟨κ²⟩) as converged; do
+   NOT "fix" by raising Nz (makes it worse). P(lnμ)/JSD verdicts and the
+   emulator are UNAFFECTED (body-weighted). Recommended fix (supervisor
+   decision pending): explicit peak-background-split field — one δ_env(χ)
+   low-pass filtered at fixed comoving R_bg (~heaviest-halo Lagrangian
+   radius), realized on a fixed coarse grid, bias-scaled per (M,z); behind a
+   `bias_model` flag (legacy 0 default). Prediction/validation gate: also
+   kills the κ_thr≳3e-3 blow-up. Open diagnostic first: M_b/M validity map
+   at the default (needs rmax(M,z) exposed). Full note:
+   `docs/nz_bias_convergence_note.md`; evidence chain
+   `data/results/vark_nz/mechanism_note.md`; figures
+   `plots/nz_tail_mechanism.png`, `plots/vark_total_vs_nz.png`.
+   **Python prototype of the fix DONE (2026-07-14,
+   `scripts/convergence/bias_field_prototype.py` →
+   `data/results/bias_field_prototype/report.md`, `plots/bias_field_prototype.png`,
+   seed namespace 9.0e8):** design refined to have NO free R_bg — environment =
+   1D pencil-projected linear-P(k) field along the LOS; per-cell amplitude = σ of
+   the field in the cell's own counting cylinder (R=(1+z)·rmax comoving, L=Δχ)
+   with a parameter-free peak-background-split floor at the halo Lagrangian
+   radius R_L(M) (separable window; this is what kills the transverse blow-up
+   path); cross-cell corr from P_1D; same mean-1 lognormal λ. The Python port of
+   the C++ tables validates EXACTLY vs the gwlensing helpers (κ_thr/⟨N⟩/σ_W to
+   ≤5e-9). Results (bias+halo-layer MC, 2e4 real, 1 seed/config): z=10 f(κ>1)
+   old arm 2.5→4.3e-3 over Nz 25→800 (reproduces the measured full-model growth
+   shape) vs new 1.5→2.9e-3 much flatter (residual slope ~1.5σ; per-cell σ_new
+   plateaus only once Δχ≲R_L i.e. Nz≳1000 — needs seeds to call it converged);
+   κ_thr sweep: old w-p99 σ_b grows 3.3→5.1 over 1e-4→1e-2 vs new SATURATING
+   1.6→1.8 (blow-up killed); analytic linearized clustering std flat in Nz for
+   new (0.029–0.030 at z=10, Nz 25–400) vs falling for old (0.028→0.011 —
+   correlated body variance leaking into ever-wilder iid lognormal tails).
+   **Honest cost — NOT body-preserving:** at the default grid the new model's
+   clustering variance is BIGGER (z=1 std 0.0084 vs 0.0024 ⇒ ~6% vs 0.5% of
+   total Var(κ)) because cross-shell correlations — cancelled by construction in
+   the old iid layer — dominate, even though per-cell σ (w-mean) is 2–4× SMALLER
+   (cylinder ≪ sphere-of-M_b). Also found: the old layer's lognormal moments
+   E[λ²] DIVERGE (cells with σ_b~30–150 at barN~1e-20), so analytic comparisons
+   must be linearized (or MC), and any unweighted max/moment statistic is junk —
+   use barN·κ̄-weighted quantiles.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.
