@@ -414,8 +414,15 @@ user explicitly asks, under their supervision.**
    low-pass filtered at fixed comoving R_bg (~heaviest-halo Lagrangian
    radius), realized on a fixed coarse grid, bias-scaled per (M,z); behind a
    `bias_model` flag (legacy 0 default). Prediction/validation gate: also
-   kills the κ_thr≳3e-3 blow-up. Open diagnostic first: M_b/M validity map
-   at the default (needs rmax(M,z) exposed). Full note:
+   kills the κ_thr≳3e-3 blow-up. **M_b/M validity map DONE (2026-07-16,
+   `scripts/convergence/mb_validity_map.py` → `data/results/mb_validity/report.md`,
+   `plots/mb_validity_map.png`; no C++ change — reuses the validated Python port):**
+   the paper's "M_b ≫ typical lens masses" claim FAILS at high z_s even at the
+   default grid — bias-variance-weighted median M_b/M = 14/8.3/3.1/2.2 at
+   z_s=0.2/1/5/10 (fixed-⟨N⟩ rule; ~zero weight above M_b/M=100 anywhere), and
+   INVERTS under refinement (Nz=400: 83–100% of the weight has M_b<M at z_s≥5).
+   The physical-vs-comoving rmax² wart in Mb (×(1+z)² if fixed) softens z_s=1
+   but not the high-z_s verdict. Full note:
    `docs/nz_bias_convergence_note.md`; evidence chain
    `data/results/vark_nz/mechanism_note.md`; figures
    `plots/nz_tail_mechanism.png`, `plots/vark_total_vs_nz.png`.
@@ -445,6 +452,50 @@ user explicitly asks, under their supervision.**
    E[λ²] DIVERGE (cells with σ_b~30–150 at barN~1e-20), so analytic comparisons
    must be linearized (or MC), and any unweighted max/moment statistic is junk —
    use barN·κ̄-weighted quantiles.
+   **Design converged (2026-07-15, whiteboard session + lit study; full note:
+   `docs/bias_field_design_note.md`):** one correlated Gaussian field δ_1D(χ) per
+   realization from a mode sum, σ_n² = (L/2)·P_1D(k_n) per Re/Im component (KP91
+   pencil projection of P_lin with smooth transverse window; = Agrawal+17
+   lognormal-mock recipe; pad L ≳ 2χ(z_max) against periodicity); all (M,z) cells
+   ride it via b(M,z) (which carries D(z)); modulation exp(bδ−½b²σ²) (model 1,
+   supervisor's write-up) or the conditional first-crossing ratio
+   T·pFC(δ_c(z)−δ₀, S(M)−S_env)/pFC(δ_c(z),S(M))/C (model 2 candidate — positive,
+   mass-budget-saturating, nonlinear b_n self-consistent, enforces R_⊥>R_L(M)
+   structurally). Window floor R_⊥ ≥ R_L(M) = halo Lagrangian radius (PBS/
+   separate-universe validity; heavy bins M ≳ few×1e14 force the per-mass floor).
+   Plan: `bias_model` flag 0=legacy(bitwise default)/1/2. **CODE FINDING:
+   `halobias` uses q=0.75 but `pFC` uses q=0.8 — bias is not the PBS response of
+   the code's own HMF (few % at high ν); test = consistency relation
+   ∫M n̄ b dM/ρ̄_m = 1; filament bias should derive from pFCfil.** Also settled:
+   Poisson-given-field is the CORRECT limit for tube sampling (thinning
+   (rmax/R_⊥)² ~ 1e-4 kills mass-conservation anti-correlations; do NOT subtract
+   drawn halos from the field). turboGL precedent: its split scale k_L is
+   CALIBRATED (exp(3.9−4.6z) Mpc⁻¹, λ_L≈13 Mpc at z=1 ≈ our R_L(M_max)); tails
+   need N-body in this whole method class ⇒ "don't quote f(κ>1)" rule survives
+   the fix. Validation plan (ξ_hh = b₁b₂ξ_1D acceptance test, consistency
+   relation, JSD(old,new), R_⊥ scan) in the note §7.
+   **C++ WIRING DONE (2026-07-16, ⚠ Mac `make build` + bitwise gate PENDING):**
+   `bias_model` (0=legacy iid default / 1=correlated 1D field) + `bias_Rperp`
+   (comoving kpc) plumbed through `LensingConfig`, `SamplingParams`, all 5
+   py::args, `get_simulator_config`; `cosmology.h` gained public `Pk0(k)`
+   (growth-free P(k), sigmalist normalization). `lensing.cpp::BiasField1D`:
+   KP91 disk-window P_1D table → EXACT mode-sum shell covariance (L=1.05χ(z_s),
+   N_max=L/R_⊥ floored at 4, capped 5e6; trig-recursion, resync every 4096
+   modes; log-k quadrature was tried and REJECTED — can't resolve the ~1e4 sinc
+   oscillations, 2.5% σ error) → Cholesky; per-realization per-shell field
+   drawn up front (float, Nreal×n_shells — 158 MB at Nreal=400k, keep shards
+   small), λ=exp(bDgδ̄−½(bDg)²σ̄²) replaces the iid draw; same λ multiplies
+   filaments. Model-1 RNG consumption sits at ONE fixed point; model-0 stream
+   untouched (bitwise gate must confirm after build). Pre-build validation
+   PASSED: `playground/bias_field/validate_field_covariance.py` (numpy verbatim
+   replica vs independent notebook-grade reference: |ΔCov| ~1e-6 over
+   R_⊥=8.4kpc–840Mpc at z_s=1,5; Cholesky 1e-13; ⟨λ⟩=1). After Mac build run:
+   `$PY playground/bias_field/validate_field_covariance.py --module` (smoke) +
+   `make pytest` (incl. bitwise). R_⊥→PDF scan ready:
+   `scripts/convergence/rperp_pdf_scan.py mc` then `report` (z_s={1,5}, 16
+   masses 1e5–1e20 M⊙ via R_⊥=R_L(M), anchors legacy/nobias, 240k/arm,
+   kappa_anchor=1 (NEW study opts into the robust anchor), seed namespace
+   9.5e8) → `data/results/rperp_pdf_scan/report.md`, `plots/rperp_pdf_scan.png`.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

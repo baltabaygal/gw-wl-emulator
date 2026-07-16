@@ -244,9 +244,17 @@ private:
     vector<vector<double> > zt;
     
 public:
-    
+
     // halo bias b(M,z)
     double halobias(double z, double sigma);
+
+    // growth-free linear matter power spectrum P(k) [kpc^3] in the code's
+    // convention: Delta^2(k) = (ck/H0)^(3+ns) (deltaH8 TM(k))^2 with NO Dg
+    // factor — the same normalization as the sigmalist tables, so consumers
+    // multiply by Dg(z) at the amplitude level (bias field layer, 2026-07-16).
+    double Pk0(double k) {
+        return 2.0*pow(PI,2.0)*pow(Deltak(k, deltaH8),2.0)/pow(k,3.0);
+    }
     
     // star formation rate
     double fstar(double z, double M, double Mc, double Mt, double epsilon, double alpha, double beta);

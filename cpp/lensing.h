@@ -106,6 +106,25 @@ struct LensingConfig {
   int kappa_anchor = 0;
   double kappa_anchor_cut = 1.0;
   double kappa_anchor_value = 0.0;
+
+  // Bias (clustering) layer model (2026-07-16, docs/bias_field_design_note.md):
+  //   0 = legacy: independent log-normal count modulation per (jz,jM) cell with
+  //       sigma_b = Dg(z) b(M,z) sigma(M_b) keyed to the tube-segment mass M_b
+  //       (default; bit-identical to the pre-change behavior, seed-for-seed).
+  //       Known pathology: no continuum limit — refining Nz (or raising
+  //       kappa_thr via rmax) makes the iid draws wilder without bound
+  //       (docs/nz_bias_convergence_note.md).
+  //   1 = correlated 1D field: ONE Gaussian delta_1D(chi) along the LOS
+  //       (KP91 pencil projection of the code's own linear P(k) through a
+  //       transverse disk window of comoving radius bias_Rperp), periodic mode
+  //       spectrum with L = 1.05 chi(z_s), modes k_n = 2 pi n / L up to
+  //       k_max = 2 pi / bias_Rperp (N_max = L/R_perp, floored at 4). Every
+  //       (jz,jM) cell reads the segment average of its z-shell and rides the
+  //       field via b(M,z) Dg(z); lambda = exp(bDg dbar - (bDg)^2 sig2/2) keeps
+  //       <N> = Nbar exact. Realized via the exact shell-covariance Cholesky
+  //       (equal in law to the mode sum).
+  int bias_model = 0;
+  double bias_Rperp = 3000.0;   // comoving kpc; only used when bias_model = 1
 };
 
 

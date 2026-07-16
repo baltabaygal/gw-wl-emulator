@@ -91,6 +91,8 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.kappa_anchor = sp.kappa_anchor;
     cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
     cfg.kappa_anchor_value = sp.kappa_anchor_value;
+    cfg.bias_model = sp.bias_model;
+    cfg.bias_Rperp = sp.bias_Rperp;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
     auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
@@ -282,6 +284,8 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.kappa_anchor = sp.kappa_anchor;
     cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
     cfg.kappa_anchor_value = sp.kappa_anchor_value;
+    cfg.bias_model = sp.bias_model;
+    cfg.bias_Rperp = sp.bias_Rperp;
 
     LnmuSampleDiagnostics out;
     out.lnmu = L.sample_lnmu(C, z, mt, cfg);

@@ -47,6 +47,8 @@ struct SamplingParams {
     int kappa_anchor = 0;          // mean-kappa anchor: 0 legacy batch mean (default, bit-identical),
     double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
     double kappa_anchor_value = 0.0; // used only when kappa_anchor == 2
+    int bias_model = 0;            // 0 legacy iid cell bias (default, bit-identical); 1 correlated 1D field
+    double bias_Rperp = 3000.0;    // comoving kpc transverse window radius (bias_model = 1 only)
 };
 
 struct LnmuSampleDiagnostics {

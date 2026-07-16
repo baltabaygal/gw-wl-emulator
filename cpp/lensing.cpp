@@ -7,6 +7,7 @@
 #include <limits>
 #include <stdexcept>
 #include <gsl/gsl_sf_gamma.h>
+#include <gsl/gsl_sf_bessel.h>
 
 double Sigmacf(cosmology &C, double zs, double zl) {
     // angular diameter distances
@@ -313,6 +314,184 @@ double NhfCYL(cosmology &C, double zs, double kappathr) {
 
 
 /* ---------------------------------------------------------------------------------------------------------------------------------------------- */
+/*                                       Correlated 1D environment field for the bias layer (bias_model = 1)                                       */
+/* ---------------------------------------------------------------------------------------------------------------------------------------------- */
+//
+// Replaces the legacy iid per-(jz,jM) log-normal count modulation with segment
+// averages of ONE Gaussian field delta_1D(chi) along the LOS (2026-07-16;
+// design: docs/bias_field_design_note.md, prototype:
+// playground/bias_field/field1d_prototype.ipynb).
+//
+//   P_1D(kpar; Rperp) = (1/2pi) int dkperp kperp P0(sqrt(kpar^2+kperp^2))
+//                       * Wdisk(kperp Rperp)^2            (KP91 eq. 3.8)
+//   modes k_n = 2 pi n / L, L = 1.05 chi(z_s), n = 1..N_max = L/Rperp
+//   (floored at 4); per-mode field variance 2 P_1D(k_n)/L.
+//
+// The per-z-shell SEGMENT AVERAGES of the periodic truncated mode sum form a
+// Gaussian vector with covariance
+//   Cov_ij = sum_n (2/L) P_1D(k_n) cos(k_n (c_i - c_j)) snc_i(k_n) snc_j(k_n),
+//   snc_i(k) = sin(k L_i / 2)/(k L_i / 2),
+// which is realized exactly (equal in law to drawing the modes) by a Cholesky
+// factor: dbar = chol * g, g ~ N(0,1)^n. The mode sum is evaluated EXACTLY for
+// all N_max (a log-k quadrature was tried and rejected: it cannot resolve the
+// ~1e4 sinc oscillations and erred at the 2.5% level on sigma — see
+// playground/bias_field/validate_field_covariance.py). Trig recursion keeps
+// the worst case (N_max ~ 1e6 at Rperp ~ 8 kpc) at a few seconds, one-off.
+// P0(k) is the GROWTH-FREE linear power (cosmology::Pk0) — the same
+// normalization as the sigmalist tables; growth enters per cell via
+// b(M,z_l) Dg(z_l), exactly as in the legacy layer (Baumann 5.129 convention).
+
+struct BiasField1D {
+    int n = 0;                        // number of z-shells (jz = 1 .. n, zlist[jz] < zs)
+    double Rperp = 0.0, L = 0.0;
+    long Nmax = 0;                    // mode count L/Rperp (>= 4)
+    std::vector<double> sig2;         // Cov_ii per shell (z=0 field, segment-averaged)
+    std::vector<double> chol;         // lower-triangular Cholesky of Cov, row-major n*n
+
+    // shell index for a given jz (cells at jz have chi in [dc(z_{jz-1}), dc(z_jz)])
+    inline int shell(int jz) const { return (jz >= 1 && jz <= n) ? jz - 1 : -1; }
+
+    void build(cosmology &C, double zs, double Rp) {
+        Rperp = Rp;
+        // ---- shells
+        std::vector<double> clo, chi_;
+        for (int jz = 1; jz < C.Nz && C.zlist[jz] < zs; jz++) {
+            clo.push_back(C.dc(C.zlist[jz-1]));
+            chi_.push_back(C.dc(C.zlist[jz]));
+        }
+        n = static_cast<int>(clo.size());
+        if (n == 0) return;
+
+        L = 1.05*C.dc(zs);
+        Nmax = std::max(4L, static_cast<long>(std::floor(L/Rperp)));
+        if (Nmax > 5000000L) {
+            throw std::invalid_argument("bias_Rperp too small: N_max = L/Rperp > 5e6 modes");
+        }
+        const double kmin = 2.0*PI/L;
+        const double kmax = 2.0*PI*static_cast<double>(Nmax)/L;
+
+        // ---- P_1D table (log-log interpolated; disk window via GSL J1)
+        const int nkperp = 2048, nktab = 600;
+        const double Rw = std::max(Rperp, 10.0);          // window floor, as in the prototype
+        const double kperp_lo = 1.0e-9, kperp_hi = 60.0/Rw;
+        const double dlnkp = log(kperp_hi/kperp_lo)/(nkperp - 1);
+        std::vector<double> kperp(nkperp), W2(nkperp);
+        for (int i = 0; i < nkperp; i++) {
+            kperp[i] = kperp_lo*exp(dlnkp*i);
+            double x = kperp[i]*Rperp;
+            double Wd = (x < 1.0e-6) ? 1.0 : 2.0*gsl_sf_bessel_J1(x)/x;
+            W2[i] = Wd*Wd;
+        }
+        std::vector<double> lktab(nktab), lPtab(nktab);
+        const double lk0 = log(0.5*kmin), lk1 = log(kmax);
+        for (int t = 0; t < nktab; t++) {
+            double lk = lk0 + (lk1 - lk0)*t/(nktab - 1);
+            double kpar = exp(lk);
+            // trapezoid in ln kperp of kperp^2 P0 W^2 (notebook P1D, verbatim)
+            double s = 0.0, fprev = 0.0;
+            for (int i = 0; i < nkperp; i++) {
+                double kk = sqrt(kpar*kpar + kperp[i]*kperp[i]);
+                double f = kperp[i]*kperp[i]*C.Pk0(kk)*W2[i];
+                if (i > 0) s += 0.5*(f + fprev)*dlnkp;
+                fprev = f;
+            }
+            lktab[t] = lk;
+            lPtab[t] = log(std::max(s/(2.0*PI), 1.0e-300));
+        }
+        auto P1D = [&](double k) {
+            double lk = log(k);
+            if (lk <= lktab.front()) return exp(lPtab.front());
+            if (lk >= lktab.back())  return exp(lPtab.back());
+            int t = static_cast<int>((lk - lktab.front())/(lktab[1] - lktab[0]));
+            t = std::min(t, nktab - 2);
+            double f = (lk - lktab[t])/(lktab[t+1] - lktab[t]);
+            return exp((1.0 - f)*lPtab[t] + f*lPtab[t+1]);
+        };
+
+        // ---- covariance: EXACT mode sum, k_q = 2 pi q / L, q = 1..Nmax.
+        // Phases at the shell EDGES advance by a fixed rotation per mode
+        // (uniform k grid), so no per-mode sincos is needed; resynced every
+        // 4096 modes against drift. sinc terms come from the edge phases:
+        //   cos(k c_i) snc_i = [sin(k b_i) - sin(k a_i)] / (k Lh_i)
+        //   sin(k c_i) snc_i = [cos(k a_i) - cos(k b_i)] / (k Lh_i)
+        std::vector<double> a(n), b(n), Lh(n);
+        for (int i = 0; i < n; i++) {
+            a[i]  = clo[i];
+            b[i]  = chi_[i];
+            Lh[i] = chi_[i] - clo[i];
+        }
+        std::vector<double> Cov(static_cast<size_t>(n)*n, 0.0);
+        std::vector<double> ca(n), sa(n), cb(n), sb(n);       // phases at edges
+        std::vector<double> ra_c(n), ra_s(n), rb_c(n), rb_s(n); // per-mode rotations
+        const double dk = 2.0*PI/L;
+        for (int i = 0; i < n; i++) {
+            ra_c[i] = cos(dk*a[i]); ra_s[i] = sin(dk*a[i]);
+            rb_c[i] = cos(dk*b[i]); rb_s[i] = sin(dk*b[i]);
+        }
+        std::vector<double> cq(n), sq(n);
+        for (long q = 1; q <= Nmax; q++) {
+            double kq = dk*static_cast<double>(q);
+            if (q == 1 || (q & 4095) == 0) {                  // init / resync
+                for (int i = 0; i < n; i++) {
+                    ca[i] = cos(kq*a[i]); sa[i] = sin(kq*a[i]);
+                    cb[i] = cos(kq*b[i]); sb[i] = sin(kq*b[i]);
+                }
+            } else {                                          // rotate by dk
+                for (int i = 0; i < n; i++) {
+                    double c0 = ca[i], s0 = sa[i];
+                    ca[i] = c0*ra_c[i] - s0*ra_s[i];
+                    sa[i] = s0*ra_c[i] + c0*ra_s[i];
+                    c0 = cb[i]; s0 = sb[i];
+                    cb[i] = c0*rb_c[i] - s0*rb_s[i];
+                    sb[i] = s0*rb_c[i] + c0*rb_s[i];
+                }
+            }
+            double rw = sqrt(2.0*P1D(kq)/L);                  // per-mode field std
+            for (int i = 0; i < n; i++) {
+                double inv = 1.0/(kq*Lh[i]);
+                cq[i] = rw*(sb[i] - sa[i])*inv;               // cos(k c) snc
+                sq[i] = rw*(ca[i] - cb[i])*inv;               // sin(k c) snc
+            }
+            for (int i = 0; i < n; i++) {
+                double *row = &Cov[static_cast<size_t>(i)*n];
+                double ci = cq[i], si = sq[i];
+                for (int jj = 0; jj <= i; jj++)
+                    row[jj] += ci*cq[jj] + si*sq[jj];
+            }
+        }
+        for (int i = 0; i < n; i++)
+            for (int jj = i + 1; jj < n; jj++)
+                Cov[static_cast<size_t>(i)*n + jj] = Cov[static_cast<size_t>(jj)*n + i];
+
+        sig2.assign(n, 0.0);
+        double trace = 0.0;
+        for (int i = 0; i < n; i++) {
+            sig2[i] = Cov[static_cast<size_t>(i)*n + i];
+            trace += sig2[i];
+        }
+
+        // ---- Cholesky (PSD by construction; tiny relative jitter for roundoff)
+        const double jitter = 1.0e-12*trace/n;
+        for (int i = 0; i < n; i++) Cov[static_cast<size_t>(i)*n + i] += jitter;
+        chol.assign(static_cast<size_t>(n)*n, 0.0);
+        for (int i = 0; i < n; i++) {
+            for (int jj = 0; jj <= i; jj++) {
+                double s = Cov[static_cast<size_t>(i)*n + jj];
+                for (int kk = 0; kk < jj; kk++)
+                    s -= chol[static_cast<size_t>(i)*n + kk]*chol[static_cast<size_t>(jj)*n + kk];
+                if (i == jj) {
+                    chol[static_cast<size_t>(i)*n + i] = sqrt(std::max(s, 0.0));
+                } else {
+                    double d = chol[static_cast<size_t>(jj)*n + jj];
+                    chol[static_cast<size_t>(i)*n + jj] = (d > 0.0) ? s/d : 0.0;
+                }
+            }
+        }
+    }
+};
+
+
+/* ---------------------------------------------------------------------------------------------------------------------------------------------- */
 /*                                                    PDF of amplifications                                                                       */
 /* ---------------------------------------------------------------------------------------------------------------------------------------------- */
 
@@ -349,6 +528,12 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // dynamic floor; brute mode resolves everything, so combining them double-counts.
     if (cfg.subhalo && cfg.subhalo_model == 3 && cfg.subhalo_brute) {
         throw std::invalid_argument("subhalo_brute is incompatible with subhalo_model 3 (use model 1 or 2 for brute references)");
+    }
+    if (cfg.bias_model != 0 && cfg.bias_model != 1) {
+        throw std::invalid_argument("bias_model must be 0 (legacy iid cell bias) or 1 (correlated 1D field)");
+    }
+    if (cfg.bias_model == 1 && cfg.bias_Rperp <= 0.0) {
+        throw std::invalid_argument("bias_model = 1 requires bias_Rperp > 0 (comoving kpc)");
     }
     using Clock = std::chrono::steady_clock;
     auto elapsed_seconds = [](Clock::time_point start) {
@@ -418,9 +603,36 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         writeToFile(C.zlist, C.Mlist, dNH, C.outdir/"dNH.dat");
         writeToFile(C.zlist, C.Mlist, dNF, C.outdir/"dNF.dat");
     }
-    
+
     array<double,2> kappagamma;
     normal_distribution<double> pG(0.0, 1.0);
+
+    // bias_model = 1: draw the correlated per-shell environment field for ALL
+    // realizations up front (the sampling loops below are cell-major, so shell
+    // jz needs every realization's field value when its cells are processed).
+    // This is the ONLY model-1 RNG consumption outside the shared code path;
+    // model 0 draws nothing here and is bit-identical to the legacy stream.
+    // Memory: Nreal * n_shells floats (e.g. 400k * 99 = 158 MB at the default
+    // Nreal — use smaller batches per process for production scans).
+    BiasField1D bfield;
+    std::vector<float> bfvals;
+    if (cfg.bias_model == 1) {
+        bfield.build(C, zs, cfg.bias_Rperp);
+        if (bfield.n > 0) {
+            const int nsh = bfield.n;
+            bfvals.resize(static_cast<size_t>(cfg.Nreal)*nsh);
+            std::vector<double> g(nsh);
+            for (int j = 0; j < cfg.Nreal; j++) {
+                for (int i = 0; i < nsh; i++) g[i] = pG(mt);
+                for (int i = 0; i < nsh; i++) {
+                    double s = 0.0;
+                    const double *row = &bfield.chol[static_cast<size_t>(i)*nsh];
+                    for (int kk = 0; kk <= i; kk++) s += row[kk]*g[kk];
+                    bfvals[static_cast<size_t>(j)*nsh + i] = static_cast<float>(s);
+                }
+            }
+        }
+    }
     poisson_distribution<int> PN;
     double zl, M, rmaxH, rmaxF, r, phi, phiH, phiF, epsilon = 0.0, barNH, barNF, sigma, deltab, lambda;
     int NH, NF;
@@ -452,6 +664,20 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     rsF = 1000.0*pow(M/1.0e14, 1.0/3.0);
                     LF = 20000.0*pow(M/1.0e14, 1.0/3.0);
                     kappa0baseF = rsF * 14.4*C.rhoc*LF / Sigmac;
+                }
+
+                // bias_model = 1: cell amplitude b(M,z_l) Dg(z_l) (growth-free field)
+                // and this jz's shell index; the compensation uses the shell's own
+                // segment variance so <lambda> = 1 exactly. The same lambda multiplies
+                // the filament counts, as in the legacy layer.
+                int bsh = -1;
+                double bDg = 0.0, bcomp = 0.0;
+                if (cfg.bias_model == 1) {
+                    bsh = bfield.shell(jz);
+                    if (bsh >= 0) {
+                        bDg = C.Dg(zl)*C.halobias(zl, C.sigmalist[jM][1]);
+                        bcomp = 0.5*bDg*bDg*bfield.sig2[bsh];
+                    }
                 }
 
                 auto add_host = [&](int j) {
@@ -559,11 +785,20 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                 };
 
                 for (int j = 0; j < cfg.Nreal; j++) {
-                    
+
                     // bias
-                    deltab = sigma*pG(mt);
-                    lambda = exp(deltab - pow(sigma,2.0)/2.0); // log-normal
-                    
+                    if (cfg.bias_model == 1) {
+                        // correlated 1D field: this shell's segment average, cell bias
+                        // amplitude bDg; exact <lambda> = 1 bookkeeping via bcomp
+                        lambda = (bsh >= 0)
+                            ? exp(bDg*bfvals[static_cast<size_t>(j)*bfield.n + bsh] - bcomp)
+                            : 1.0;
+                    } else {
+                        // legacy: iid per-cell draw (bit-identical default path)
+                        deltab = sigma*pG(mt);
+                        lambda = exp(deltab - pow(sigma,2.0)/2.0); // log-normal
+                    }
+
                     if (cfg.bias == 0) {
                         lambda = 1.0;
                     }
