@@ -63,6 +63,18 @@ def arms():
     for lm in LOGM_LIST:
         out.append((f"m1e{lm:02d}",
                     dict(bias_model=1, bias_Rperp=float(RL_of_M(10.0 ** lm)))))
+    # joint arms (bias_weak: kappa_W conditional on the same field) — APPENDED
+    # so the counts-only arm enumeration indices (= shard seeds) are unchanged
+    # and the existing shard cache stays valid (2026-07-16)
+    for lm in LOGM_LIST:
+        out.append((f"w1e{lm:02d}",
+                    dict(bias_model=1, bias_Rperp=float(RL_of_M(10.0 ** lm)),
+                         bias_weak=True)))
+    # split-invariance check (weak-arm reviewer gate): moving kappa_thr
+    # (<N>=100 -> 300) only moves mass between the explicit and weak domains,
+    # both riding the same field — JSD(w1e14, wN300) should sit at the floor
+    out.append(("wN300", dict(bias_model=1, bias_Rperp=float(RL_of_M(1e14)),
+                              bias_weak=True, Nhalos=300)))
     return out
 
 
@@ -179,6 +191,12 @@ def stage_report(args):
                         f"| {r['jsd_leg']:.2e} | {r['jsd_nob']:.2e} | {r['floor']:.2e} "
                         f"| {r['sig']:.4f} | {r['q99']:.3f} | {r['q999']:.3f} "
                         f"| {r['invmu']:.4f} |")
+        if "wN300" in res and "w1e14" in res:
+            j300 = _jsd(_load(zs, "w1e14"), _load(zs, "wN300"), edges)
+            rows.append(f"\nSplit invariance (weak-arm gate): "
+                        f"JSD(w1e14 <N>=100, wN300 <N>=300) = {j300:.2e}  "
+                        f"(floors {res['w1e14']['floor']:.2e} / "
+                        f"{res['wN300']['floor']:.2e})")
         lines += rows
         summary[zs] = res
 
@@ -208,15 +226,25 @@ def stage_report(args):
 
         Ms = np.array([10.0 ** lm for lm in LOGM_LIST])
         get = lambda key: np.array([res[f"m1e{lm:02d}"][key] for lm in LOGM_LIST])
+        have_w = all(f"w1e{lm:02d}" in res for lm in LOGM_LIST)
+        getw = lambda key: np.array([res[f"w1e{lm:02d}"][key] for lm in LOGM_LIST])
         ax = axes[iz, 1]
         ax.loglog(Ms, get("jsd_leg"), "o-", color="#2a78d6", label="JSD vs legacy")
         ax.loglog(Ms, get("jsd_nob"), "s-", color="#1baf7a", label="JSD vs no-bias")
+        if have_w:
+            ax.loglog(Ms, getw("jsd_leg"), "o--", color="#2a78d6", mfc="none",
+                      label="joint (+weak) vs legacy")
+            ax.loglog(Ms, getw("jsd_nob"), "s--", color="#1baf7a", mfc="none",
+                      label="joint (+weak) vs no-bias")
         ax.loglog(Ms, get("floor"), ":", color="#8a8776", label="floor (halves)")
         ax.set_xlabel(r"$M_{\rm clust}$ [$M_\odot$] ($R_\perp = R_L(M)$)")
         ax.set_ylabel("JSD"); ax.set_title(f"$z_s={zs:g}$: PDF distance vs scale")
         ax.legend(fontsize=8, frameon=False)
         ax = axes[iz, 2]
         ax.semilogx(Ms, get("sig"), "o-", color="#2a78d6", label=r"$\sigma(\ln\mu)$")
+        if have_w:
+            ax.semilogx(Ms, getw("sig"), "o--", color="#2a78d6", mfc="none",
+                        label=r"$\sigma(\ln\mu)$ joint (+weak)")
         ax.axhline(res["legacy"]["sig"], color="k", ls="--", lw=1, label="legacy")
         ax.axhline(res["nobias"]["sig"], color="#e34948", ls=":", lw=1, label="no bias")
         ax2 = ax.twinx()

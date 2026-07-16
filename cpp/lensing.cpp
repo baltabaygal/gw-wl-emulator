@@ -401,7 +401,7 @@ struct BiasField1D {
     // positive exponential mixtures, near-linear in log — linear interp on
     // the log tables stays accurate even at b Dg sigma ~ O(1). Outside the
     // grid delta is clamped (Gaussian field: P(|d| > 6 sigma) ~ 2e-9).
-    static constexpr int NGRID_W = 97;
+    static constexpr int NGRID_W = 193;
     static constexpr double DGRID_SIG = 6.0;
     bool has_weak = false;
     std::vector<double> msum;         // per shell: sum_M m_iM
@@ -757,6 +757,35 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     for (int kk = 0; kk <= i; kk++) s += row[kk]*g[kk];
                     bfvals[static_cast<size_t>(j)*nsh + i] = static_cast<float>(s);
                 }
+            }
+        }
+    }
+
+    // bias_weak: conditional weak background, drawn from the SAME realized
+    // field values as the count modulation (Cox split of Campbell's theorem;
+    // see lensing.h). Consumes one normal per realization, at this fixed
+    // stream point. Degenerate n == 0 (z_s below the first grid shell) falls
+    // back to the legacy unconditional draw.
+    if (weak_conditional) {
+        if (bfield.n > 0) {
+            bfield.buildWeak(C, zs, kappathrH, 0.001*kappathr_default/kappathrH, skappaW);
+            const int nsh = bfield.n;
+            for (int j = 0; j < cfg.Nreal; j++) {
+                double sumS = 0.0, sumV = 0.0, Sw, Vw;
+                const float *fj = &bfvals[static_cast<size_t>(j)*nsh];
+                for (int i = 0; i < nsh; i++) {
+                    bfield.weakSV(i, static_cast<double>(fj[i]), Sw, Vw);
+                    sumS += Sw;
+                    sumV += Vw;
+                }
+                double kw = sumS + sqrt(std::max(sumV, 0.0))*pG(mt);
+                raw[j].kappa = kw;
+                raw[j].kappa_nosub = kw;
+            }
+        } else {
+            for (int j = 0; j < cfg.Nreal; j++) {
+                raw[j].kappa = PkappaW(mt);
+                raw[j].kappa_nosub = raw[j].kappa;
             }
         }
     }

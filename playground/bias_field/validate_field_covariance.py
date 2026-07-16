@@ -174,6 +174,97 @@ def compare(zs, Rperp, C):
     return dev_cov, dev_sig, abs(lam.mean() - 1.0)
 
 
+# ------------------------------------------------- weak arm (bias_weak) checks
+def weak_moments_cells(C, zs, kappathr, eps_floor=0.001):
+    """Per-cell sub-threshold Campbell moments m_iM = int nbar kappa and
+    v_iM = int nbar kappa^2 — numpy replica of cpp weakMomentsNFW (same
+    annulus stepping/measure/floor semantics as the port's sigmakappaW)."""
+    rmax, kappa0 = C.rmax_grid(zs, kappathr)
+    zl = C.zlist
+    dz = np.concatenate([[0.0], np.diff(zl)])
+    mask = np.broadcast_to(zl[:, None] < zs, (C.Nz, C.NM)).copy()
+    mask[0, :] = False
+    mask[:, 0] = False
+    r = np.where(rmax > 0.0, rmax, 1.0e-6)
+    pref = (2.0 * np.pi * 306.535 * (1 + zl[:, None]) ** 2
+            / C.Hz(zl)[:, None] * C.HMF0 * 0.01 * C.dlogM * dz[:, None])
+    m = np.zeros((C.Nz, C.NM))
+    v = np.zeros((C.Nz, C.NM))
+    alive = mask.copy()
+    Edlnr = np.exp(0.01)
+    while alive.any():
+        k = 2.0 * kappa0 * C.Fg0(r / C.rs)
+        m += np.where(alive, pref * r ** 2 * k, 0.0)
+        v += np.where(alive, pref * r ** 2 * k ** 2, 0.0)
+        r = np.where(alive, r * Edlnr, r)
+        alive &= k > eps_floor * kappathr
+    return m, v
+
+
+def weak_tables(C, f, mc, vc, ng=193, dsig=6.0):
+    """C++ buildWeak replica: per-shell log tables of T(d)=sum m lam,
+    V(d)=sum v lam on the uniform delta grid; returns interp closures + exact."""
+    n = f["n"]
+    a = C.biaslist * C.Dg(C.zlist)[:, None]          # (Nz,NM) bDg
+    tabs = []
+    for i in range(n):
+        jz = i + 1
+        si = np.sqrt(f["sig2"][i])
+        dg = np.linspace(-dsig * si, dsig * si, ng)
+        lam = np.exp(a[jz][None, :] * dg[:, None]
+                     - 0.5 * a[jz][None, :] ** 2 * f["sig2"][i])
+        T = lam @ mc[jz]
+        V = lam @ vc[jz]
+        tabs.append((dg, np.log(np.maximum(T, 1e-300)),
+                     np.log(np.maximum(V, 1e-300)), mc[jz].sum()))
+    def SV(i, d):
+        dg, lnT, lnV, ms = tabs[i]
+        x = np.clip(d, dg[0], dg[-1])
+        return (np.exp(np.interp(x, dg, lnT)) - ms,
+                np.exp(np.interp(x, dg, lnV)))
+    def SV_exact(i, d):
+        jz = i + 1
+        lam = np.exp(a[jz][None, :] * np.atleast_1d(d)[:, None]
+                     - 0.5 * a[jz][None, :] ** 2 * f["sig2"][i])
+        return (lam @ mc[jz] - mc[jz].sum(), lam @ vc[jz])
+    return SV, SV_exact
+
+
+def weak_check(zs, Rperp, C, rng):
+    kt = C.find_kappathr(zs, 100)
+    sigW = float(C.sigmakappaW(zs, kt))
+    mc, vc = weak_moments_cells(C, zs, kt)
+    dv = abs(vc.sum() - sigW ** 2) / sigW ** 2      # reviewer gate: sum v = sigma_W^2
+    f = cpp_field(C, zs, Rperp)
+    SV, SVx = weak_tables(C, f, mc, vc)
+    # interp accuracy at random delta in +-5 sigma_i (inside the clamp)
+    n = f["n"]
+    errS, errV = 0.0, 0.0
+    for i in range(0, n, 7):
+        d = rng.uniform(-5, 5, 40) * np.sqrt(f["sig2"][i])
+        S1, V1 = SV(i, d)
+        S0, V0 = SVx(i, d)
+        # S crosses zero — normalize by its RMS scale over the sampled deltas,
+        # not point-wise (point-wise blows up at the zero crossing)
+        errS = max(errS, np.max(np.abs(S1 - S0)) / (np.sqrt(np.mean(S0 ** 2)) + 1e-300))
+        errV = max(errV, np.max(np.abs(V1 / V0 - 1.0)))
+    # MC: <sum S> ~ 0, <sum V> ~ sigma_W^2, Var(sum S) vs linearized B^T C B
+    g = rng.standard_normal((40_000, n))
+    d = g @ f["chol"].T
+    Ssum = np.zeros(len(d)); Vsum = np.zeros(len(d))
+    for i in range(n):
+        S, V = SV(i, d[:, i])
+        Ssum += S; Vsum += V
+    a = C.biaslist * C.Dg(C.zlist)[:, None]
+    B = np.array([float(a[i + 1] @ mc[i + 1]) for i in range(n)])
+    lin = float(B @ f["Cov"] @ B)
+    print(f"zs={zs:4g} Rperp={Rperp:9.4g} kpc  dSumV={dv:.2e}  interp errS={errS:.2e} "
+          f"errV={errV:.2e}  <S>={Ssum.mean():+.2e} (sd {Ssum.std():.4f})  "
+          f"<V>/sigW^2={Vsum.mean()/sigW**2:.4f}  Var(S)/linBCB={Ssum.var()/lin:.3f}")
+    return dv < 1e-9 and errS < 2e-2 and errV < 2e-2 and \
+        abs(Ssum.mean()) < 5 * Ssum.std() / np.sqrt(len(d)) + 1e-9
+
+
 def module_smoke():
     """Layer 2 (after `make build` in the test env): drive the actual module."""
     sys.path.insert(0, str(REPO / "build"))
@@ -194,11 +285,27 @@ def module_smoke():
         ("field3M_2", dict(bias_model=1, bias_Rperp=3000.0)),   # determinism
         ("field800M", dict(bias_model=1, bias_Rperp=8.441e5)),  # ~homogeneous
         ("nobias",   dict(bias=False)),
+        ("weak",     dict(bias_model=1, bias_weak=True)),        # joint arm (Rperp default)
+        ("weak_2",   dict(bias_model=1, bias_weak=True)),        # determinism
+        ("countonly", dict(bias_model=1)),                       # same Rperp, no weak arm
     ):
         r = gw.sample_lensing_raw_ml(**base, **kw)
         kap[name] = np.asarray(r["kappa"])
-    det = np.array_equal(kap["field3M"], kap["field3M_2"])
+    det = np.array_equal(kap["field3M"], kap["field3M_2"]) and \
+        np.array_equal(kap["weak"], kap["weak_2"])
     ok &= det
+    # weak arm adds variance over counts-only at the same Rperp
+    okw = float(np.var(kap["weak"])) > float(np.var(kap["countonly"]))
+    ok &= okw
+    print(f"weak arm: Var joint={np.var(kap['weak']):.3e} > "
+          f"counts-only={np.var(kap['countonly']):.3e}  [{okw}]")
+    # guard: bias_weak without bias_model=1 must throw
+    try:
+        gw.sample_lensing_raw_ml(**base, bias_weak=True)
+        print("guard FAIL: bias_weak with bias_model=0 did not throw")
+        ok = False
+    except Exception:
+        print("guard ok: bias_weak with bias_model=0 throws")
     clip = lambda k: k[np.abs(k - np.median(k)) < 10 * np.std(k)]
     v = {k: float(np.var(clip(v_))) for k, v_ in kap.items()}
     print(f"determinism (same seed, bias_model=1): {det}")
@@ -221,6 +328,7 @@ def main():
         module_smoke()
         return
     ok = True
+    rng = np.random.default_rng(2026_07_16)
     for zs in (1.0, 5.0):
         C = Cosmo(Nz=100)
         rho = C.rhoM0
@@ -229,7 +337,10 @@ def main():
             dev_cov, dev_sig, dlam = compare(zs, RL, C)
             # acceptance: table-interpolation-level agreement + exact bookkeeping
             ok &= dev_cov < 1e-3 and dev_sig < 1e-3 and dlam < 5e-3
-    print("PASS" if ok else "FAIL: covariance deviates beyond table-interp error")
+        print(f"-- weak arm (bias_weak) layer, zs={zs:g}:")
+        for M in (1e11, 1e14, 1e17):
+            ok &= weak_check(zs, (3.0 * M / (4.0 * PI * rho)) ** (1.0 / 3.0), C, rng)
+    print("PASS" if ok else "FAIL: covariance/weak layer deviates beyond gates")
     sys.exit(0 if ok else 1)
 
 
