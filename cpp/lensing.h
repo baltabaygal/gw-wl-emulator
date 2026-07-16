@@ -124,7 +124,33 @@ struct LensingConfig {
   //       <N> = Nbar exact. Realized via the exact shell-covariance Cholesky
   //       (equal in law to the mode sum).
   int bias_model = 0;
-  double bias_Rperp = 3000.0;   // comoving kpc; only used when bias_model = 1
+  // Comoving transverse window radius, kpc; only used when bias_model = 1.
+  // Default = R_L(1e14 Msun) at the fiducial cosmology (2026-07-16 decision):
+  // the clustering-variance-weighted signal scale at z_s <= 1 (where the
+  // clustering share of Var(kappa) and the GW source population sit), PBS-
+  // valid for the median signal-carrying cell; turboGL's calibrated
+  // lambda_L agrees at the z~1 pivot only (their k_L = exp(3.9-4.6z)/Mpc is
+  // z-dependent — weak corroboration of the scale, none of the fixedness).
+  // Deliberately NOT chosen by matching the legacy layer (it
+  // happens to agree with legacy at z_s = 1 — observation, not criterion).
+  // Fixed number, NOT recomputed per cosmology (predictability).
+  double bias_Rperp = 8441.0;
+
+  // Weak (sub-threshold) arm of the correlated field (2026-07-16): when true,
+  // the background kappa_W is drawn CONDITIONALLY on the same per-shell field
+  // as the explicit counts (Cox-process split of Campbell's theorem):
+  //   E[kappa_W|delta] = sum_iM lambda_iM m_iM,  Var[kappa_W|delta] = sum_iM lambda_iM v_iM,
+  //   m_iM = int nbar kappa, v_iM = int nbar kappa^2 over sub-threshold annuli
+  //   (same integrand/measure/floor as sigmakappaW; sum v = sigma_W^2 checked
+  //   at build), lambda_iM = the count layer's mean-1 lognormal.
+  // Sampled as kappa_W = sum_i S_i(dbar_i) + N(0,1) sqrt(sum_i V_i(dbar_i)),
+  // S_i = sum_M m(lambda-1), V_i = sum_M v lambda (per-shell delta tables).
+  // Adds the 2-halo variance of the weak layer + the weak<->count covariance
+  // (both read the same realized field). Requires bias_model = 1 (throws
+  // otherwise); no-op when bias = 0. Default OFF: bias_model=1 alone stays
+  // the counts-only field model, stream-for-stream. NFW halos only (same
+  // scope as the legacy weak Gaussian) — filaments carry no weak arm.
+  bool bias_weak = false;
 };
 
 

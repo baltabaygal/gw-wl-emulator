@@ -14,7 +14,7 @@ __pycache__/
 dataL/
 dataUV/
 data/cache/
-
+*.npz
 # Packaging 
 dist/
 *.egg-info/

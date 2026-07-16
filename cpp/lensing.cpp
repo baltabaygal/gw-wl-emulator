@@ -341,6 +341,52 @@ double NhfCYL(cosmology &C, double zs, double kappathr) {
 // normalization as the sigmalist tables; growth enters per cell via
 // b(M,z_l) Dg(z_l), exactly as in the legacy layer (Baumann 5.129 convention).
 
+// Per-cell sub-threshold Campbell moments for the weak arm (bias_weak):
+//   m[jz][jM] = int nbar kappa,  v[jz][jM] = int nbar kappa^2
+// over the sub-threshold annuli (r from rmax outward to the eps floor), with
+// the SAME integrand, log-annulus measure, stepping, and floor semantics as
+// sigmakappaW — so that sum_{jz,jM} v == sigmakappaW^2 (asserted at build
+// time; the only difference vs sigmakappaW is per-cell bookkeeping, i.e.
+// summation associativity).
+static void weakMomentsNFW(cosmology &C, double zs, double kappathr, double eps_floor,
+                           vector<vector<double> > &m, vector<vector<double> > &v) {
+    m.assign(C.Nz, vector<double>(C.NM, 0.0));
+    v.assign(C.Nz, vector<double>(C.NM, 0.0));
+    double zl, dz, M, dlnM, dndlnM, r, kappar;
+    double dlnr = 0.01;
+    double Edlnr = exp(dlnr);
+    for (int jz = 1; jz < C.Nz; jz++) {
+        zl = C.zlist[jz];
+        dz = zl - C.zlist[jz-1];
+        if (zl < zs) {
+            for (int jM = 1; jM < C.NM; jM++) {
+                M = C.Mlist[jM];
+                dlnM = log(M) - log(C.Mlist[jM-1]);
+                dndlnM = C.HMFlist[jz][jM][0];
+
+                r = rmaxfNFW(C, zs, zl, M, kappathr);
+                if (r == 0.0) {
+                    r = 1.0e-6;
+                }
+
+                double SigmacW = Sigmacf(C, zs, zl);
+                vector<double> NFWpW = interpolate2(zl, M, C.zlist, C.Mlist, C.NFWlist);
+                double rsW = NFWpW[0];
+                double kappa0W = kappa0NFW(rsW, NFWpW[1], SigmacW);
+
+                kappar = kappathr;
+                while (kappar > eps_floor*kappathr) {
+                    kappar = kappagammaNFWeps(0.0, kappa0W, r/rsW, 0.0)[0];
+                    double pref = CLIGHT*2.0*PI*pow((1.0+zl)*r,2.0)/C.Hz(zl)*dndlnM*dlnr*dlnM*dz;
+                    m[jz][jM] += pref*kappar;
+                    v[jz][jM] += pref*pow(kappar,2.0);
+                    r = r*Edlnr;
+                }
+            }
+        }
+    }
+}
+
 struct BiasField1D {
     int n = 0;                        // number of z-shells (jz = 1 .. n, zlist[jz] < zs)
     double Rperp = 0.0, L = 0.0;
@@ -348,8 +394,77 @@ struct BiasField1D {
     std::vector<double> sig2;         // Cov_ii per shell (z=0 field, segment-averaged)
     std::vector<double> chol;         // lower-triangular Cholesky of Cov, row-major n*n
 
+    // ---- weak (sub-threshold) arm tables, built only when bias_weak (see
+    // lensing.h): per shell i, on a uniform delta grid over +-DGRID_SIG
+    // sigma_i, log tables of T_i(delta) = sum_M m_iM lambda_iM(delta) and
+    // V_i(delta) = sum_M v_iM lambda_iM(delta); S_i = T_i - msum_i. Both are
+    // positive exponential mixtures, near-linear in log — linear interp on
+    // the log tables stays accurate even at b Dg sigma ~ O(1). Outside the
+    // grid delta is clamped (Gaussian field: P(|d| > 6 sigma) ~ 2e-9).
+    static constexpr int NGRID_W = 97;
+    static constexpr double DGRID_SIG = 6.0;
+    bool has_weak = false;
+    std::vector<double> msum;         // per shell: sum_M m_iM
+    std::vector<double> lnT, lnV;     // row-major n*NGRID_W
+
     // shell index for a given jz (cells at jz have chi in [dc(z_{jz-1}), dc(z_jz)])
     inline int shell(int jz) const { return (jz >= 1 && jz <= n) ? jz - 1 : -1; }
+
+    // weak-arm lookup: conditional mean shift S and Campbell variance V of
+    // shell i at field value delta (linear interp of the log tables)
+    inline void weakSV(int i, double delta, double &S, double &V) const {
+        double si = sqrt(sig2[i]);
+        double half = DGRID_SIG*si;
+        double x = std::min(std::max(delta, -half), half);
+        double t = (x + half)/(2.0*half)*(NGRID_W - 1);
+        int g = std::min(static_cast<int>(t), NGRID_W - 2);
+        double f = t - g;
+        const double *rT = &lnT[static_cast<size_t>(i)*NGRID_W];
+        const double *rV = &lnV[static_cast<size_t>(i)*NGRID_W];
+        S = exp((1.0 - f)*rT[g] + f*rT[g+1]) - msum[i];
+        V = exp((1.0 - f)*rV[g] + f*rV[g+1]);
+    }
+
+    // Build the weak-arm tables. skappaW = sigmakappaW(...) with the SAME
+    // kappathr/eps_floor — used for the sum_v == sigma_W^2 consistency gate.
+    void buildWeak(cosmology &C, double zs, double kappathr, double eps_floor,
+                   double skappaW) {
+        if (n == 0) return;
+        vector<vector<double> > mc, vc;
+        weakMomentsNFW(C, zs, kappathr, eps_floor, mc, vc);
+        double sv = 0.0;
+        for (int jz = 0; jz < C.Nz; jz++)
+            for (int jM = 0; jM < C.NM; jM++) sv += vc[jz][jM];
+        if (fabs(sv - skappaW*skappaW) > 1.0e-9*skappaW*skappaW) {
+            throw std::runtime_error("bias_weak: sum of per-cell v moments != sigma_W^2 "
+                                     "(weakMomentsNFW drifted from sigmakappaW)");
+        }
+        msum.assign(n, 0.0);
+        lnT.assign(static_cast<size_t>(n)*NGRID_W, 0.0);
+        lnV.assign(static_cast<size_t>(n)*NGRID_W, 0.0);
+        for (int i = 0; i < n; i++) {
+            int jz = i + 1;
+            double zl = C.zlist[jz];
+            double Dgz = C.Dg(zl);
+            double si = sqrt(sig2[i]);
+            for (int g = 0; g < NGRID_W; g++) {
+                double delta = (-DGRID_SIG + 2.0*DGRID_SIG*g/(NGRID_W - 1))*si;
+                double T = 0.0, V = 0.0;
+                for (int jM = 1; jM < C.NM; jM++) {
+                    double mm = mc[jz][jM];
+                    if (mm <= 0.0 && vc[jz][jM] <= 0.0) continue;
+                    double a = Dgz*C.halobias(zl, C.sigmalist[jM][1]);
+                    double lam = exp(a*delta - 0.5*a*a*sig2[i]);
+                    T += mm*lam;
+                    V += vc[jz][jM]*lam;
+                }
+                lnT[static_cast<size_t>(i)*NGRID_W + g] = log(std::max(T, 1.0e-300));
+                lnV[static_cast<size_t>(i)*NGRID_W + g] = log(std::max(V, 1.0e-300));
+            }
+            for (int jM = 1; jM < C.NM; jM++) msum[i] += mc[jz][jM];
+        }
+        has_weak = true;
+    }
 
     void build(cosmology &C, double zs, double Rp) {
         Rperp = Rp;
@@ -535,6 +650,10 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     if (cfg.bias_model == 1 && cfg.bias_Rperp <= 0.0) {
         throw std::invalid_argument("bias_model = 1 requires bias_Rperp > 0 (comoving kpc)");
     }
+    if (cfg.bias_weak && cfg.bias_model != 1) {
+        throw std::invalid_argument("bias_weak requires bias_model = 1 (the correlated field "
+                                    "supplies the conditioning); it is a no-op when bias = 0");
+    }
     using Clock = std::chrono::steady_clock;
     auto elapsed_seconds = [](Clock::time_point start) {
         return std::chrono::duration<double>(Clock::now() - start).count();
@@ -576,9 +695,14 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         cout << "Error: negative standard deviation." << endl;
     }
     
+    // bias_weak (+ field + bias on): the weak background is drawn CONDITIONALLY
+    // on the field, which is only available after the field block below — the
+    // initial fill is skipped and done there instead. All other paths keep the
+    // legacy fill here (bit-identical stream for bias_model = 0).
+    const bool weak_conditional = cfg.bias_weak && cfg.bias_model == 1 && cfg.bias != 0;
     vector<RealizationRaw> raw(cfg.Nreal);
     for (int j = 0; j < cfg.Nreal; j++) {
-        raw[j].kappa = PkappaW(mt);
+        raw[j].kappa = weak_conditional ? 0.0 : PkappaW(mt);
         raw[j].gamma1 = 0.0;
         raw[j].gamma2 = 0.0;
         raw[j].kappa_nosub = raw[j].kappa;   // paired baseline starts from the weak part
@@ -612,11 +736,14 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // jz needs every realization's field value when its cells are processed).
     // This is the ONLY model-1 RNG consumption outside the shared code path;
     // model 0 draws nothing here and is bit-identical to the legacy stream.
+    // bias == 0 (nobias control arms) skips the build entirely — lambda is
+    // forced to 1 in the loop, so the field would be dead weight (and its
+    // RNG draws would needlessly shift the halo stream vs bias_model = 0).
     // Memory: Nreal * n_shells floats (e.g. 400k * 99 = 158 MB at the default
     // Nreal — use smaller batches per process for production scans).
     BiasField1D bfield;
     std::vector<float> bfvals;
-    if (cfg.bias_model == 1) {
+    if (cfg.bias_model == 1 && cfg.bias != 0) {
         bfield.build(C, zs, cfg.bias_Rperp);
         if (bfield.n > 0) {
             const int nsh = bfield.n;

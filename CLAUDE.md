@@ -491,11 +491,108 @@ user explicitly asks, under their supervision.**
    replica vs independent notebook-grade reference: |ΔCov| ~1e-6 over
    R_⊥=8.4kpc–840Mpc at z_s=1,5; Cholesky 1e-13; ⟨λ⟩=1). After Mac build run:
    `$PY playground/bias_field/validate_field_covariance.py --module` (smoke) +
-   `make pytest` (incl. bitwise). R_⊥→PDF scan ready:
-   `scripts/convergence/rperp_pdf_scan.py mc` then `report` (z_s={1,5}, 16
-   masses 1e5–1e20 M⊙ via R_⊥=R_L(M), anchors legacy/nobias, 240k/arm,
-   kappa_anchor=1 (NEW study opts into the robust anchor), seed namespace
-   9.5e8) → `data/results/rperp_pdf_scan/report.md`, `plots/rperp_pdf_scan.png`.
+   `make pytest` (incl. bitwise). Mac gates ALL PASSED 2026-07-16 (build,
+   11/11 incl. bitwise, layer-1 |ΔCov|~3e-6, module smoke). Post-review fix:
+   `bias=False` + `bias_model=1` now skips the field build/draws entirely
+   (was dead weight; nobias arms across bias_model values are NOT
+   stream-identical by construction). Known deviation kept for now: L=1.05χ
+   pad vs design note's ≳2χ — measured wrap leakage ≤1.6% on last-shell σ,
+   end-to-end corr −1.4e-2 vs −4.9e-3 at pad 3 (revisit later).
+   **R_⊥→PDF scan DONE (2026-07-16, `scripts/convergence/rperp_pdf_scan.py
+   mc|report`, z_s={1,5}, 14 masses 1e7–1e20 M⊙ via R_⊥=R_L(M) = 39 kpc–844
+   Mpc, anchors legacy/nobias, 240k/arm, kappa_anchor=1, subprocess shards,
+   seed namespace 9.5e8 → `data/results/rperp_pdf_scan/report.md`,
+   `plots/rperp_pdf_scan.png`, PDF-only detail `plots/rperp_pdf_only.png`
+   via the `pdfplot` stage):** PDF response is MONOTONE in R_⊥ — smaller
+   window ⇒ more power in δ_1D ⇒ wider body + heavier tail; saturates to the
+   nobias PDF above R_⊥ ≈ 20–40 Mpc (JSD vs nobias at floor). NO single
+   global R_⊥ reproduces legacy at both z_s: legacy ≈ field @ R_⊥≈8 Mpc
+   (M=1e14) at z_s=1 (JSD 1.4e-4 = floor) but ≈ field @ R_⊥≲0.2–0.8 Mpc
+   (M=1e9–1e11) at z_s=5 — the sweep directly exhibits the legacy layer's
+   z-drifting effective scale (same pathology as the M_b/M validity map).
+   At the PBS-motivated R_⊥=R_L(M_max)≈18 Mpc (≈turboGL λ_L) the one-field
+   clustering widens σ(lnμ) only +2.5%/+1.3% (z=1/5) over nobias vs legacy's
+   +10%/+9% ⇒ a global heavy-mass window kills most clustering variance for
+   light cells; per-mass R_⊥ (model 2 / R_L(M) floor) is where the real
+   answer lies. Dynamic range across the scan: σ(lnμ) up to +62%/+18%
+   (z=1/5) over nobias at R_⊥=39–84 kpc; q99.9(μ) 2.9/10.7 vs nobias
+   1.75/6.0. Gotcha: raw ⟨1/μ⟩ in small-R_⊥ arms is single-monster-ray junk
+   (one lnμ=−20 demagnified ray ⇒ ⟨1/μ⟩=2377 at z=1/m1e9; top-ray-removed
+   =1.06) — known κ≫1 artifact, use trimmed means only.
+   **DEFAULT bias_Rperp = 8441 kpc = R_L(1e14 M⊙) (2026-07-16, user decision
+   from the scan + weighted-scale calc; supervisor sign-off pending):** the
+   clustering-variance-weighted (w=(barN·κ̄·b̃)², cell_tables port) R_L
+   quantiles are median/90%/99% = 8.3/14/19 Mpc at z_s=0.2, 6.1/11/17 at
+   z_s=1, 3.3/7.6/12 at z_s=5, 2.8/7.1/12 at z_s=10 — so 8.4 Mpc = the
+   low-z signal scale (where the clustering share of Var(κ) is largest,
+   12–25% at z_s≤1, and where the GW events are), PBS-valid at the median
+   signal cell; turboGL λ_L≈13 Mpc corroborates at the z≈1 pivot ONLY
+   (k_L=exp(3.9−4.6z)/Mpc is z-dep. and its κ_L plays a different role —
+   additive split, not an environment window; supports the scale, not the
+   fixedness). **Legacy-match is NOT a criterion (user
+   ruling 2026-07-16: legacy passing its own consistency test ≠ correct;
+   ACE ⟨κ²⟩ gap is independent evidence against it)** — the exact z_s=1
+   agreement with legacy in the scan is an after-the-fact cross-check only.
+   Honest caveat: on purely internal grounds anything in ~4–12 Mpc is
+   defensible (weighted median drifts 8.3→2.8 Mpc over z_s 0.2→10), which
+   strengthens the case for the per-mass R_L(M) extension. Known accepted
+   costs: PBS marginal for the heaviest ~10% of weight at low z_s; z_s=5
+   departs from legacy (σ 0.237 vs 0.249 — legacy invalid there per the
+   M_b/M map). Fixed comoving
+   number, NOT recomputed per cosmology. Rejected: 18 Mpc strict-PBS
+   (clustering nearly inert, +2.5%/+1.3% σ) ; per-mass R_L(M) windows =
+   model-2/follow-up (needs cross-mass P_1D^{ab} covariance + joint
+   shell×mass Cholesky in C++). Updated in lensing.h, lnmu_wrapper.h, all 5
+   py::args + config dict, validate smoke; rebuilt, 11/11 incl. bitwise,
+   default ≡ explicit 8441 seed-for-seed. Runs made 2026-07-16 BEFORE the
+   flip (incl. the rperp scan arms) used explicit bias_Rperp values —
+   unaffected; anything that relied on the 3000 kpc placeholder default must
+   pass bias_Rperp=3000 explicitly to reproduce.
+   **Clustering-share systematics (2026-07-16, `tmp/rperp_zoom.py` +
+   `tmp/rperp_z_and_N.py`, arms cached in the scan mc dir at 240k–960k;
+   figs `plots/rperp_zoom_8to18.png`, `plots/rperp_zoom_z05_z10.png`,
+   `plots/clustering_vs_N.png`):** within the candidate window band the PDF
+   is soft — 8.44 vs 10 Mpc unresolvable at 960k; 8.44→18.2 Mpc = −5% σ at
+   z_s=1 (coherent ±3–5% peak/shoulder tilt, ~1/3 of the nobias distance).
+   Clipped-core clustering share of Var(lnμ) at R_⊥=8.44 Mpc:
+   13.0/9.4/4.8/4.2% at z_s=0.5/1/5/10 (18.2 Mpc: 4.2/4.1/2.2/1.7%) —
+   clustering matters most at LOW z_s and the window choice matters most
+   there too. **⟨N⟩ mechanism CONFIRMED:** share grows monotonically with
+   the explicit-halo count, 9.4→11.3→14.6% (±0.5, clipped, shard-jackknife)
+   at ⟨N⟩=100/300/1000, z_s=1 — because ONLY explicit counts are
+   field-modulated (κ_W Gaussian is not), so raising ⟨N⟩ converts
+   unmodulated background into modulated Poisson. RAW-variance shares are
+   tail-noise junk (26±4% at N=300 — non-monotonic artifact; the old "clip
+   or jackknife" rule applies to lnμ too). Production implication: do NOT
+   raise ⟨N⟩ (cost ∝ N for +2.6 share points per 3×); the efficient
+   completion is the joint-framework weak arm (same field modulates the
+   clustered part of σ_W + count–weak covariance, 2S_ew≈2S_ww, sized
+   12–25% of Var at z_s≤1) at unchanged ⟨N⟩=100 cost.
+   **Weak-arm PDF-level MC DONE (2026-07-16,
+   `scripts/convergence/bias_field_weak_arm.py` →
+   `data/results/bias_field_weak_arm/report.md`,
+   `plots/bias_field_weak_arm.png`, seed namespace 9.7e8):** the clustered
+   weak background κ_W,clust = Σ_jz s_w[jz]·v_jz (SAME realized field as the
+   counts; amplitudes from the validated joint-sizing bookkeeping, windowed
+   + pencil brackets) measured in the prototype MC with PAIRED arms (base =
+   shipped counts-only bias_model=1 replica; weak terms are deterministic
+   given the field, so same draws), 2×100k, z_s∈{0.2,1,5}: windowed arm adds
+   **+11/+23/+52% to clipped Var(κ)** (matches analytic S_ww+2S_ew to ~1%
+   at z_s≤1 — MC⇄sizing cross-validated), **JSD vs base 1.6–2.0e-2 nats**
+   (≈2–3× the emulator's whole KL budget 7.3e-3; floor 2.8e-4; pencil
+   bracket 4.6–9.3e-2). Structure: the effect is dominantly the LOW-κ flank
+   (underdense-LOS demagnification spread — counts-only saturates at zero
+   halos and can't express it); the high tail barely moves. Legacy iid ≈
+   counts-only field at z_s=1 (JSD 1.7e-3) ⇒ both current models miss the
+   term about equally. **Verdict: material at PDF level — the C++ weak arm
+   is warranted (supervisor decision pending).** Implementation flags:
+   (a) prototype term is LINEAR in δ̄ — at z_s=0.2 the pencil arm pushes κ
+   below the empty-beam floor; the C++ version should modulate the per-shell
+   weak MEAN RATE with the same mean-1 lognormal λ form as counts (positive,
+   respects empty beam); (b) amplitudes inherit the untruncated-NFW ≲×1.5–2
+   inflation (framework flag 1); (c) ACE tension: adds body variance on top
+   of the +36–42% ⟨κ²⟩ overshoot (flag 2); (d) it moves the low-μ edge, so
+   the emulator's edge/flux calibration must be refit after retraining.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

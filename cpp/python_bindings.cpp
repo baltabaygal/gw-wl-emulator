@@ -50,7 +50,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp) {
+           int bias_model, double bias_Rperp, bool bias_weak) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -67,6 +67,7 @@ PYBIND11_MODULE(gwlensing, m) {
             SamplingParams samp;
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
+            samp.bias_weak = bias_weak;
             samp.Nreal  = Nreal;
             samp.seed   = seed;
             samp.fil    = filaments ? 1 : 0;
@@ -131,7 +132,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
         py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 3000.0
+        py::arg("bias_Rperp") = 8441.0,
+        py::arg("bias_weak") = false
     );
 
 
@@ -144,7 +146,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp) {
+           int bias_model, double bias_Rperp, bool bias_weak) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -169,6 +171,7 @@ PYBIND11_MODULE(gwlensing, m) {
             SamplingParams samp;
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
+            samp.bias_weak = bias_weak;
             samp.Nreal  = nsamples;
             samp.seed   = seed;
             samp.fil    = 1;
@@ -228,7 +231,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
         py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 3000.0,
+        py::arg("bias_Rperp") = 8441.0,
+        py::arg("bias_weak") = false,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
@@ -241,7 +245,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp) {
+           int bias_model, double bias_Rperp, bool bias_weak) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -283,6 +287,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.kappa_anchor_value = kappa_anchor_value;
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
+            samp.bias_weak = bias_weak;
 
             auto diag = sample_lnmu_with_diagnostics(z, cosmo, samp);
 
@@ -327,7 +332,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
         py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 3000.0,
+        py::arg("bias_Rperp") = 8441.0,
+        py::arg("bias_weak") = false,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -340,7 +346,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double subhalo_factor, double custom_kappathr, double kappathr_flat, double Mmin,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
-           int bias_model, double bias_Rperp) {
+           int bias_model, double bias_Rperp, bool bias_weak) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -389,6 +395,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cfg.kappathr_flat = kappathr_flat;
             cfg.bias_model = bias_model;
             cfg.bias_Rperp = bias_Rperp;
+            cfg.bias_weak = bias_weak;
 
             auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
 
@@ -442,7 +449,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
         py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 3000.0,
+        py::arg("bias_Rperp") = 8441.0,
+        py::arg("bias_weak") = false,
         "Return raw (kappa, gamma1, gamma2) realizations for diagnostics."
     );
 
@@ -471,7 +479,8 @@ PYBIND11_MODULE(gwlensing, m) {
             d["kappa_anchor_cut"] = 1.0;
             d["kappa_anchor_value"] = 0.0;
             d["bias_model"] = 0;            // 0 legacy iid cell bias, 1 correlated 1D field
-            d["bias_Rperp"] = 3000.0;       // comoving kpc (bias_model = 1 only)
+            d["bias_Rperp"] = 8441.0;       // comoving kpc = R_L(1e14 Msun) fiducial (bias_model = 1 only)
+            d["bias_weak"] = false;         // weak arm: kappa_W conditional on the field
 
             // derived power spectrum normalization (cheap: no sigma(M)/HMF tables)
             cosmology C;
@@ -515,7 +524,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp) {
+           int bias_model, double bias_Rperp, bool bias_weak) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -549,6 +558,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.kappa_anchor_value = kappa_anchor_value;
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
+            samp.bias_weak = bias_weak;
 
             LnmuStats s = fast
                 ? compute_lnmu_stats_fast(z, cosmo, samp)
@@ -591,7 +601,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
         py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 3000.0
+        py::arg("bias_Rperp") = 8441.0,
+        py::arg("bias_weak") = false
     );
 
     m.def(

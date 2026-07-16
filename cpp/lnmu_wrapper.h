@@ -48,7 +48,8 @@ struct SamplingParams {
     double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
     double kappa_anchor_value = 0.0; // used only when kappa_anchor == 2
     int bias_model = 0;            // 0 legacy iid cell bias (default, bit-identical); 1 correlated 1D field
-    double bias_Rperp = 3000.0;    // comoving kpc transverse window radius (bias_model = 1 only)
+    double bias_Rperp = 8441.0;    // comoving kpc transverse window radius = R_L(1e14) (bias_model = 1 only)
+    bool bias_weak = false;        // weak arm: kappa_W conditional on the field (requires bias_model = 1)
 };
 
 struct LnmuSampleDiagnostics {

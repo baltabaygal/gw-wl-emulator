@@ -181,7 +181,7 @@ def module_smoke():
     ok = True
 
     cfgd = gw.get_simulator_config()
-    ok &= cfgd["bias_model"] == 0 and abs(cfgd["bias_Rperp"] - 3000.0) < 1e-12
+    ok &= cfgd["bias_model"] == 0 and abs(cfgd["bias_Rperp"] - 8441.0) < 1e-12
     print(f"config dict: bias_model={cfgd['bias_model']} "
           f"bias_Rperp={cfgd['bias_Rperp']}  [{'ok' if ok else 'BAD'}]")
 
