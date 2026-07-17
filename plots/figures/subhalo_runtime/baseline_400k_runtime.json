@@ -1,0 +1,20 @@
+{
+  "parameters": {
+    "z": 1.0,
+    "h": 0.674,
+    "OmegaM": 0.315,
+    "sigma8": 0.811,
+    "Nreal": 400000,
+    "seed": 42,
+    "subhalo": false,
+    "Mmin": 10000000.0
+  },
+  "machine": {
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "Apple M5"
+  },
+  "seconds": 52.32712637499935,
+  "valid_samples": 399120,
+  "mean_mu": 1.0085090673632178,
+  "std_mu": 0.8981706641301322
+}

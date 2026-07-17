@@ -1,0 +1,9 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_partition_vs_kthr.py",
+  "generated": "2026-07-09T08:15:45.132001Z",
+  "git_commit": "378ea05",
+  "source_data": "data/sigma_partition_vs_kthr_z1.npz",
+  "notes": "zs=1, halo-only (filaments/bias/ell/subhalo off); background floor held at kappa_min = 1e-3 * kappa_thr(N=100) = 1.28e-7; sigma_total from sample_lensing_raw_ml with custom_kappathr; errors from 4th moment.",
+  "output_png": "paper_prod/plots/figures/sigma_partition_vs_kthr.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_kthr.pdf"
+}

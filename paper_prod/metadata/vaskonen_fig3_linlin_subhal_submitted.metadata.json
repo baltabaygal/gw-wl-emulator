@@ -1,0 +1,8 @@
+{
+  "script": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+  "command": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache /Users/baltabay/Desktop/gw-wl-emulator/data/vaskonen_fig3_linlin_subhalos_strict_n400000.json",
+  "generated": "2026-07-09T12:24:06.380271Z",
+  "git_commit": "211a370",
+  "seed": 240706,
+  "nreal": 400000
+}

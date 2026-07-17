@@ -13,7 +13,8 @@ __pycache__/
 # Generated data from C++ runs
 dataL/
 dataUV/
-
+data/cache/
+*.npz
 # Packaging 
 dist/
 *.egg-info/
@@ -28,3 +29,14 @@ Thumbs.db
 # Logs
 *.log
 
+# Local workspace-only folders
+.claude/
+
+datasets*/
+ml/plots/
+
+# Forked external repo (independent git repo, tracked on its own fork)
+ace_lensing/
+
+# Local pyhalo virtualenv
+.venv_pyhalo/

@@ -1,0 +1,181 @@
+{
+  "audit_items": [
+    {
+      "impact": "Ordering does not affect either sum.",
+      "nsf_path": "Repeats the full event vector for each theta and sums per-event log probabilities.",
+      "simulator_path": "Groups events by rounded redshift, then accumulates histogram counts.",
+      "status": "pass",
+      "topic": "event_ordering"
+    },
+    {
+      "impact": "The smoke catalog uses exact support z={0.5,1.5,2.5}, so rounding is not active there; this would be unsafe for continuous-z catalogs.",
+      "nsf_path": "Uses each event's raw z value in the continuous context.",
+      "simulator_path": "Rounds z to two decimals and evaluates one simulator PDF per unique rounded z.",
+      "status": "conditional_pass",
+      "topic": "redshift_handling"
+    },
+    {
+      "impact": "No prior-bound mismatch for grid posterior benchmarks.",
+      "nsf_path": "Phase 3 grid construction only evaluates points inside the same prior bounds.",
+      "simulator_path": "Returns -inf outside the configured flat prior.",
+      "status": "pass",
+      "topic": "prior_truncation"
+    },
+    {
+      "impact": "The bin-width constant should not move a posterior on fixed bins, but simulator and NSF likelihood values are not absolute-density comparable.",
+      "nsf_path": "Uses raw continuous density with the learned lnmu standardization Jacobian.",
+      "simulator_path": "Uses fixed-bin histogram probability masses; the missing bin-width density constant is theta-independent for fixed bins.",
+      "status": "conditional_pass",
+      "topic": "normalization_constants"
+    },
+    {
+      "impact": "The simulator has an explicit low-probability floor and the NSF does not; tail events can receive systematically different leverage.",
+      "nsf_path": "Uses the flow density directly and raises on non-finite outputs.",
+      "simulator_path": "Adds 1e-12 to every histogram probability before logging.",
+      "status": "fail",
+      "topic": "zero_probability_handling"
+    },
+    {
+      "impact": "Out-of-range or edge-near events are treated differently by the two likelihoods.",
+      "nsf_path": "Does not clamp lnmu before density evaluation.",
+      "simulator_path": "Clamps catalog and simulator samples to (-0.500, 2.500) before histogramming.",
+      "status": "fail",
+      "topic": "clamping"
+    },
+    {
+      "impact": "Aggregation is a sum in both paths; the density approximation and tail handling differ.",
+      "nsf_path": "Sums log p(lnmu_j | z_j, theta) directly over events.",
+      "simulator_path": "Equivalent to summing log bin probabilities per event after redshift slicing.",
+      "status": "conditional_pass",
+      "topic": "per_event_accumulation"
+    },
+    {
+      "impact": "No explicit weighting mismatch found.",
+      "nsf_path": "Each catalog event contributes one log-density term.",
+      "simulator_path": "Each catalog event contributes one histogram count.",
+      "status": "pass",
+      "topic": "event_weighting"
+    },
+    {
+      "impact": "For fixed discrete redshifts, both implement the same catalog membership.",
+      "nsf_path": "Processes all events in one flattened batch while retaining event-level z.",
+      "simulator_path": "Slices by rounded redshift and sums slice likelihoods.",
+      "status": "pass",
+      "topic": "catalog_slicing"
+    }
+  ],
+  "blocking_mismatches": [
+    {
+      "impact": "The simulator has an explicit low-probability floor and the NSF does not; tail events can receive systematically different leverage.",
+      "nsf_path": "Uses the flow density directly and raises on non-finite outputs.",
+      "simulator_path": "Adds 1e-12 to every histogram probability before logging.",
+      "status": "fail",
+      "topic": "zero_probability_handling"
+    },
+    {
+      "impact": "Out-of-range or edge-near events are treated differently by the two likelihoods.",
+      "nsf_path": "Does not clamp lnmu before density evaluation.",
+      "simulator_path": "Clamps catalog and simulator samples to (-0.500, 2.500) before histogramming.",
+      "status": "fail",
+      "topic": "clamping"
+    }
+  ],
+  "catalog": {
+    "N": 1000,
+    "catalog_hash": "30a2af90543d24ef0da0d349d291d3513a6b3c74f4c5e3dab50895500edfd93b",
+    "lnmu_max": 0.8190125407659076,
+    "lnmu_min": -0.25822634464758726,
+    "outside_histogram_range_count": 0,
+    "path": "data/mock_catalogs/phase3/mixed_uniform_central_N1000_seed610001_57cb44ad1ef0f9d4.npz",
+    "z_counts": {
+      "0.50": 327,
+      "1.50": 340,
+      "2.50": 333
+    }
+  },
+  "checks": {
+    "catalog_finite": true,
+    "catalog_hash_matches_grid": true,
+    "checkpoint_hash_matches_file": true,
+    "current_simulator_commit": "59c107efc320264b2a6d91bf31a89e62760b5ca7",
+    "grid_integrity": {
+      "axis_OmegaM": {
+        "finite": true,
+        "size": 12,
+        "strictly_increasing": true
+      },
+      "axis_sigma8": {
+        "finite": true,
+        "size": 12,
+        "strictly_increasing": true
+      },
+      "nsf_log_likelihood": {
+        "finite": true,
+        "posterior_finite": true,
+        "posterior_sum": 0.9999999999999999,
+        "shape": [
+          12,
+          12
+        ]
+      },
+      "sim_log_likelihood": {
+        "finite": true,
+        "posterior_finite": true,
+        "posterior_sum": 1.0,
+        "shape": [
+          12,
+          12
+        ]
+      }
+    },
+    "grid_simulator_commit": "59c107efc320264b2a6d91bf31a89e62760b5ca7",
+    "metadata_hashes_present": {
+      "nsf_checkpoint_hash": true,
+      "preprocessing_stats_hash": true,
+      "simulator_git_commit": true
+    },
+    "preprocessing_hash_matches_file": true
+  },
+  "configuration": {
+    "grid_definition": {
+      "axes": {
+        "OmegaM": [
+          0.2,
+          0.4,
+          12
+        ],
+        "sigma8": [
+          0.65,
+          1.05,
+          12
+        ]
+      },
+      "fixed_h": 0.67,
+      "grid_type": "2d",
+      "resolution": [
+        12,
+        12
+      ]
+    },
+    "likelihood_version": "phase3_v1",
+    "prior_bounds": {
+      "OmegaM": [
+        0.2,
+        0.4
+      ],
+      "h": [
+        0.59,
+        0.76
+      ],
+      "sigma8": [
+        0.65,
+        1.05
+      ]
+    },
+    "simulator_nsim_per_z": 10000
+  },
+  "interpretation": "The catalog-level sum is consistent, but the simulator reference applies histogram clamping and a 1e-12 tail floor while the NSF evaluates an unclamped continuous density. Phase 3B should therefore treat the smoke failure as a real density/tail-handling mismatch unless single-z isolation points to a bookkeeping-only issue.",
+  "objective": "likelihood_construction_audit",
+  "phase": "3B",
+  "verdict": "fail"
+}

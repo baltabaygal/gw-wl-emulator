@@ -1,0 +1,2330 @@
+MNRAS 000, 1–18 (2021)
+
+Preprint 28 September 2021
+
+Compiled using MNRAS LATEX style file v3.0
+
+The tidal evolution of dark matter substructure – II. The impact of
+artificial disruption on subhalo mass functions and radial profiles
+Sheridan B. Green,1★ † Frank C. van den Bosch,1,2 and Fangzhou Jiang3,4 ‡
+1 Department of Physics, Yale University, P.O. Box 208120, New Haven, CT 06520-8120
+2 Department of Astronomy, Yale University, P.O. Box 208101, New Haven, CT 06520-8101
+
+arXiv:2103.01227v2 [astro-ph.GA] 26 Sep 2021
+
+3 TAPIR, California Institute of Technology, Pasadena, CA 91125
+4 Carnegie Observatories, 813 Santa Barbara Street, Pasadena, CA 91101
+
+ABSTRACT
+
+Several recent studies have indicated that artificial subhalo disruption (the spontaneous, non-physical disintegration of a subhalo)
+remains prevalent in state-of-the-art dark matter-only cosmological simulations. In order to quantify the impact of disruption
+on the inferred subhalo demographics, we augment the semi-analytical SatGen dynamical subhalo evolution model with an
+improved treatment of tidal stripping that is calibrated using the DASH database of idealized high-resolution simulations of
+subhalo evolution, which are free from artificial disruption. We also develop a model of artificial disruption that reproduces the
+statistical properties of disruption in the Bolshoi simulation. Using this framework, we predict subhalo mass functions (SHMFs),
+number density profiles, and substructure mass fractions and study how these quantities are impacted by artificial disruption
+and mass resolution limits. We find that artificial disruption affects these quantities at the 10 − 20% level, ameliorating previous
+concerns that it may suppress the SHMF by as much as a factor of two. We demonstrate that semi-analytical substructure
+modeling must include orbit integration in order to properly account for splashback haloes, which make up roughly half of the
+subhalo population. We show that the resolution limit of 𝑁-body simulations, rather than artificial disruption, is the primary
+cause of the radial bias in subhalo number density found in dark matter-only simulations. Hence, we conclude that the mass
+resolution remains the primary limitation of using such simulations to study subhaloes. Our model provides a fast, flexible, and
+accurate alternative to studying substructure statistics in the absence of both numerical resolution limits and artificial disruption.
+Key words: galaxies: haloes – cosmology: dark matter – methods: numerical
+
+1 INTRODUCTION
+The standard Λ cold dark matter (ΛCDM) cosmological model predicts that structure forms as the consequence of primordial dark
+matter overdensities that collapse to form self-bound haloes. Smaller
+perturbations collapse earlier and merge to form larger haloes, resulting in a hierarchical halo assembly process that spans all mass
+scales. By studying halo evolution via cosmological 𝑁-body simulations, it is clear that the tightly bound central regions of smaller
+haloes survive the merger process, persisting as orbiting subhaloes
+within the treacherous environment of their host halo, where they
+are subjected to dynamical friction and disruptive tidal forces (e.g.,
+Mo et al. 2010). Neglecting the impact of baryonic physics, this
+merger process is roughly self-similar due to the scale-free nature of
+gravitational collapse, ultimately resulting in an entire hierarchy of
+substructure, where subhaloes themselves host sub-subhaloes, and so
+on all the way down (Tormen et al. 1997; Gao et al. 2004; Kravtsov
+et al. 2004; Giocoli et al. 2010).
+The population statistics of dark matter (DM) substructure are most
+★ E-mail: sheridan.green@yale.edu (SBG)
+
+† NSF Graduate Research Fellow
+‡ Troesh Scholar
+© 2021 The Authors
+
+often summarized in terms of subhalo mass functions (SHMFs) and
+radial profiles; these summary statistics depend heavily on the underlying particle nature of DM. For example, the free-streaming cutoff
+scale, set by the DM thermal velocity, impacts the low-mass end of
+the SHMF (e.g., Knebe et al. 2008; Lovell et al. 2014; Colín et al.
+2015; Bose et al. 2017), while non-negligible DM self-interactions
+result in cored inner halo density profiles (e.g., Burkert 2000; Vogelsberger et al. 2012; Rocha et al. 2013), which impacts the survivability of substructure in the presence of tides (e.g., Peñarrubia
+et al. 2010). The predictions of substructure demographics made by
+these various dark matter models differ primarily at the low mass
+end. Consequently, many observational searches are underway in the
+attempt to constrain the abundance of low mass substructure, leveraging gravitational lensing (e.g., Dalal & Kochanek 2002; Keeton &
+Moustakas 2009; Vegetti et al. 2014; Shu et al. 2015; Hezaveh et al.
+2016; Gilman et al. 2020; Vattis et al. 2020), indirect detection via
+DM annihilation to 𝛾-rays or decay signals (e.g., Strigari et al. 2007;
+Pieri et al. 2008; Hayashi et al. 2016; Hiroshima et al. 2018; Delos
+2019; Facchinetti et al. 2020; Rico 2020; Somalwar et al. 2021), and
+gaps in stellar streams (e.g., Carlberg 2012; Ngan & Carlberg 2014;
+Erkal et al. 2016; Bonaca et al. 2020; Necib et al. 2020), among other
+approaches. Since satellite galaxies are inferred to live within sub-
+
+2
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+haloes, with their respective properties related via the galaxy-halo
+connection, DM substructure statistics are intimately connected to
+satellite galaxy abundances (e.g., Vale & Ostriker 2006; Hearin et al.
+2013; Behroozi et al. 2013; Newton et al. 2018; Nadler et al. 2019,
+2020a,b) and thus can be used to constrain cosmology through their
+impact on small-scale clustering statistics (e.g., Benson et al. 2001;
+Berlind et al. 2003; van den Bosch et al. 2005a; Lange et al. 2019; van
+den Bosch et al. 2019). Clearly, accurately modeling the evolution of
+DM subhalo populations is a prerequisite for their use as a cosmological probe and as a tool to study the particle nature of dark matter.
+Unfortunately, since the evolution of DM substructure is highly nonlinear, modeling all but the most idealized circumstances has proven
+analytically intractable. Thus, to date, cosmological 𝑁-body simulations have been the most common avenue used for studying the
+demographics of DM substructure.
+In recent years, cosmological simulations have successfully and
+repeatedly passed an important convergence test: as resolution is
+varied, the SHMFs remain in agreement above the 50–100 particle
+limit (e.g., Springel et al. 2008; Onions et al. 2012; Knebe et al.
+2013; van den Bosch & Jiang 2016; Griffen et al. 2016; Ludlow
+et al. 2019). While this is promising, the physical correctness of
+cosmological simulations is not guaranteed by the convergence of
+mass functions alone. Using the state-of-the-art Bolshoi simulation
+(Klypin et al. 2011), van den Bosch (2017) found that the evolved
+SHMF of surviving subhaloes looks identical to the SHMF of disintegrated subhaloes, noting that total subhalo disruption is prevalent.
+The inferred disruption rates from various studies are extremely high,
+with roughly 55-65% (90%) of subhaloes accreted at 𝑧 = 1 (2) being
+disrupted by the present day (Han et al. 2016; van den Bosch 2017;
+Jiang & van den Bosch 2017). Hayashi et al. (2003) has shown that
+the total binding energy of a halo that is instantaneously stripped
+down to a sufficiently small radius (encompassing roughly 5–10% of
+the original mass) can be positive; hence, the authors suggested that
+such systems could disrupt spontaneously. Motivated by this analysis, subsequent works have incorporated physical disruption via tidal
+stripping and heating into their models or used such an argument
+as a justification for their results (Zentner & Bullock 2003; Taylor
+& Babul 2004; Klypin et al. 2015; Garrison-Kimmel et al. 2017).
+Recently, however, van den Bosch et al. (2018) demonstrated that the
+boundedness of a subhalo remnant does not depend solely on the total binding energy, but rather on the radial distribution of the binding
+energies of the constituent particles. In fact, by using idealized simulations with sufficiently high resolution, van den Bosch et al. (2018)
+showed that it is possible for a self-bound remnant to survive even
+after 99.9% of the original mass has been stripped. More broadly,
+the study used analytical arguments to show that neither tidal heating
+nor tidal stripping alone are capable of causing complete physical
+disruption of cuspy CDM subhaloes (consistent with earlier work
+by Peñarrubia et al. 2010). As a follow-up, van den Bosch & Ogiya
+(2018) ran a suite of idealized numerical simulations, concluding
+that disruption of 𝑁-body subhaloes in cosmological simulations is
+largely numerical in nature and can be primarily attributed to (i) discreteness noise caused by insufficient particle resolution and (ii) inadequate softening of gravitational forces (see Mansfield & Avestruz
+2020 for a recent analysis of the impact of the force softening scale on
+various halo properties). In agreement with these findings, van den
+Bosch (2017) assessed that approximately 80% of subhalo disruption in the Bolshoi simulation is most likely numerical in nature (see
+Section 2.4 below for details).
+If the majority of subhalo disruption in cosmological simulations is
+indeed numerical, the implications for small-scale cosmology and astrophysics are profound. For example, a disruption-driven reduction
+MNRAS 000, 1–18 (2021)
+
+in subhalo statistics would result in systematic biases in predictions
+from subhalo abundance matching (e.g., Conroy et al. 2006; Vale &
+Ostriker 2006; Guo et al. 2010; Hearin et al. 2013; Chaves-Montero
+et al. 2016). Semi-analytical models of galaxy and dark matter substructure evolution (e.g., Taylor & Babul 2001; Peñarrubia & Benson 2005; Zentner et al. 2005; Diemand et al. 2007; Kampakoglou
+& Benson 2007; Gan et al. 2010; Pullen et al. 2014; Jiang & van
+den Bosch 2016; Benson 2020; Jiang et al. 2021; Yang et al. 2020)
+have historically been calibrated to reproduce the results of cosmological simulations and thus end up having inherited any systematic
+issues present in such simulations. As a specific example, Jiang &
+van den Bosch (2016) constructed a semi-analytical model that accurately matches the statistics of subhaloes in the Bolshoi simulation
+by simply tuning an orbit-averaged mass-loss rate and including an
+empirical model of subhalo disruption that, by construction, reproduces the disruption demographics in the simulation. As shown in
+Green & van den Bosch (2019, hereafter GB19), in the absence of
+such disruption, the normalization of the evolved SHMF predictions
+from Jiang & van den Bosch (2016) is boosted by a factor of two.
+Hence, depending on the fraction of subhalo disruption in cosmological simulations that is indeed artificial, it remains possible that
+such simulations (and derivative semi-analytical models) may be underestimating subhalo abundances by up to a factor of two. Such a
+systematic bias would have serious implications for dark matter indirect detection searches and could help explain the ‘galaxy clustering
+crisis’ in subhalo abundance matching (Campbell et al. 2018), since
+both of these applications, among others, depend heavily on evolved
+SHMFs from simulations. As long as the effects of artificial disruption remain as an unknown variable in the analysis of cosmological
+simulations, we will be unable to extract the maximum amount of
+cosmological and astrophysical information content that will soon be
+made available in various large upcoming surveys, including DESI,
+LSST, EUCLID, and WFIRST. Clearly, there is still work to be done
+towards better understanding the tidal evolution of DM substructure,
+hence the motivation of the present study.
+Recently, we released SatGen (Jiang et al. 2021), a semi-analytical
+modeling framework for studying galaxy and DM substructure evolution. The core components of the dark matter-only side of the
+framework include prescriptions for (i) analytical merger trees (Cole
+et al. 2000; Parkinson et al. 2008; Benson 2017), from which the
+internal properties of subhaloes at accretion are derived, (ii) orbital
+parameter distributions for infalling subhaloes (Zentner et al. 2005;
+Wetzel 2011; Jiang et al. 2015; Li et al. 2020), (iii) the integration of
+subhalo orbits, including dynamical friction (Chandrasekhar 1943),
+(iv) the evolved subhalo density profile, which captures how the internal structure of the subhalo responds to tidal heating and stripping
+(e.g., Hayashi et al. 2003; Peñarrubia et al. 2010; Drakos et al. 2017;
+Green & van den Bosch 2019; Errani & Navarro 2020), and (v) the
+instantaneous mass-loss rate, which depends on the structure of both
+the host- and subhalo in addition to the orbit (e.g., Drakos et al.
+2020, this work). In contrast to Jiang & van den Bosch (2016), which
+followed van den Bosch et al. (2005b) by only considering orbitaveraged subhalo evolution, SatGen integrates individual subhalo
+orbits, thereby allowing for a proper treatment of splashback haloes
+(e.g., Ludlow et al. 2009; Aung et al. 2021; Diemer 2020a,b; Fong
+& Han 2020). As we will show, this treatment of splashback haloes
+is crucial for properly comparing model predictions with simulation
+results.
+The goal of this work is to build a semi-analytical model of substructure evolution that is independent of any tidal evolution-related
+numerical artifacts that may be present in cosmological simulations.
+Thus, in Ogiya et al. (2019), we introduced the Dynamical Aspects
+
+The impact of artificial disruption
+of SubHaloes (DASH) database, a large library of idealized, highresolution 𝑁-body simulations of the tidal evolution of individual
+subhaloes. This simulation library has two key strengths: (i) the simulations span a wide range of parameter space, varying the initial
+orbital parameters and host- and subhalo concentrations and (ii) the
+live 𝑁-body subhaloes satisfy the strict set of convergence criteria
+laid out in van den Bosch & Ogiya (2018), suppressing numerical
+artifacts caused by discreteness noise and inadequate force softening. In GB19, we used DASH to calibrate a highly accurate, simply
+parametrized empirical model of the evolved subhalo density profile
+(ESHDP), which is unimpeded by numerical artifacts and is applicable to a far wider range of subhalo parameter space than that of
+previous works (Hayashi et al. 2003; Peñarrubia et al. 2010; Drakos
+et al. 2017). In this work, we use the results of GB19 as a component in a simple, physically motivated model of the instantaneous
+mass-loss rate. After calibrating this model to faithfully reproduce
+the subhalo mass trajectories across the range of DASH simulations,
+we incorporate it into SatGen, yielding the aforementioned artifactfree semi-analytical model. We use this tool to make predictions
+for evolved subhalo mass functions, radial profiles, and substructure
+mass fractions and compare these findings to Bolshoi as an independent attempt to quantify the impact of artificial disruption on the
+abundance of dark matter subhaloes in cosmological simulations.
+This paper is organized as follows. In Section 2, we describe
+our methods, giving an overview of SatGen and our modifications,
+which include the incorporation of the Li et al. (2020) orbital parameter model (summarized in Appendix A), the ESHDP model of
+GB19, and an improved, DASH-calibrated mass-loss rate. We also
+detail our procedures for modeling the impact of artificial disruption and calibrating the dynamical friction strength. In Section 3,
+we present the results of our augmented SatGen model, focusing
+on SHMFs, radial profiles, substructure mass fractions, and the numerical disruption rate in simulations. We conclude in Section 4 by
+summarizing our research program, highlighting the updates made
+to SatGen, and discussing our findings and their implications.
+The cosmology used throughout this work is consistent with that
+of the Bolshoi simulation (Klypin et al. 2011): Ωm = 0.270, ΩΛ =
+0.730, Ωb = 0.0469, ℎ = 0.7, 𝜎8 = 0.82, and 𝑛s = 0.985. The halo
+mass is defined as the mass enclosed within the virial radius, 𝑟 vir ,
+inside of which the mean density is equal to Δvir (𝑧) times the critical
+density. For the ΛCDM cosmology adopted in this work, Δvir (𝑧 =
+0) ≈ 100 and is otherwise well-described by the fitting formula
+presented by Bryan & Norman (1998). Throughout, we use 𝑚 and 𝑀
+to denote subhalo and host halo masses, respectively. We use 𝑙 and 𝑟 to
+reference subhalo- and host halo-centric radii, respectively. Projected
+radii are indicated by upper-case letters. The base-10 logarithm is
+denoted by log and the natural logarithm is denoted by ln.
+
+3
+
+2.1 Merger trees
+Given an input that includes host halo virial mass, 𝑀0 , redshift of
+observation, 𝑧 0 , and underlying cosmology, SatGen generates a userdefined number of halo merger trees that specify the subhalo masses
+and redshifts at which they are accreted by the main progenitor of
+each halo. Merger trees are constructed using the method of Parkinson et al. (2008), which is a modified version of the GALFORM ‘binary
+method with accretion’ introduced by Cole et al. (2000). As demonstrated in Jiang & van den Bosch (2014) and van den Bosch et al.
+(2014), this method yields results that are in excellent agreement with
+numerical simulations.1 As detailed in Jiang et al. (2021), we use the
+Parkinson et al. (2008) method with the updated set of parameters
+advocated for by Benson (2017) that are applicable to the Bryan &
+Norman (1998) virial halo mass definition. Each merger tree is characterized by a minimum progenitor mass, 𝑀res , which we set to be a
+fixed fraction, 𝜓res , of the final host halo mass, i.e., 𝑀res = 𝜓res 𝑀0 .
+The value of 𝜓res used varies depending on the application and is
+specified accordingly. Following Parkinson et al. (2008), the merger
+tree is sampled using small time steps of Δ𝑧 ≈ 10−3 ; however, in order to reduce memory usage, the tree is subsequently down-sampled
+to a temporal resolution of Δ𝑡 = min[0.1𝑡 dyn (𝑧), 0.06 Gyr], where
+√︁
+𝑡 dyn (𝑧) = 3𝜋/[16𝐺Δvir (𝑧) 𝜌c (𝑧)] is the redshift-dependent halo
+dynamical time (see Jiang & van den Bosch 2016). The maximum
+time step of 0.06 Gyr is motivated by convergence tests ran during
+the calibration of our subhalo mass-loss model, which we discuss in
+Section 2.3.2.
+Both host haloes and subhaloes at accretion are assumed to follow
+a Navarro-Frenk-White density profile (hereafter NFW; Navarro et al.
+1997) with a concentration parameter, 𝑐 vir ,2 that depends on mass
+and redshift (or time) according to the model introduced by Zhao
+et al. (2009):
+"
+ 8.4 # 1/8
+
+𝑡
+.
+(1)
+𝑐 vir (𝑀vir , 𝑡) = 4.0 1 +
+3.75𝑡 0.04
+Thus, the concentration of the halo at a proper time, 𝑡, is determined
+based on the time at which its main progenitor has accumulated a
+mass of 0.04𝑀vir (𝑡), denoted 𝑡0.04 . Each branch of the merger tree
+has its own virial mass accretion history, 𝑀vir (𝑡), that tracks the halo
+from the time that it attains a mass of 0.04𝑀res = 0.04𝜓res 𝑀0 until
+the time that it merges into a more massive halo. Note that in order
+to have well-defined concentrations for all progenitor haloes down to
+a ‘leaf mass’ of 𝑀res , we track the main progenitor branch of each
+leaf further back in time down to 0.04𝑀res .
+SatGen tracks subhaloes of all orders. The main branch, which
+follows the main progenitor of the 𝑧 = 𝑧 0 host halo back in time, is
+considered to be order-0. Subhaloes that are directly accreted onto
+the main host are order-1. These subhaloes themselves can host subsubhaloes, which are order-2, and so on. We use an inclusive mass
+definition in our merger trees, which means that the summed mass
+of all order-𝑘 subhaloes is included in the mass of their order-(𝑘 − 1)
+host. In some of our results (e.g., the SHMFs), we consider subhaloes
+
+2 METHODS
+Our work builds on the original SatGen model that is presented
+in Jiang et al. (2021); we refer the reader to that paper for any
+additional model details that are omitted below. In what follows, we
+highlight the salient features of SatGen and discuss in greater detail
+the new modifications that we make as part of this study. Fig. 1
+presents a schematic flowchart that summarizes all of the individual
+components of our framework.
+
+1
+
+As an aside, we acknowledge that several components of the model, including the analytical merger tree algorithm and the orbital parameter distribution
+model, are still calibrated to agree with cosmological simulations. However,
+the calibration of these components only depend on properties of unevolved
+subhaloes (i.e., prior to accretion) and hence are not adversely impacted by
+any artifacts that may manifest in their subsequent tidal evolution.
+2 We use 𝑐
+vir,h and 𝑐vir,s to refer to host- and subhalo concentrations, respectively.
+MNRAS 000, 1–18 (2021)
+
+4
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+Given:
+Halo of mass 𝑀0
+Redshift 𝑧0
+Cosmology
+
+Initial orbits (Appendix A):
+Sampled via universal orbital
+distribution of infalling subhaloes from Li et al. (2020)
+
+Merger trees (Section 2.1):
+Generated via Parkinson et al. (2008)
+algorithm, updated from Cole et al.
+(2000) and re-calibrated by Benson
+(2017); halo concentrations via Zhao
+et al. (2009)
+
+Orbit integration (Sections 2.2, 2.5):
+Subhaloes orbit hierarchically within
+evolving host halo potentials, integrated via 4th-order Runge–Kutta
+method; dynamical friction according
+to Chandrasekhar (1943) prescription,
+with 𝒂 DF ∝ 𝛽DF , a corrective factor
+
+Subhalo mass loss (Section 2.3.2):
+Instantaneous tidal radius, 𝑙t , computed via King (1962); stripping occurs at rate 𝑚
+¤ = −𝛼𝑚(> 𝑙t )/𝑡char (𝑟 ),
+with 𝛼 calibrated against the DASH
+simulations of Ogiya et al. (2019)
+
+Density profiles (Section 2.3.1):
+Haloes initialized as NFW density
+profiles and updated via Green & van
+den Bosch (2019) transfer function
+that accounts for tidal stripping and
+heating
+
+Output:
+𝑚(𝑧), r(𝑧), and v(𝑧) per subhalo
+Evolved SHMF
+Radial subhalo abundance
+Optional: List of ‘artificially disrupted’ subhaloes (Section 2.4)
+
+Figure 1. A flowchart that summarizes the SatGen framework employed in this study.
+
+of all orders; however, due to the inclusive mass definition, we only
+consider order-1 subhaloes for other results (e.g., the substructure
+mass fraction).
+2.2 Orbit integration
+Upon accretion, the initial orbital configuration (i.e., location on the
+virial sphere, orientation of the orbital plane, and the initial velocity
+vector) of each subhalo is drawn at random using the state-of-theart universal infall model of Li et al. (2020, see Appendix A for
+details). Note that this is a significant and important improvement
+over the approach taken in the original SatGen paper, where it was
+assumed that all subhaloes initially have an orbital energy of 𝐸 orb =
+2 /2 + Φ (𝑟 ), where 𝑉
+𝑉vir,h
+h vir
+vir,h and Φh are the instantaneous virial
+velocity and potential of the host halo, and a specific orbital angular
+momentum of 𝐿 orb = 𝜂𝑟 vir𝑉vir , where 𝜂 ∈ [0, 1] is drawn from a
+simple sinusoidal probability distribution, 𝑝(𝜂) = 𝜋 sin(𝜋𝜂)/2.
+Subhalo orbits are subsequently integrated according to the evolving potential of the immediate host and a simple prescription for dynamical friction. In particular, subhaloes are treated as point masses
+with phase space coordinates that are updated at each time step by
+integrating the following equation of motion:
+¥𝒓 = −∇Φh + 𝒂 DF .
+
+(2)
+
+The integration is performed using a fourth-order Runge–Kutta
+method. Here, 𝒓 is the host-centric position vector of the subhalo
+and 𝒂 DF is the acceleration due to dynamical friction (DF). The latter is modeled using the standard approach of Chandrasekhar (1943),
+which gives the acceleration as
+𝒗
+(3)
+𝒂 DF = −4𝜋𝐺 2 𝑚 ln Λ𝜌(𝒓)𝐹 (< 𝑣) 3
+𝑣
+(see Mo et al. 2010). Here, ln Λ = ln(𝑀/𝑚) is the Coulomb logarithm, 𝑀 and 𝑚 are the instantaneous masses of the host and subhalo,
+respectively, 𝜌(𝒓) is the host NFW density profile, 𝒗 is the relative
+velocity of the subhalo with respect to the host, and 𝐹 (< 𝑣) is the
+fraction of local host particles contributing to dynamical friction.
+The velocity distribution of the background particles is assumed to
+be Maxwellian and isotropic such that
+2
+2𝑋
+𝐹 (< 𝑣rel ) = erf(𝑋) − √ e−𝑋 .
+(4)
+𝜋
+√
+Here, 𝑋 ≡ 𝑣rel /( 2𝜎), where 𝜎(𝒓) is the one-dimensional isotropic
+velocity dispersion of the host, which we compute using the Jeans
+
+MNRAS 000, 1–18 (2021)
+
+equation for hydrostatic equilibrium in a spherical system (e.g., Binney & Tremaine 2008). We use the orbital velocity of the subhalo for
+𝒗 rel , ignoring the spin of the host halo.
+Because of its simplicity and ability to produce results in reasonable agreement with simulations, equation (3) has long been the
+standard approach for capturing dynamical friction in semi-analytical
+models. However, it is based on a number of assumptions (i.e., a point
+particle moving in an isotropic, homogeneous background of field
+particles) that are clearly not justified when modeling the orbital evolution of dark matter subhaloes. In order to account for these (and
+other, see Mo et al. 2010) inherent shortcomings, we multiply 𝒂 DF
+by a corrective factor, 𝛽DF , of order unity. We treat 𝛽DF as a free parameter, which allows us to adjust the overall strength of dynamical
+friction (see Section 2.5).
+2.3 Tidal stripping
+As a subhalo orbits its host, it is subjected to tidal stripping and
+tidal shock heating. As discussed in detail in van den Bosch et al.
+(2018), neither of these processes can be rigorously treated analytically. Consequently, all previous semi-analytical models of subhalo
+evolution have calibrated their treatments using cosmological simulations, thereby inheriting any shortcomings present within such
+simulations (i.e., artificial disruption). The primary goal of this work
+is to build a semi-analytical model of DM substructure evolution that
+is calibrated in a way such that its results are not sensitive to such
+numerical artifacts. We achieve this by calibrating our model against
+DASH, a large suite of idealized, high-resolution 𝑁-body simulations
+that track individual, live 𝑁-body subhaloes as they orbit a fixed, analytical host halo potential (Ogiya et al. 2019). Both the host halo and
+the initial 𝑁-body subhalo in DASH are modeled as spherical NFW
+haloes. DASH consists of 2,253 simulations spanning a wide range of
+relevant parameter space, including initial orbital energy and angular
+momentum, as well as the concentration parameters of both the hostand subhalo. The library consists of various data products generated
+from each simulation, including the phase space coordinates of the
+subhalo centre-of-mass, the subhalo radial density profile, 𝜌(𝑙, 𝑡),
+and the bound mass fraction, 𝑓bound ≡ 𝑚(𝑡)/𝑚 acc , where 𝑚 acc is the
+initial subhalo virial mass (i.e., the subhalo mass at accretion), each
+of which are recorded over 301 snapshots of time. Below, we use
+these results to calibrate a model that describes the evolution of the
+density profiles (Section 2.3.1) and bound masses (Section 2.3.2) of
+subhaloes as they orbit their host (note that the former is required for
+modeling the latter).
+
+The impact of artificial disruption
+2.3.1 The evolved subhalo density profile (ESHDP)
+In GB19, we used DASH to calibrate a model that describes how the
+internal structure of a subhalo evolves in response to tidal stripping
+and heating. In particular, motivated by the work of Hayashi et al.
+(2003) and Peñarrubia et al. (2010), GB19 present a ‘transfer function’ that describes the density profile of a tidally stripped subhalo
+as a function of its initial density profile and its instantaneous bound
+mass fraction, 𝑓bound . Consequently, the density profile of a subhalo
+at any time, 𝑡, is given by
+𝜌s (𝑙, 𝑡) = 𝐻 (𝑙 | 𝑓bound (𝑡), 𝑐 vir,s ) 𝜌s (𝑙, 𝑡acc ),
+
+(5)
+
+where 𝑐 vir,s is the concentration of the subhalo at accretion and 𝑡 acc
+denotes the time of accretion. The DASH-calibrated transfer function
+is given by
+𝐻 (𝑙 | 𝑓bound , 𝑐 vir,s ) =
+1+
+
+
+
+𝑙
+𝑙s
+
+𝑓te
+h
+
+𝑙vir −𝑙te
+𝑙vir 𝑙te
+
+i 𝛿 .
+
+(6)
+
+Here, 𝑓te , 𝑙 te , and 𝛿 are all expressed as fitting functions that depend
+on both 𝑓bound and 𝑐 vir,s (see equations [6]–[8] and Table 1 of GB19;
+note that 𝑙 te ≡ 𝑟 te ), whereas 𝑙 s and 𝑙 vir are the scale radius and
+virial radius of the NFW subhalo at accretion.3 The transfer function
+describes how the outer density profile of the subhalo steepens from
+d ln 𝜌/d ln 𝑙 = −3 (i.e., the outer slope of the initial NFW profile)
+to roughly −(5 − 6) as the initial subhalo mass is stripped away.
+In addition, the central density of the subhalo is lowered as 𝑓bound
+decreases, which is primarily a consequence of re-virialization in
+response to mass loss.
+
+2.3.2 Mass-loss rate
+A common approach to modeling the combined impact of tidal stripping and heating (e.g., Taffoni et al. 2003; Zentner & Bullock 2003;
+Oguri & Lee 2004; Zentner et al. 2005; Pullen et al. 2014), which we
+adopt as well, is to assume that over each time step, Δ𝑡, some portion,
+Δ𝑚, of the subhalo mass outside of its instantaneous tidal radius, 𝑙 t ,
+is stripped away. In particular, we set
+Δ𝑚 = −𝛼
+
+Δ𝑡
+𝑚(> 𝑙t ) .
+𝑡 char
+
+Here, 𝛼 is a fudge factor that controls the stripping efficiency,
+√︄
+3𝜋
+𝑡 char =
+16𝐺 𝜌¯ h (𝑟)
+
+(7)
+
+(8)
+
+is the characteristic orbital time of the subhalo (identical to the dynamical time introduced in Section 2.1), with 𝑟 the instantaneous,
+host-centric radius of the subhalo and 𝜌¯ h (𝑟) the mean density of the
+host halo within 𝑟, and
+"
+# 1/3
+𝑚(< 𝑙t )/𝑀 (< 𝑟)
+𝑙t = 𝑟
+(9)
+Ω2 (𝑡)𝑟 3
+2 + 𝐺 𝑀 (<𝑟 ) − ddlnln𝑀
+𝑟 𝑟
+(King 1962), with Ω(𝑡) = |r × 𝒗|/𝑟 2 the instantaneous angular orbital
+velocity of the subhalo. We have also experimented with other definitions of 𝑡 char and 𝑙t but find that this combination, when used in
+
+3
+
+The dependence on 𝑐vir,s went unnoticed in Hayashi et al. (2003) and
+Peñarrubia et al. (2010), both of which only studied subhaloes with a single
+concentration (𝑐vir,s = 10 and 23.1, respectively).
+
+5
+
+conjunction with equation (7), is able to reproduce the DASH results
+most accurately.4
+We use the 𝑚(𝑡)/𝑚 acc trajectories from the DASH simulations
+to calibrate 𝛼 as follows. Given the data products from a particular DASH simulation, we create interpolators for 𝑟 (𝑡), Ω(𝑡), and
+𝑚(𝑡)/𝑚 acc . In order to avoid transient behavior in the simulations
+that results from the instantaneous introduction of a subhalo into its
+host potential (see Ogiya et al. 2019), we initialize our model based
+on the properties of the DASH subhalo at the beginning of its second orbit (i.e., after it has returned to apocentre for the first time).
+Given a choice for Δ𝑡 and 𝛼, we evolve 𝑚(𝑡)/𝑚 acc using equation (7),
+where we set 𝑚(> 𝑙t ) = 𝑚(𝑡) − 𝑚(< 𝑙t ). Here, 𝑚(< 𝑙t ) is computed
+using the ESHDP of equation (5), which depends on the instantaneous value of 𝑚(𝑡)/𝑚 acc and the initial 𝑐 vir,s ,5 and we demand
+that Δ𝑚 ≥ 0 such that the subhalo mass decreases monotonically.
+For each combination of simulation (indexed by 𝑖) and 𝛼 value, we
+compute a cost function, 𝐶 (𝑖|𝛼), which is simply the mean squared
+residual in log[𝑚(𝑡 𝑗 )/𝑚 acc ] between our model and DASH averaged
+over all 𝑛apo,𝑖 apocentric passages subsequent to the initialization
+of our model (indexed by 𝑗). We then determine the total cost for a
+given 𝛼 by computing the mean of the 𝐶 (𝑖|𝛼) taken over all of the
+DASH simulations, which can be written explicitly as
+𝐶 (𝛼) =
+
+𝑛
+sim
+∑︁
+𝑖
+
+𝑛apo,𝑖
+
+sim ∑︁
+log2 [𝑚 model,𝑖 (𝑡 𝑗 )/𝑚 DASH,𝑖 (𝑡 𝑗 )]
+𝐶 (𝑖|𝛼) ∑︁
+=
+.
+𝑛sim
+𝑛sim 𝑛apo,𝑖
+
+𝑛
+
+𝑖
+
+𝑗
+
+(10)
+We emphasize that this cost function weighs each simulation equally,
+which is motivated by the fact that DASH samples the parameter
+space of orbits and halo concentrations according to a cosmological
+simulation-inferred joint probability distribution. The cost function
+depends somewhat on the time step used to integrate the model
+predictions (see equation [7]), but we find that the results converge
+with Δ𝑡 = 0.06 Gyr, which we adopt throughout as the maximum
+time step for integrating the evolution of the subhalo in SatGen.
+We find that 𝐶 (𝛼) is minimized for 𝛼 ≃ 0.6, for which the rootmean-square error in the apocentric mass predictions is 0.097 dex.
+In order to look for any secondary parametric dependence that the
+optimal 𝛼 may have, we determine the best-fit 𝛼 on a per-simulation
+basis, which we denote 𝛼𝑖 . We then look at the correlation between
+𝛼𝑖 and the concentrations of the host- and subhalo as well as with the
+orbital parameters. We find that 𝛼𝑖 depends strongly on 𝑐 vir,s /𝑐 vir,h .
+By binning the simulations by 𝑐 vir,s /𝑐 vir,h and taking the median 𝛼𝑖
+in each bin, we find a power-law relation that is well fit by
+
+𝑐
+vir,s /𝑐 vir,h −1/3
+𝛼 = 0.55
+.
+(11)
+2
+This relation captures the fact that subhaloes that are more compact
+relative to their host are more resilient to stripping. We adopt this
+parametrization of 𝛼 in SatGen, emphasizing that, for typical values
+< 30% effect. In
+of 𝑐 vir,s /𝑐 vir,h , the concentration-dependence has a ∼
+determining 𝛼, we use the instantaneous host 𝑐 vir,h (which evolves
+4
+
+The tidal radius is only an approximation of the zero-velocity surface,
+which itself is neither spherical nor infinitesimally thin, and different authors
+often adopt different definitions. See Read et al. (2006), Tollet et al. (2017),
+and van den Bosch et al. (2018) for detailed discussions.
+5 This enclosed mass profile is not analytical. Hence, in SatGen, we provide
+an interpolator for 𝑚(< 𝑙)/𝑚acc (and 𝜎 (𝑙), the one-dimensional isotropic
+velocity dispersion), which is itself a function of 𝑙, 𝑚(𝑡)/𝑚acc , and 𝑐vir,s . We
+interpolate over log[𝑚(𝑡)/𝑚acc ] and log(𝑐vir,s ) using cubic B-splines and
+patch the surfaces together in log(𝑙)-space linearly.
+MNRAS 000, 1–18 (2021)
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+2.3.3 Stripping of higher-order substructure
+In addition to the treatment of subhalo mass loss, SatGen also implements a procedure for the splashback release of higher-order subhaloes. Specifically, each time step that an order-𝑘 subhalo lies outside of the tidal radius of its order-(𝑘 − 1) host, it has a probability of
+min[𝛼Δ𝑡/𝑡 char (𝑟), 1] of being released from its host and becoming
+an order-(𝑘 − 1) subhalo. Here, 𝛼 and 𝑡 char (𝑟) are computed for the
+order-(𝑘 − 1) host with respect to its order-(𝑘 − 2) parent, which is responsible for stripping off the order-𝑘 subhalo. In the event of release,
+the phase space coordinates of the subhalo with respect to its new,
+order-(𝑘 − 2) host are the superposition of its original coordinates
+with respect to its old, order-(𝑘 −1) host and those of the old host with
+respect to the order-(𝑘 − 2) system. The remaining bound mass of the
+original, order-𝑘 subhalo is instantaneously removed from the mass
+of its old, order-(𝑘 − 1) parent in order to enforce mass conservation.
+
+MNRAS 000, 1–18 (2021)
+
+0.0
+
+η = 0.1
+
+η = 0.2
+
+η = 0.3
+
+−0.5
+−1.0
+
+cvir,h = 5.0
+cvir,s = 10.0
+xc = 1.0
+
+−1.5
+
+log[m(t)/macc]
+
+as long as the host itself has not yet become a subhalo) whereas the
+subhalo 𝑐 vir,s is fixed to its value at infall.
+Although it is tempting to compare our best-fit value for 𝛼 to that
+of previous semi-analytical models that rely on equation (7), such a
+comparison is frustrated by the fact that different studies have used
+different forms for 𝑡 char and/or 𝑙 t (see van den Bosch et al. 2018;
+Drakos et al. 2020 for detailed discussions). In addition, none of
+the previous studies have accounted for the detailed evolution of the
+subhalo density profile (as in, e.g., equation [5]), rendering such a
+comparison moot. We do emphasize, though, that by calibrating our
+model to the idealized DASH simulations, rather than to cosmological
+simulations, such as in Zentner et al. (2005) and Pullen et al. (2014),
+our calibration is not adversely impacted by potential issues resulting
+from artificial disruption.
+Fig. 2 compares the 𝑚(𝑡)/𝑚 acc trajectories of several DASH simulations (black lines) to predictions based on our mass-loss model
+(red lines). In each case, 𝑐 vir,h = 5, 𝑐 vir,s = 10, and the orbital energy, 𝐸, is that of a circular orbit at the virial radius of the host (i.e.,
+𝑥c ≡ 𝑟 c (𝐸)/𝑟 vir = 1, where 𝑟 c (𝐸) is the radius of a circular orbit
+with energy 𝐸). Different panels correspond to different values of the
+orbital circularity, 𝜂 ≡ 𝐿/𝐿 c (𝐸), as indicated, where 𝐿 is the orbital
+angular momentum and 𝐿 c (𝐸) is the angular momentum of a circular orbit with the same orbital energy as that of the subhalo. Clearly,
+our model tracks the DASH 𝑚(𝑡)/𝑚 acc curves quite faithfully over
+∼5 radial orbital periods. Importantly, the performance of the model
+is strong over the full range of 𝜂, spanning from orbits that are close
+to radial (𝜂 = 0.1) to those that are close to circular (𝜂 = 0.9), a feat
+that has proven difficult for previous semi-analytical models of subhalo mass evolution (cf. Peñarrubia et al. 2010; Drakos et al. 2020).
+Although not shown, we emphasize that the model performs comparably for other configurations as well. In particular, the concentration
+dependence built into the parametrization of the stripping efficiency
+(i.e., equation [11]) considerably improves the predictions made for
+systems with 𝑐 vir,s /𝑐 vir,h ratios that deviate significantly from two.
+We use the mass-loss model to predict the mass evolution of every
+simulated DASH subhalo. In Fig. 3, we plot the time evolution of
+the median and standard deviation of the log-residuals between our
+model predictions and the DASH mass trajectories. We find that the
+mass-loss model performs well over the full parameter space, with
+minimal bias and scatter for longer than a Hubble time. After 15
+Gyr of evolution, the scatter in the log-residuals of our mass-loss
+model reaches only 0.04 dex; hence, the impact of mass evolution
+error will be subdominant to the intrinsic halo-to-halo variance in
+our quantities of interest.
+
+0.0
+
+η = 0.4
+
+η = 0.5
+
+η = 0.6
+
+η = 0.7
+
+η = 0.8
+
+η = 0.9
+
+−0.5
+−1.0
+−1.5
+0.0
+−0.5
+−1.0
+
+DASH
+This work
+
+−1.5
+0
+
+2
+
+4
+
+0
+
+2
+
+4
+
+0
+
+2
+
+4
+
+t/tr
+Figure 2. A comparison between our calibrated mass-loss model predictions
+and the DASH 𝑚(𝑡)/𝑚acc trajectories of several simulations. The times are
+normalized by the radial orbital period, 𝑡r . We fix 𝑐vir,h = 5, 𝑐vir,s = 10, and
+𝑥c = 1 (these parameters are typical of systems seen in cosmological simulations; see, e.g., Ogiya et al. 2019), demonstrating that the model performance
+is strong over a wide range of circularity values, ranging from highly elliptical
+(𝜂 = 0.1) to nearly circular orbits (𝜂 = 0.9).
+
+log(mmodel) − log(mDASH)
+
+6
+
+0.3
+0.2
+
+Median
+Standard deviation
+
+0.1
+0.0
+
+−0.1
+−0.2
+−0.3
+0.0
+
+2.5
+
+5.0
+
+7.5
+
+10.0
+
+12.5
+
+15.0
+
+t since first apocentric passage [Gyr]
+Figure 3. The time evolution of the median and standard deviation of the
+log-residuals between our mass-loss model predictions and the simulated
+mass trajectories taken over the ensemble of DASH simulations. The model
+performs well over the full parameter space, with minimal bias and scatter
+for longer than a Hubble time.
+
+2.3.4 Resolution limits
+As discussed in Section 2.1, SatGen has a merger tree resolution
+limit, which sets the smallest subhalo mass at accretion to 𝜓res 𝑀0 .
+Such a limit is necessary in order to maintain computational feasibility, as the size of the merger tree grows exponentially with decreasing
+𝜓res . However, once accreted, a subhalo is evolved in SatGen for as
+long as its mass 𝑚 ≥ 𝜙res 𝑚 acc . Here, 𝜙res is the imposed resolution
+limit for the bound mass fraction. Our default is to set 𝜙res = 𝜓res ,
+which ensures that the least (most) massive subhaloes are tracked
+down to 𝑚 = 𝜙res 𝜓res 𝑀0 (𝑚 = 𝜓res 𝑀0 ). In what follows, both reso-
+
+The impact of artificial disruption
+
+7
+
+lution limits are adjusted depending on the specific topic that is under
+investigation.
+
+Bosch (2016), which itself is based on the prescription of Taylor &
+Babul (2004). A subhalo is marked as artificially disrupted when its
+mass, 𝑚(𝑡), falls below its ‘disruption mass’, given by
+
+2.4 Artificial disruption
+
+𝑚 dis = 𝑚 acc (< 𝑓dis 𝑙 s ) = 𝑚 acc
+
+Recently, van den Bosch et al. (2018) and van den Bosch & Ogiya
+(2018) carried out a comprehensive analytical and numerical study
+focused on subhalo disruption. Using simple, physical arguments,
+the authors demonstrate that the inner remnant of a NFW subhalo
+should survive even when tidal shock heating has injected an amount
+of energy that is many multiples of the binding energy of the subhalo
+and/or tidal stripping has removed more than 99.9% of the initial
+subhalo mass. This claim is confirmed using idealized 𝑁-body simulations of subhalo evolution (similar to DASH), with the authors
+concluding that the majority of subhalo disruption seen in cosmological simulations is numerical in nature.
+Let us use Bolshoi as our example cosmological simulation for
+considering the rate of artificial disruption. Van den Bosch (2017)
+used the merger trees from Bolshoi to separate subhalo evolution
+into several unique channels. Of these channels, the disruption (D)
+and withering (W) branches pertain specifically to numerical subhalo disruption. A subhalo in one snapshot that evolves along the D
+channel has no descendent at any subsequent snapshot. On the other
+hand, a subhalo that evolves along the W channel has a descendent
+in the subsequent snapshot that falls below the 50 particle resolution
+limit imposed by the author. By studying these branches, van den
+Bosch (2017) concludes that artificial disruption (D) occurs at a rate
+of 2.4%/Gyr and falling below the mass limit (W) occurs at a rate of
+∼10%/Gyr. When combined, the total numerical disruption (W + D)
+rate in Bolshoi is roughly 13%/Gyr, resulting in ∼65% of subhaloes
+accreted at 𝑧 = 1 being numerically disrupted by the present day,
+in good agreement with independent estimates made by Han et al.
+(2016) and Jiang & van den Bosch (2017). As long as simulations
+have a finite number of particles, the W channel will exist. However,
+its significance diminishes as simulation resolution limits move toward smaller halo masses that are below all scales of interest. The D
+channel, on the other hand, is more alarming, since it represents subhaloes, often well above the mass limit, that simply disappear from
+the merger tree. The 2.4%/Gyr of the D channel translates to roughly
+20% of subhaloes accreted at 𝑧 = 1 being (artificially) disrupted by
+𝑧 = 0.
+In order to assess the overall significance of numerical disruption,
+we aim to model both the impact of the W branch in isolation as
+well as the impact of both the W and D channels in combination on
+the SatGen results. As introduced in Section 2.3.2, the W branch
+subhaloes in SatGen are simply those with a final mass that has
+fallen below the merger tree resolution limit, 𝜓res 𝑀0 . Although even
+SatGen has an imposed resolution limit on how far down in 𝑚/𝑚 acc it
+tracks a subhalo, we can nevertheless make reasonable predictions in
+the absence of withering by considering all subhaloes with 𝑚/𝑚 acc ≥
+𝜙res = 10−5 , which we refer to as the “wither-free” fiducial model.
+Whenever withering is considered, the subhalo mass limit is set to
+𝜓res 𝑀0 instead.
+A key goal of this work is to assess the impact of artificial disruption on the subhalo demographics in cosmological simulations.
+We are able to do so by adding a model of artificial disruption into
+SatGen and adjusting its strength (if needed) such that the SatGen
+predictions (which are inherently free of artificial disruption) reproduce the abundance of subhaloes in a simulation such as Bolshoi.
+This feat also requires properly accounting for the mass resolution
+limit (withering) of the simulation of interest. We implement a version of the artificial disruption mechanism used in Jiang & van den
+
+𝑓 ( 𝑓dis )
+.
+𝑓 (𝑐 vir,s )
+
+(12)
+
+Here, 𝑚 acc (< 𝑙) denotes the enclosed NFW mass profile of the subhalo at accretion, and 𝑓 (𝑥) = ln(1 + 𝑥) − 𝑥/(1 + 𝑥). The sensitivity of
+haloes to artificial disruption is set by 𝑓dis , which represents the effective radius that a halo can be stripped down to before being disrupted.
+Under this prescription, haloes with a larger initial concentration are
+more resilient to disruption. This approach to modeling (artificial)
+disruption has been employed in previous semi-analytical models
+(e.g., Hayashi et al. 2003; Taylor & Babul 2004; Zentner et al. 2005),
+with 𝑓dis ranging from 0.1 to 2.0.
+Rather than select a fixed value for 𝑓dis , Jiang & van den Bosch
+(2016) randomly sampled 𝑓dis for each subhalo from a universal
+log-normal distribution. We augment this approach by calibrating
+a more general model of 𝑓dis that takes into account a dependence
+on 𝑚 acc that we identify in the Bolshoi subhaloes. Using all halo
+catalogues from Bolshoi6 with 𝑧 ≥ 0.0148,7 we extract 𝑚 acc , 𝑐 vir,s ,
+and 𝑚 dis from all D channel subhaloes from which the 𝑓dis of each
+corresponding subhalo is calculated. We find that the distribution of
+𝑓dis has minimal dependence on redshift and host halo mass, but has
+a strong dependence on 𝑚 acc . As shown in Fig. 4, when binned by
+𝑚 acc , the 𝑓dis distribution is roughly log-normal with a log-mean,
+𝜇, and log-variance, 𝜎 2 , that increases and decreases, respectively,
+with decreasing 𝑚 acc . This indicates that subhaloes that are more
+massive at accretion are less likely to undergo artificial disruption.
+However, note that this trend in 𝑚 acc -space appears to saturate at the
+massive end. Motivated by these findings, we model 𝑓dis (𝑚 acc ) as a
+log-normal with
+h
+ −2 i −1/2
+𝜇 = 𝐴 + 𝐵 1 + log(𝑚 acc ) + 𝐶
+, and
+(13)
+2
+𝜎 = 𝐷 + 𝐸𝜇 + 𝐹𝜇 .
+Using maximum likelihood estimation, we obtain the best-fit parameters of ( 𝐴, 𝐵, 𝐶, 𝐷, 𝐸, 𝐹) = (3.08, −3.26, −8.89, 0.38, −0.51, 0.40).
+The corresponding best-fit model is indicated as solid lines in Fig. 4
+and captures all of the salient details of the data.
+When modeling artificial disruption in SatGen, we randomly draw
+a value of 𝑓dis from the log-normal distribution described by equation (13) for each subhalo at accretion. Subsequently, the subhalo
+is marked as artificially disrupted once its mass drops below its assigned 𝑚 dis , which is computed using equation (12). By applying
+this artificial disruption mechanism, SatGen is able to faithfully reproduce the statistics of the Bolshoi D branch subhaloes. We caution
+that this particular treatment of artificial disruption is only applicable to Bolshoi. Readers interested in modeling artificial disruption
+in another simulation must first characterize the corresponding 𝑓dis
+statistics of the particular simulation.
+
+2.5 Dynamical friction strength
+In order to calibrate the overall efficiency of dynamical friction,
+which we quantify through the correction factor, 𝛽DF , we seek a
+6
+
+Available at http://www.slac.stanford.edu/ behroozi/Bolshoi_Catalogs/
+We omit using the several snapshots closer to 𝑧 = 0 in order to avoid contaminating the D branch with instances of snapshot-limited failed phantompatching (see discussion in van den Bosch 2017).
+
+7
+
+MNRAS 000, 1–18 (2021)
+
+8
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+log(macc /[h−1 M ]) ∈
+
+log[macc /M0 ] ∈
+
+1.00
+
+1.5
+
+[−1.5, −1.0]
+
+[10.0, 10.2]
+
+hr/rviri
+
+[11.0, 12.0]
+
+PDF
+
+[−1.0, 0.0]
+
+0.75
+
+[10.2, 11.0]
+
+1.0
+
+This work
+vdBosch+16
+
+[−2.0, −1.5]
+
+[9.8, 10.0]
+
+[12.0, 13.0]
+
+0.50
+
+[13.0, 14.0]
+
+0.25
+
+0.5
+
+βDF = 0.50
+
+βDF = 0.75
+
+βDF = 1.00
+
+βDF = 1.50
+
+1.00
+
+−1.0
+
+−0.5
+
+0.0
+
+0.5
+
+1.0
+
+1.5
+
+log(fdis)
+
+Figure 4. The log( 𝑓dis ) distribution of disrupted Bolshoi subhaloes. Here,
+𝑓dis is a proxy for the mass below which a particular subhalo is artificially
+disrupted in the simulation (see equation [12]). Each color denotes a different
+𝑚acc bin. The points are calculated using all Bolshoi subhaloes that disrupt
+at 𝑧 ≥ 0.0148. The solid curves correspond to our model that is fit to the
+Bolshoi disruption data (equation [13]). The 𝑓dis are distributed log-normal,
+with 𝜇 decreasing (and 𝜎 increasing) as 𝑚acc is increased (up to a saturation
+point, above which the distribution remains fixed).
+
+measurement made from cosmological simulations that is both sensitive to dynamical friction and insensitive to any underlying artificial disruption. In van den Bosch et al. (2016), the authors study the
+segregation of subhaloes in Bolshoi. They measure the mean hostcentric radius of subhaloes, h𝑟/𝑟 vir i, as a function of their redshift of
+accretion, 𝑧 acc .
+Plotting h𝑟/𝑟 vir i (averaged over thousands of subhaloes) as a function of 𝑧 acc (see Fig. 7 in van den Bosch et al. 2016) reveals the
+< 0.5). Subhaloes accreted at
+characteristics of an orbit (for 𝑧 acc ∼
+𝑧 acc ∼ 0.1 have just reached pericentre for the first time, while those
+that are at their first apocentric passage since accretion typically
+were accreted around 𝑧 acc ∼ 0.25. Note that phase mixing, which
+is primarily driven by variance in the orbital periods of subhaloes
+at infall,8 results in a lack of orbital coherence for subhaloes accreted before 𝑧 acc ∼ 0.5; this is made apparent by the lack of clear
+apo- or pericentric passages in h𝑟/𝑟 vir i at high 𝑧 acc . Interestingly,
+the h𝑟/𝑟 vir i(𝑧 acc ) curves show a clear dependence on 𝑚 acc /𝑀0 . In
+particular, subhaloes with larger 𝑚 acc /𝑀0 reach a smaller apocentric h𝑟/𝑟 vir i at 𝑧 acc ∼ 0.25 than their less massive counterparts (see
+Fig. 10 in van den Bosch et al. 2016, which is reproduced as the
+dashed lines in Fig. 5). This is a manifestation of dynamical friction,
+which allows us to calibrate 𝛽DF as follows.9
+We construct a set of ∼45,000 merger trees (with 𝜓res = 10−3 )
+with host masses consistent with the ∼9,000 host halo sample used in
+van den Bosch et al. (2016) — we augment our sample by generating
+five trees per unique host mass. We evolve the subhaloes with SatGen,
+repeating the procedure for several values of 𝛽DF covering the range
+
+8
+
+The efficiency of phase mixing is further enhanced by dynamical friction,
+which impacts the subhalo orbit differently depending on 𝑚acc , and variance
+in the host mass accretion history, which itself affects the evolution of the
+subhalo orbit between infall and the present day.
+9 Since artificial disruption is rare for subhaloes that were only accreted
+recently, this feature is not significantly impacted by artificial disruption.
+MNRAS 000, 1–18 (2021)
+
+0.75
+
+hr/rviri
+
+0.0
+−1.5
+
+0.50
+
+0.25
+0.0
+
+0.2
+
+0.4
+
+zacc
+
+0.6 0.0
+
+0.2
+
+0.4
+
+zacc
+
+0.6
+
+Figure 5. A comparison between the h𝑟 /𝑟vir i − 𝑧acc relation of Bolshoi
+subhaloes binned by infall mass relative to 𝑧 = 0 host mass, 𝑚acc /𝑀0 (dashed
+curves, reproduced from Fig. 10 in van den Bosch et al. 2016), and analogous
+predictions by SatGen (solid curves). Each panel corresponds to a different
+value of 𝛽DF (indicated in the bottom-left of each panel), which controls the
+strength of dynamical friction (see Section 2.2). We adopt 𝛽DF = 0.75 as
+the fiducial value used in SatGen, since this yields the best agreement with
+respect to the peak values of h𝑟 /𝑟vir i at 𝑧acc ∼ 0.25, which corresponds to
+the first apocentric passage since infall.
+
+[0, 1.5]. We apply the same selection function as used in van den
+Bosch et al. (2016): we only consider subhaloes with 𝑚(𝑧 = 0)/𝑀0 ≥
+10−3 , 𝑚 acc /𝑀0 ≥ 10−2 , and 𝑚(𝑧 = 0)/𝑚 acc ≥ 10−1 . We first bin
+the subhaloes by 𝑚 acc /𝑀0 and then compute h𝑟/𝑟 vir i in 𝑧 acc bins,
+which are chosen such that the number of subhaloes in each bin is
+the same.
+Fig. 5 shows the resulting h𝑟/𝑟 vir i − 𝑧 acc relation for four values
+of 𝛽DF as indicated. Clearly, when 𝛽DF = 0.75, SatGen is able to
+very closely reproduce the simulation results. For 𝛽DF = 0.5 (1.0),
+SatGen yields apocentric h𝑟/𝑟 vir i that are too large (small) relative
+to Bolshoi, with the disagreement being more significant for the
+subhaloes with larger 𝑚 acc /𝑀0 that are more strongly influenced
+by dynamical friction. These findings are independent of whether or
+not we incorporate artificial disruption using the method described in
+Section 2.4, which is consistent with the notion that the h𝑟/𝑟 vir i −𝑧 acc
+relation should be relatively insensitive to artificial disruption (at
+< 0.5). Hence, in what follows, we adopt 𝛽
+least for 𝑧 acc ∼
+DF = 0.75 as
+our fiducial dynamical friction strength. In Section 3.3, we quantify
+the impact of 𝛽DF on our substructure mass fraction predictions (by
+comparing to the ‘natural’ case of 𝛽DF = 1), demonstrating that our
+results are insensitive to its exact value.
+
+The impact of artificial disruption
+3 RESULTS
+Given a host halo mass, 𝑀0 , target redshift, 𝑧 0 , and requested number
+of individual trees, 𝑁tree , SatGen produces 𝑁tree subhalo catalogs
+at each redshift time step until 𝑧 0 . These catalogs trace the mass and
+phase space coordinates of each subhalo over its evolution. In this
+section, we present the results of these SatGen subhalo catalogs and
+make comparisons to Bolshoi. We begin by studying SHMFs (and
+subhalo maximum circular velocity functions), comparing SatGen
+results with and without the artificial disruption mechanism and
+discuss the significant impact of splashback subhaloes (Section 3.1).
+In Section 3.2, we proceed to incorporate position data by calculating
+the radial profile and the (projected) enclosed substructure mass
+fraction, 𝐹sub (< 𝑅). In Section 3.3, we quantify how 𝑓sub (< 𝑟 vir )
+varies with both 𝑀0 and resolution limit, 𝜓res . We also quantify
+the impact of model parameters (i.e., stripping efficiency and DF
+strength) on 𝑓sub predictions. Lastly, in Section 3.4, we estimate
+the total rate of numerical disruption that occurs via the W and D
+channels modeled by SatGen, which we compare to the numerical
+disruption rate of Bolshoi haloes (as measured by van den Bosch
+2017).
+
+3.1 Subhalo mass/velocity functions
+We turn our attention to the SatGen predictions of the subhalo mass
+function for a 1014.2 ℎ−1 M host. In a cosmological simulation, the
+SHMF, d𝑁/d log(𝑚/𝑀0 ), is calculated using subhaloes of all orders enclosed within the virial radius of the host. Note that since we
+use an inclusive mass definition and consider all orders of substructure, the total substructure mass is not the mass-weighted integral
+of the SHMF. The left-hand panel of Fig. 6 shows the mean SHMF
+computed from 10,000 trees (with 𝜓res = 10−4 ). For comparison,
+the filled symbols indicate the mean SHMF of the 282 Bolshoi host
+haloes with log(𝑀0 /[ℎ−1 M ]) ∈ [14.0, 14.5] (with a mean of 14.2).
+On the high-𝑚/𝑀0 end, the Bolshoi SHMF is somewhat noisy due
+to limited halo statistics. However, a comparison at the low-𝑚/𝑀0
+end illustrates that SatGen predicts a ∼ 0.1 dex enhancement in the
+SHMF relative to Bolshoi.
+If the primary cause of the disagreement between the SatGen and
+Bolshoi SHMFs is artificial disruption, then the application of our
+artificial disruption mechanism (Section 2.4) should result in better
+agreement between the model and simulation results. Indeed, Fig. 6
+shows that “turning on” D channel disruption suppresses the SatGen
+SHMF by ∼ 0.05 − 0.1 dex at low 𝑚/𝑀0 , bringing it into closer
+agreement with Bolshoi. Restricting to −3.9 ≤ log(𝑚/𝑀0 ) ≤ −0.8,
+we fit a power-law to the SHMF of the form d𝑁/d log(𝑚/𝑀0 ) ∝
+𝐴(𝑚/𝑀0 ) 𝐵 . For the fiducial SatGen results, we find 𝐴 = −1.066 and
+𝐵 = −0.885, whereas the disruption mechanism slightly suppresses
+both the normalization and the magnitude of the slope, resulting in
+𝐴 = −1.085 and 𝐵 = −0.868.10 The reduced slope is a consequence
+of the 𝑚 acc -dependence of our artificial disruption model. Note that
+the Bolshoi SHMF is too noisy to compute a reliable estimate of the
+slope over the same mass range, but it agrees well visually with the
+SatGen “disruption on” results.
+Thus far, these results suggest that artificial disruption has, at most,
+a ∼ 20% impact on the SHMF of well-resolved host haloes, with the
+
+10
+
+These SHMF slopes are consistent with previous work, which typically
+find −1.0 . 𝐵 . −0.8 (e.g., Boylan-Kolchin et al. 2010; Gao et al. 2012; van
+den Bosch & Jiang 2016).
+
+9
+
+difference being strongest at low 𝑚/𝑀0 . We discuss more quantitatively the impact of disruption and its dependence on halo mass relative to the simulation resolution limit in Section 3.3, which focuses
+on the substructure mass fraction. The modest decrease in the SHMF
+normalization due to disruption predicted by SatGen is considerably
+smaller than the factor-of-two suppression suggested by the GB19interpretation of the Jiang & van den Bosch (2016) model. This is
+because their orbit-averaged model did not take into account the impact of splashback haloes, which are subhaloes that have previously
+fallen within the host 𝑟 vir (thus becoming included in the halo merger
+tree) but instantaneously lie outside of 𝑟 vir at 𝑧 = 0 (and therefore
+are typically not included in simulation-based measurements of the
+SHMF). Benson (2017) briefly discusses this limitation of standard
+EPS-based approaches to substructure modeling, concluding that a
+full dynamical model (such as SatGen) is necessary in order to properly account for splashback haloes. In Fig. 6, we illustrate that when
+splashback haloes are included in the SHMF, the subhalo abundance
+is enhanced by ∼ 0.2 − 0.25 dex on the low-𝑚/𝑀0 end relative to the
+fiducial model. When the “fiducial + splashback” curve is compared
+directly to Bolshoi, we find the same ∼ 0.3 dex (factor of two) difference as GB19. This highlights the importance of properly accounting
+for splashback haloes by integrating subhalo orbits. Consistent with
+these predictions, Bakels et al. (2021) recently reported that roughly
+half of all subhaloes lie outside of 1.2𝑟 200c (approximately 𝑟 vir ) in
+a sample of galaxy- to group-mass host haloes studied in a cosmological simulation (consistent with previous work by, e.g., Gill et al.
+2004; Ludlow et al. 2009).
+In addition to mass, another property of subhaloes that is often used (especially in subhalo abundance matching, e.g., TrujilloGomez et al. 2011; Reddick et al. 2013; Hearin et al. 2013; Zentner
+et al. 2014) is its maximum circular velocity, 𝑉max . Hence, we also
+present results for the subhalo maximum circular velocity function
+(SHVF), d𝑁/d ln(𝑉max /𝑉vir,h ), where 𝑉vir,h denotes the virial velocity of the host halo at 𝑧 = 0. Since the enclosed mass profile
+corresponding to the GB19 ESHDP is not analytical, we compute
+𝑉max by multiplying the subhalo’s maximum circular velocity at accretion,
+√︄
+𝐺𝑚 acc 0.216 𝑐 vir,s
+𝑉max,acc =
+×
+(14)
+𝑙 vir
+𝑓 (𝑐 vir,s )
+(Bullock et al. 2001), by the ‘tidal track’ (Peñarrubia et al. 2008)
+expression for 𝑉max /𝑉max,acc , given by equation (11) in GB19. This
+tidal track itself is a function of both 𝑚/𝑚 acc and 𝑐 vir,s , as given by
+equations (12) and (13) in GB19.
+Using the same 10,000 trees as those used to compute the
+SHMF, we obtain the SHVF shown in the right-hand panel of
+Fig. 6. Just as for the SHMF, the filled symbols indicate the corresponding result computed from the 282 Bolshoi host haloes with
+log(𝑀0 /[ ℎ−1 M ]) ∈ [14.0, 14.5]. As is evident, the abundance
+< − 0.4 predicted by SatGen is
+of subhaloes with log(𝑉max /𝑉vir,h ) ∼
+about 0.15 dex higher than that of Bolshoi. However, when including
+artificial disruption, the SatGen predictions once again agree closely
+with the simulation results.
+
+3.2 Radial profiles
+Having looked at the subhalo mass and velocity functions, we proceed to incorporate additional spatial information by considering
+several other quantities of interest. First, we measure the subhalo
+3|
+˜
+radial distribution, d 𝑁/d𝑥
+sub , as the number of subhaloes per unit
+shell volume as a function of 𝑥 = 𝑟/𝑟 vir , which we normalize to
+MNRAS 000, 1–18 (2021)
+
+10
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+2
+
+Fiducial + splashback
+Disruption on
+
+1
+0
+−1
+
+Residual
+
+3
+This work
+Fiducial ∝ (m/M0 )−0.88
+
+Residual log[dN/d log(Vmax/Vvir,h)]
+
+log[dN/d log(m/M0)]
+
+3
+
+Bolshoi
+
+0.25
+0.00
+−0.25
+
+−3
+
+−2
+
+log(m/M0)
+
+−1
+
+0
+
+2
+1
+0
+−1
+
+M0 = 1014.2 M /h
+
+0.25
+0.00
+
+−0.25
+−1.0
+
+−0.8
+
+−0.6
+
+−0.4
+
+log(Vmax/Vvir,h)
+
+−0.2
+
+0.0
+
+Figure 6. The subhalo mass function (SHMF; left) and subhalo maximum circular velocity function (SHVF; right) predictions for a host halo with 𝑀0 =
+1014.2 ℎ −1 M at 𝑧 = 0 (and virial velocity at 𝑧 = 0 denoted by 𝑉vir,h ). The SatGen results are averages taken over 10,000 merger trees generated with
+𝜓res = 10−4 . These results are compared to the same quantities computed from 282 Bolshoi host haloes with log( 𝑀0 /[ ℎ −1 M ]) ∈ [14.0, 14.5] (with a mean
+of 14.2), which are shown as gray squares. The fiducial SatGen predictions (black lines) are used as the baseline for comparison in the residual plots. In the
+“fiducial + splashback” case (dashed black lines), we include subhaloes in the SHMF that are in the merger tree but instantaneously lie outside of the host
+𝑟vir at 𝑧 = 0. Lastly, the “disruption on” case (green lines) demonstrates the impact of our artificial disruption mechanism (Section 2.4), which is calibrated
+to reproduce the statistical properties of Bolshoi subhalo disruption (D channel). At the low-𝑚/𝑀0 end, artificial disruption suppresses the SatGen SHMF by
+∼ 0.05 − 0.1 dex, which brings our predictions into good agreement with Bolshoi. For 𝑚/𝑀0 . 10−2.5 , nearly half of the subhaloes lie outside 𝑟vir (consistent
+with Bakels et al. 2021).
+
+unity at 𝑟 vir . We assess the radial bias of the subhaloes by compar3|
+3
+˜
+˜
+ing d 𝑁/d𝑥
+sub to the NFW profile of the host halo, d 𝑁/d𝑥 | NFW ,
+which we also write as a function of 𝑥 and normalize to unity at
+𝑟 vir . The ‘bias function’ is simply the ratio between d ˜
+𝑁/d𝑥 3 | sub and
+d˜
+𝑁/d𝑥 3 | NFW , which tends to unity when the subhalo distribution is
+unbiased with respect to the density profile of the host. We incorpo3|
+˜
+rate subhaloes of all orders when computing d 𝑁/d𝑥
+sub . The second
+quantity of interest is the fraction of mass enclosed within a given
+projected host-centric radius that is bound in subhaloes. We define
+this quantity as
+∑︁
+1
+𝑚𝑖 ,
+(15)
+𝐹sub (< 𝑋) =
+𝑀 (< 𝑋)
+𝑋𝑖 <𝑋
+
+where 𝑋 = 𝑅/𝑅vir , 𝑅 is the projected radius, the sum runs over
+all first-order subhaloes (due to the inclusive mass definition) with
+projected radii within 𝑅, and 𝑀 (< 𝑅) is the projected mass profile of
+the NFW host halo (see Golse & Kneib 2002). Finally, in Section 3.3,
+we focus on 𝑓sub (< 𝑟 vir ), which is computed in the same way as 𝐹sub
+except that three-dimensional radii are used instead.
+
+3.2.1 Number density and radial bias profiles
+We begin by studying d ˜
+𝑁/d𝑥 3 | sub and the corresponding bias function in Fig. 7. Since we aim to make direct comparisons to Bolshoi, we set 𝜓res = 𝑚 res,B /𝑀0 , where 𝑚 res,B = 109.83 ℎ−1 M
+corresponds to the 50-particle halo limit that we impose on the
+Bolshoi results. For 𝑀0 = 1014.2 ℎ−1 M , this corresponds to
+log(𝜓res ) = −4.37. We compare the mean results obtained from
+2,000 SatGen trees with the mean of the 282 Bolshoi host haloes
+MNRAS 000, 1–18 (2021)
+
+with log(𝑀0 /[ ℎ−1 M ]) ∈ [14.0, 14.5]. The shaded regions denote
+the 16–84 percentiles of the halo-to-halo variance. The SatGen results are shown for three cases. The “fiducial” result considers all
+subhaloes with 𝑚/𝑚 acc ≥ 𝜙res = 10−5 , whereas the “withering” result is limited to subhaloes with 𝑚 ≥ 𝜓res 𝑀0 . Lastly, the “withering
++ disruption” result includes the impact of the artificial disruption
+mechanism and thus can be compared directly to Bolshoi.
+The radial profile of Bolshoi subhaloes becomes increasingly biased towards the central region of the host, something that has been
+pointed out in numerous previous studies (e.g., Diemand et al. 2004;
+Springel et al. 2008; Han et al. 2016). The Bolshoi radial profile and
+bias function are reproduced exquisitely by SatGen, but only when
+the impact of both withering and artificial disruption are included.
+Modeling the simulation mass limit alone is sufficient to reproduce
+the Bolshoi mean curves within the halo-to-halo variance of SatGen;
+however, when artificial disruption is also taken into account, the
+mean curves are brought into near perfect agreement. Artificial dis3|
+˜
+ruption further suppresses the mean d 𝑁/d𝑥
+sub by roughly a factor
+of two in the central region of the host. When all subhaloes can instead evolve down to 𝑚/𝑚 acc = 10−5 , regardless of 𝑚 acc , we find
+that the radial bias is completely eliminated. In fact, we obtain a
+slight overabundance of subhaloes towards the centre. This is due to
+dynamical friction, as we obtain a fully unbiased radial profile when
+we set 𝛽DF = 0 (i.e., no dynamical friction). We note that Han et al.
+(2016) report a similar finding in the Aquarius simulations (Springel
+et al. 2008). By following the most-bound particle at accretion of all
+subhaloes (regardless of whether or not the subhalo survives to the
+present day), they find a dynamical friction-driven overabundance of
+subhalo remnants in the halo centre that decreases towards a fully unbiased profile as 𝑚 acc decreases. Taken together with SatGen, these
+
+Bolshoi
+Mean host NFW
+
+log(dÑ /dx3|sub)
+
+3
+
+11
+
+0.5
+0.0
+
+−0.5
+
+2
+
+−1.0
+
+1
+
+−1.0
+
+−0.5
+
+This work
+Fiducial
+Withering
+Withering + disruption
+
+−1.5
+
+ψres = 10−4.37
+M0 = 1014.2 h−1 M
+
+0
+−1.5
+
+log(dÑ /dx3|sub/dÑ /dx3|NFW )
+
+The impact of artificial disruption
+
+0.0
+
+log(x ≡ r/rvir)
+
+−2.0
+−1.5
+
+−1.0
+
+−0.5
+
+0.0
+
+log(x ≡ r/rvir)
+
+Figure 7. The subhalo radial profile (including subhaloes of all orders), d 𝑁˜ /d𝑥 3 | sub (left), normalized to unity at 𝑟vir and the bias function (right), which quantifies
+how the radial profile differs from the host density profile. The SatGen results are computed from 2,000 merger trees of systems with 𝑀0 = 1014.2 ℎ −1 M
+at 𝑧 = 0 and a merger tree resolution limit of 𝜓res = 10−4.37 , consistent with the Bolshoi resolution limit for hosts of the same mass. The lines represent the
+sample means and the shaded regions denote the 16–84 percentiles taken over the sample, which quantify the halo-to-halo variance. The fiducial result (red)
+includes all subhaloes with 𝑚/𝑚acc ≥ 10−5 (approximating the lack of a resolution limit), whereas the “withering” result (blue) mimics the Bolshoi mass limit
+by only including subhaloes down to 𝑚 = 𝜓res 𝑀0 . Lastly, “withering + disruption” (green) additionally includes the statistical treatment of artificial disruption
+(Section 2.4). The same quantities are computed from the 282 Bolshoi host haloes with log( 𝑀0 /[ ℎ −1 M ]) ∈ [14.0, 14.5] (black squares). When artificial
+disruption and withering are taken into account, SatGen is able to exquisitely reproduce the Bolshoi bias function. In the absence of such numerical limitations,
+SatGen predicts a nearly unbiased radial profile (in agreement with Han et al. 2016).
+
+results demonstrate that the chief cause of the dearth of subhaloes
+in the central regions of haloes is the limiting mass resolution of
+the simulation. It is neither physical nor primarily a manifestation of
+artificial disruption; the latter only makes a relatively modest impact.
+
+Fig. 8 compares the 𝐹sub (< 𝑋) predictions of SatGen to the results of Bolshoi.11 We use the same SatGen data, simulation data,
+and plotting conventions as in Fig. 7, with the only difference being
+that the curves/points correspond to sample medians. Since the (projected) enclosed substructure mass fraction, 𝐹sub (< 𝑋), is simply a
+mass-weighted radial profile, and since SatGen reproduces both the
+SHMF and radial profile of Bolshoi subhaloes, it should come as
+little surprise that the model also succeeds at predicting 𝐹sub (< 𝑋).
+Once again, when we include the effects of both withering and artificial disruption, the model predictions are in nearly perfect agreement
+with Bolshoi. Without accounting for artificial disruption, the median Bolshoi 𝐹sub (< 𝑋) curve barely lies within the halo-to-halo
+variance of the withering-only prediction (for small 𝑋). Similar to
+d˜
+𝑁/d𝑥 3 | sub , at 𝑋 ≈ 0.1, artificial disruption suppresses the median
+𝐹sub by roughly a factor of two. The difference between the fiducial and withering-only model prediction is quite small, which lies in
+stark contrast to the number density profile. The reason for this is that
+the enhanced resolution of the fiducial model predominantly results
+in an increased abundance of highly stripped low-𝑚 acc subhaloes,
+which contribute little to the total substructure mass but make up
+
+log[Fsub(≤ X)]
+
+3.2.2 Projected enclosed substructure fraction
+
+0
+
+−1
+
+This work
+Fiducial
+W
+W+D
+
+−2
+M0 = 1014.2 h−1 M
+ψres = 10−4.37
+
+−3
+
+Bolshoi
+
+−2.0
+
+−1.5
+
+−1.0
+
+log(X ≡ R/Rvir)
+
+−0.5
+
+0.0
+
+Figure 8. The fraction of mass enclosed within a given projected host-centric
+radius that is bound in first-order subhaloes, 𝐹sub (< 𝑋 ), as defined in equation (15). The same SatGen predictions, Bolshoi results, and plotting conventions are used as in Fig. 7, with the exception being that the curves/points
+instead correspond to the sample medians. When both withering and artificial
+disruption are emulated, SatGen closely reproduces the Bolshoi 𝐹sub (< 𝑋 )
+profile. The substructure mass fraction is only weakly enhanced by the additional resolution in 𝑚/𝑚acc -space afforded by the fiducial model, but it is
+reasonably sensitive to 𝜓res (see Section 3.3).
+
+11
+
+Since the simulation halo catalogs are constructed such that subhaloes
+must be instantaneously located within the virial radius of their host, we also
+only consider SatGen subhaloes within the three-dimensional virial extent of
+the host halo when computing 𝐹sub (< 𝑋 ).
+
+a substantial portion of the number density. As we discuss in Section 3.3, the substructure mass fraction is primarily sensitive to the
+merger tree resolution (𝜓res ).
+MNRAS 000, 1–18 (2021)
+
+12
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+3.2.3 Dependence of d ˜
+𝑁/d𝑥 3 | sub on subhalo properties
+
+3.3.1 Comparison of 𝑓sub (𝜓res ) to Bolshoi
+
+We have demonstrated that by properly modeling the effects of withering and artificial disruption on the subhalo population, SatGen
+can successfully reproduce the radial distribution of simulated subhaloes. We now take a closer look at the d ˜
+𝑁/d𝑥 3 | sub predictions
+of our fiducial model in the absence of these numerical depletion
+channels. Here, we analyze the results of 2,000 SatGen trees with
+𝑀0 = 1014.2 ℎ−1 M at 𝑧 = 0 and 𝜓res = 𝜙res = 10−5 . Thus, the
+lowest-𝑚 acc subhaloes are tracked all the way down to 104.2 ℎ−1 M .
+In Fig. 9, we plot the mean d ˜
+𝑁/d𝑥 3 | sub computed using subhaloes
+from these trees while varying the lower limit of several properties:
+(i) 𝑚 acc /𝑀0 , (ii) 𝑚/𝑚 acc , (iii) 𝑉peak /𝑉vir,h , where 𝑉peak is the peak
+𝑉max attained by the subhalo over its life (in SatGen, this is equivalent to the 𝑉max at accretion, 𝑉max,acc ), (iv) 𝑉max /𝑉peak , (v) 𝑚/𝑀0 ,
+and (vi) log(1 + 𝑧 acc ). For comparison, we also plot the mean Bolshoi
+3|
+˜
+d 𝑁/d𝑥
+sub computed using all subhaloes (i.e., the same as in Fig. 7)
+in each panel. Lastly, in order to facilitate a comparison with the segregation study of van den Bosch et al. (2016), we also compute the
+Spearman rank correlation coefficient, 𝑟 s , between 𝑟/𝑟 vir and each of
+the six properties computed with all subhaloes (denoted 𝑟 s,all ) and
+with subhaloes that would survive Bolshoi withering (𝑚 > 𝑚 res,B )
+and artificial disruption (denoted 𝑟 s,W+D , which can be directly compared to the Bolshoi results, 𝑟 s,B ).
+The normalized radial profile is nearly independent of 𝑚 acc /𝑀0
+and 𝑉peak /𝑉vir,h . When both withering and artificial disruption are
+taken into account, we find that 𝑟 s for each of these properties
+is consistent with the corresponding Bolshoi result reported by
+van den Bosch et al. (2016). The 𝑚/𝑚 acc , 𝑚/𝑀0 , 𝑉max /𝑉peak , and
+log(1 + 𝑧 acc ) panels all tell a similar story: older, less massive, and
+highly-stripped subhaloes follow the host potential with minimal
+bias. However, recently accreted, massive, and minimally-stripped
+systems are biased towards the halo outskirts. These trends are weakened by withering and artificial disruption, bringing the 𝑟 s,W+D for
+each into good agreement with van den Bosch et al. (2016).
+Taken together, SatGen predicts that the full subhalo population
+should exhibit little bias with respect to the host. The dearth of
+subhaloes in the halo centre, which is found universally in dark
+matter-only simulations (e.g., Ghigna et al. 1998; Springel et al. 2001;
+Diemand et al. 2004; Springel et al. 2008; Han et al. 2016), is a result
+of inadequate resolution that causes the non-physical elimination of
+old, highly-stripped subhalo remnants that should be abundant in the
+host core.
+
+We begin by demonstrating the 𝜓res -dependence of 𝑓sub . Here, we include artificial disruption in the SatGen predictions in order to facilitate comparisons with Bolshoi. In Fig. 10, we plot 𝑓sub (𝜓res ) for several different halo masses. The SatGen predictions are obtained using
+10,000 trees (with 𝜓res = 10−4 ) of haloes with 𝑀0 = 1011−14 ℎ−1 M
+at 𝑧 = 0. The Bolshoi results are computed from the 8815, 4713, 1138,
+and 244 host haloes with 𝑀0 = 1011±0.01 , 1012±0.02 , 1013±0.04 , and
+1014±0.1 ℎ−1 M at 𝑧 = 0. For each halo mass, we only show results
+down to the 𝜓res that corresponds to the 50-particle Bolshoi mass
+limit. As is evident, when combined with the Bolshoi-calibrated artificial disruption mechanism, SatGen is able to accurately reproduce
+the subhalo statistics (and their resolution dependence) of simulated
+haloes over several orders of magnitude in mass. There is some
+> 0.1, indicating that the SHMFs of SatGen and
+tension for 𝜓res ∼
+Bolshoi disagree at the massive end. However, this likely reflects uncertainties with the (sub)halo finder used to analyze the simulation
+results rather than a shortcoming of SatGen (see van den Bosch &
+Jiang 2016 for a detailed discussion).
+
+3.3 Substructure mass fractions
+We denote the fraction of matter bound into subhaloes within the
+virial radius of the host as 𝑓sub (< 𝑟 vir ). In this section, we study how
+the SatGen predictions of 𝑓sub (< 𝑟 vir ) vary with resolution limit, set
+by 𝜓res , and how they are affected by artificial disruption. In what
+follows, we write 𝑓sub (𝜓res ) to represent the value of 𝑓sub (< 𝑟 vir )
+computed from first-order subhaloes with 𝑚 > 𝜓res 𝑀0 . Written
+explicitly,
+1
+𝑓sub (𝜓res ) =
+𝑀0
+
+∑︁
+
+𝑚𝑖 ,
+
+(16)
+
+𝑟 <𝑟vir
+𝑚>𝜓res 𝑀0
+
+where the summation runs over first-order subhaloes only. We conclude the section by demonstrating that 𝑓sub is insensitive to small
+changes in the stripping efficiency parameter, 𝛼, and the dynamical
+friction strength, 𝛽DF .
+MNRAS 000, 1–18 (2021)
+
+3.3.2 Mass-dependence and halo-to-halo variance of 𝑓sub
+Fig. 11 plots 𝑓sub (𝜓res = 10−4 ) as a function of host halo mass. These
+results have been obtained using 10,000 trees each (with 𝜓res = 10−4 )
+for haloes with log(𝑀0 /[ ℎ−1 M ]) ∈ [11, 15] at 𝑧 = 0. Note that we
+have not included our treatment of artificial disruption here and the
+results are thus intended to reflect estimates of the true subhalo mass
+fractions in the absence of numerical artifacts. The left-hand panel
+shows the mean, median and 16–84 percentiles for both first- and
+second-order subhaloes, as indicated, whereas the right-hand panel
+plots the corresponding cumulative distribution functions.
+Overall, the trends shown are consistent with the orbit-averaged
+model used by Jiang & van den Bosch (2017): 𝑓sub increases with
+𝑀0 and the halo-to-halo variance decreases slightly with 𝑀0 . As
+discussed in detail in Jiang & van den Bosch (2017), this halo-tohalo variance is predominately driven by variance in the halo mass
+accretion histories (see also e.g., Giocoli et al. 2010; Green et al.
+2020). The second-order 𝑓sub also increases with 𝑀0 , has much larger
+log-scatter than the total 𝑓sub , and its mean is smaller by a factor of
+≈ 15 − 30. This difference between first- and second-order 𝑓sub is
+considerably larger than predicted by Jiang & van den Bosch (2017),
+which is primarily due to the fact that SatGen allows higher-order
+subhaloes to be stripped from their parent subhalo (see Section 2.3.3).
+For comparison, we also plot the result of Okabe et al. (2014),
++0.111
+who used weak gravitational lensing to infer 𝑓sub = 0.226−0.085
+for the Coma cluster,12 which is assumed to have a mass of
+14 −1
+𝑀0 = 8.92+20.05
+−5.17 ×10 ℎ M (Okabe et al. 2010). Our SatGen predictions are in excellent agreement with this measurement, demonstrating consistency between observations and the ΛCDM paradigm.
+
+3.3.3 Impact of disruption on 𝑓sub
+Overall, the results of previous subsections illustrate that artificial
+disruption impacts subhalo statistics less significantly than the factor
+of two suggested by GB19. We now formalize this by comparing
+
+This subhalo mass fraction is measured with 𝜓res = 10−3 , rather than 10−4 .
+< 0.1 dex smaller than
+As shown in Fig. 10, the mean 𝑓sub ( 𝜓res = 10−3 ) is ∼
+𝑓sub ( 𝜓res = 10−4 ) for high-mass host haloes, which is negligible compared
+to both the halo-to-halo variance and the measurement error.
+12
+
+The impact of artificial disruption
+rs,all = +0.01
+rs,W+D = −0.15
+rs,B = −0.14
+
+log(dÑ /dx3|sub)
+
+3
+
+rs,all = −0.21 log(Vpeak /Vvir,h ) ≥
+rs,W+D = −0.18
+−1.35
+rs,B = −0.21
+
+log(macc /M0 ) ≥
+−5.00
+−4.50
+−4.00
+−3.50
+
+2
+
+−1.12
+−0.88
+−0.65
+
+rs,all = +0.51
+rs,W+D = −0.02
+rs,B = +0.12
+
+log(m/M0 ) ≥
+
+rs,all = −0.46
+rs,W+D = −0.24
+rs,B = −0.33
+
+log(1 + zacc ) ≥
+
+13
+
+−10.00
+−8.00
+−6.00
+−4.00
+
+1
+0
+
+Bolshoi
+Mean host NFW
+
+log(dÑ /dx3|sub)
+
+3
+
+rs,all = +0.57
+rs,W+D = +0.34
+rs,B = +0.40
+
+rs,all = +0.57
+rs,W+D = +0.31
+rs,B = +0.24
+
+log(m/macc ) ≥
+−5.00
+−4.00
+−3.00
+−2.00
+
+2
+
+log(Vmax /Vpeak ) ≥
+−1.50
+−1.12
+−0.75
+−0.38
+
+1.00
+0.80
+0.60
+0.40
+
+1
+ψres = φres = 10−5
+
+0
+−1.5
+
+−1.0
+
+log(x)
+
+−0.5
+
+0.0 −1.5
+
+−1.0
+
+−0.5
+
+log(x ≡ r/rvir)
+
+0.0 −1.5
+
+−1.0
+
+log(x)
+
+−0.5
+
+0.0
+
+Figure 9. The subhalo radial profiles for 2,000 SatGen trees with 𝑀0 = 1014.2 ℎ −1 M at 𝑧 = 0 and 𝜓res = 𝜙res = 10−5 . In each panel, the subhaloes are
+segmented by a different property and the mean d 𝑁˜ /d𝑥 3 | sub is computed for each lower bound. In order to assess the amount of bias, we plot the mean density
+profile of the host in each panel (dotted line). We overplot the mean Bolshoi radial profile of all subhaloes in each panel (black squares). We compute the
+Spearman coefficient between 𝑟 /𝑟vir and each property for all subhaloes (𝑟s,all ) and the subhaloes that would survive Bolshoi withering and artificial disruption
+(𝑟s,W+D ). There is little dependence on 𝑚acc /𝑀0 and 𝑉peak /𝑉vir,h . As evidenced by the 𝑚/𝑚acc and 𝑉max /𝑉peak panels, highly-stripped subhaloes follow
+the host density profile with little bias whereas minimally-stripped systems are less commonly found in the halo centre. Similarly, massive, recently accreted
+subhaloes are biased towards the outer halo whereas the inclusion of older, less massive subhaloes leads to a more unbiased profile. Withering and artificial
+disruption tend to weaken (or reverse) the Spearman correlation between each property and 𝑟 /𝑟vir , bringing our 𝑟s,W+D into good agreement with Bolshoi (𝑟s,B ,
+as computed in van den Bosch et al. 2016).
+
+log[hfsub(ψres)i]
+
+−0.5
+−1.0
+−1.5
+−2.0
+−2.5
+−3.0
+−4
+
+SatGen
+
+Bolshoi
+11.00 ± 0.01
+12.00 ± 0.02
+13.00 ± 0.04
+14.00 ± 0.1
+
+11
+12
+13
+14
+
+−3
+
+−2
+
+log(ψres)
+
+−1
+
+Figure 10. The average fraction of mass bound in subhaloes with 𝑚 > 𝜓res 𝑀0
+within 𝑟vir of host haloes of a given 𝑀0 , as defined in equation (16). The
+SatGen predictions are generated using 10,000 trees for each halo mass and
+are suppressed via the artificial disruption model (Section 2.4). The masses
+in the legend are reported in log( 𝑀0 /[ ℎ −1 M ]). We plot the curves down to
+the 𝜓res that corresponds to the Bolshoi 50-particle mass limit for each 𝑀0 .
+The model predictions agree well with the simulation results over a range of
+𝑀0 .
+
+SatGen predictions of 𝑓sub (𝜓res = 𝑚 res,B /𝑀0 ) with and without the
+impact of artificial disruption included (but with the same degree of
+withering in both cases since 𝜓res is fixed). For this test, we use 10,000
+trees with 𝜓res = 10−4 and 𝑀0 = 1012 and 1013 ℎ−1 M as well as
+2,000 trees with 𝜓res = 10−5 and 𝑀0 = 1014.2 ℎ−1 M in order
+to estimate 𝑓sub (𝜓res = 𝑚 res,B /𝑀0 ) with and without disruption.13
+We find that artificial disruption results in a relative suppression of
+𝑓sub (𝜓res = 𝑚 res,B /𝑀0 ) by 8%, 10%, and 12% for 𝑀0 = 1012 , 1013 ,
+and 1014.2 ℎ−1 M , respectively. Indeed, this level of suppression
+is significantly less than a factor of two (i.e., 50%). As already discussed in Section 3.1, the primary reason that the GB19 estimate
+of the artificial disruption impact is much larger is that the orbitaveraged model on which their estimate is based does not account
+for splashback haloes (i.e., the fact that at any moment in time about
+half of all haloes ever accreted by the host are located outside of the
+virial radius).
+3.3.4 Insensitivity of 𝑓sub to the model parameter choices
+The substructure mass fraction is a useful summary statistic for illustrating how sensitive SatGen is to our model parameters (the
+stripping efficiency, 𝛼, and the dynamical friction strength, 𝛽DF ).
+For this test, we once again focus on 𝑀0 = 1014.2 ℎ−1 M haloes.
+We use 10,000 trees with 𝜓res = 10−4 and evolve the subhaloes using
+13
+
+Note that we need additional resolution for the high-mass case in order to
+resolve the merger trees down to 𝑚res,B .
+MNRAS 000, 1–18 (2021)
+
+14
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+1.0
+First order
+
+0.8
+
+−2
+
+P (≤ fsub)
+
+−1
+Mean
+Median
+Okabe+14
+
+0.4
+0.2
+
+−3
+11
+
+0.6
+
+11
+12
+13
+14
+15
+Okabe+14
+
+log[fsub(ψres = 10−4)]
+
+0
+
+Second order
+
+12
+
+13
+
+14
+
+log(M0/[h−1M ])
+
+15
+
+0.0
+−4
+
+−3
+
+−2
+
+−1
+
+log[fsub(ψres = 10−4)]
+
+0
+
+Figure 11. The total (first-order) and second-order 𝑓sub ( 𝜓res = 10−4 ) predictions of SatGen in the absence of artificial disruption. The mean, median, and
+16–84 percentile halo-to-halo variance of 𝑓sub (left) as well as the corresponding cumulative distribution function (right) are computed using 10,000 trees of
+haloes with 𝑀0 = 1011−15 ℎ −1 M at 𝑧 = 0. The masses in the legend are reported in log( 𝑀0 /[ ℎ −1 M ]). Due to the inclusive mass definition, the first-order
+𝑓sub includes the mass of subhaloes of all-orders, whereas the second-order 𝑓sub includes the mass of subhaloes of order-2 and higher. For comparison, we
+plot the gravitational lensing estimate of 𝑓sub ( 𝜓res = 10−3 ) for the Coma cluster measured by Okabe et al. (2014), finding excellent agreement with our model
+predictions.
+
+each of the following cases: (i) our fiducial parameters (𝛽DF = 0.75
+and 𝛼 = 𝛼(𝑐 vir,s /𝑐 vir,h ) described by equation [11]), (ii) fiducial
+𝛽DF = 0.75 and fixed 𝛼 = 0.6, and (iii) fiducial 𝛼 = 𝛼(𝑐 vir,s /𝑐 vir,h )
+and the ‘natural’ 𝛽DF = 1.0 (i.e., Chandrasekhar dynamical friction
+without a correction factor). As our benchmark, we consider the fractional change in the mean 𝑓sub (𝜓res = 10−4 ) relative to the fiducial
+case. Setting 𝛼 = 0.6 results in a 2% relative increase in 𝑓sub relative
+to fiducial. Increasing 𝛽DF from 0.75 to 1.0 results in a ∼ 4% relative
+decrease in 𝑓sub . The level of impact on other statistics (i.e., SHMF,
+radial profiles) is comparable. Hence, we conclude that our model
+predictions are reliable at the level of a few percent and that the uncertainties are small in comparison to the halo-to-halo variance. The
+sensitivity to these parameters is also significantly smaller than the
+impact of artificial disruption on the results of cosmological simulations, making SatGen a more reliable alternative for studying the
+substructure of dark matter haloes.
+
+3.4 Total W + D disruption rate
+The artificial disruption mechanism of Section 2.4 is constructed
+such that the D channel population of SatGen subhaloes has an 𝑓dis
+distribution consistent with that of Bolshoi. However, this alone is
+not sufficient to guarantee that the W + D numerical disruption rate
+of SatGen subhaloes is in agreement with the 13%/Gyr that van den
+Bosch (2017) measured from the W + D channel Bolshoi subhaloes.
+In order to make a fair comparison between the SatGen W + D
+disruption rate and Bolshoi, we run the following test. Starting with
+the same sample of Bolshoi host halo masses (at 𝑧 ∼ 0) as used in
+van den Bosch (2017), we randomly sub-sample 40,000 masses from
+the total of ∼160,000. Rather than use a fixed 𝜓res , we instead set
+𝜓res = 𝑚 res,B /𝑀0 , where 𝑚 res,B = 109.83 ℎ−1 M is the 50-particle
+Bolshoi resolution mass. Following the procedure of van den Bosch
+(2017), we determine the W + D disruption rate by measuring the
+MNRAS 000, 1–18 (2021)
+
+fraction of the subhaloes present at 𝑧 = 0.0174 (i.e., 240 Myr ago)
+that have been disrupted (either via the W or D channel) by 𝑧 = 0. In
+particular, our 𝑧 = 0.0174 sample consists of all subhaloes that have
+merged with the host, have a mass above both 𝑚 res,B and the assigned
+𝑚 dis (i.e., it has neither disrupted nor withered by 𝑧 = 0.0174), and
+have an instantaneous orbital radius within 𝑟 vir of the host centre.
+The subset of this sample with a 𝑧 = 0 mass below either 𝑚 res,B
+or its assigned 𝑚 dis are counted as having numerically disrupted between 𝑧 = 0.0174 and 𝑧 = 0. We convert this disruption fraction
+into a rate by dividing it by the 240 Myr time interval considered.
+Using this approach, we determine that the combination of withering
+and our artificial disruption mechanism yields a W + D numerical
+disruption rate of ∼16.7%/Gyr, which is only slightly larger than the
+13%/Gyr that van den Bosch (2017) measured in Bolshoi. Hence, we
+conclude that our implementation of artificial disruption in SatGen
+accurately reproduces this numerical artifact in the Bolshoi simulation. However, we caution that it may not adequately describe artificial disruption in other simulations, each of which is likely to have
+subtly different disruption statistics. The real strength of SatGen is
+not its ability to reproduce the results of cosmological simulations but
+rather to make reliable predictions that are free from the numerical
+limitations that hamper such simulations.
+
+4 SUMMARY AND DISCUSSION
+This work represents the culmination of several previous studies
+aimed at quantifying the impact of artificial disruption on stateof-the-art dark matter-only cosmological simulations. Studying the
+evolution of Bolshoi subhaloes, van den Bosch (2017) found that the
+combined effect of the finite mass resolution (i.e., withering) and
+artificial disruption results in rapid depletion of the subhalo population. In the follow-up studies of van den Bosch et al. (2018) and
+van den Bosch & Ogiya (2018), the authors used a combination of
+
+The impact of artificial disruption
+analytical arguments and idealized numerical experiments to demonstrate that complete physical disruption of ΛCDM subhalo remnants
+is exceedingly rare, concluding that the majority of disruption seen
+in cosmological simulations must be numerical in nature. Following
+this, Ogiya et al. (2019) released the DASH library of high-resolution
+idealized simulations of halo mergers. This data release marked the
+beginning of a research program focused on developing a new semianalytical model of subhalo evolution that is calibrated independently
+of cosmological simulations, enabling its predictions to be free of the
+effects of artificial disruption. Thus, GB19 used DASH to construct
+an accurate model of the evolved subhalo density profile, which is
+a simple function of the initial profile and the fraction of mass lost
+since infall (similar to the approaches of, e.g., Hayashi et al. 2003;
+Peñarrubia et al. 2010; Drakos et al. 2017; Errani & Navarro 2020).
+Additionally, using the orbit-averaged subhalo evolution model and
+artificial disruption mechanism of Jiang & van den Bosch (2016),
+GB19 inferred that artificial disruption could potentially be responsible for suppressing the SHMF normalization by as much as a factor
+of two. Recently, Jiang et al. (2021) released the SatGen library, a
+new semi-analytical modeling framework for studying subhalo and
+satellite galaxy evolution in a full dynamical context (i.e., the orbits of
+individual subhaloes are integrated instead of using an orbit-averaged
+approach).
+In the present paper, we used SatGen as a scaffolding to develop a
+comprehensive model of substructure evolution that is not adversely
+impacted by the limitations of artificial disruption and simulation
+resolution limits. To this end, we made several modifications and
+improvements to SatGen, which we summarize below:
+• The initial orbits of infalling subhaloes are sampled using the
+state-of-the-art model of Li et al. (2020) (see Appendix A). This
+model marks an improvement over previous approaches (e.g., Zentner
+et al. 2005; Wetzel 2011; Jiang et al. 2015) because it is expressed as
+a general function of the host halo peak height and host-to-subhalo
+mass ratio. Furthermore, the free parameters of the model were fit
+using a large simulation suite.
+• The evolved subhalo density profiles (ESHDPs) are characterized using the model of GB19 (Section 2.3.1). At infall, subhaloes
+are assumed to have NFW profiles. However, as mass is stripped and
+𝑚/𝑚 acc decreases, the profile becomes tidally truncated in a manner
+consistent with the evolution of DASH subhaloes.
+• In line with the original SatGen implementation, the instantaneous subhalo mass-loss rate (Section 2.3.2) is written according to
+equation (7), which depends on the King (1962) tidal radius (computed using the ESHDPs), the local dynamical time, and the “stripping efficiency”, 𝛼. We re-calibrated 𝛼 (equation [11]) so that the
+mass-loss model accurately reproduces the 𝑚(𝑡)/𝑚 acc trajectories of
+DASH subhaloes.
+• The strength of the (Chandrasekhar) dynamical friction is controlled by a correction factor, 𝛽DF , which we calibrate such that
+SatGen reproduces the 𝑚 acc /𝑀0 -dependence of the h𝑟/𝑟 vir i − 𝑧 acc
+relation of Bolshoi subhaloes (Section 2.5). We have demonstrated
+that the resulting best-fit value (𝛽DF = 0.75) is not adversely affected
+by artificial disruption in the Bolshoi simulation.
+• In order to assess the impact of artificial disruption on simulations, we developed a model that reproduces the statistical properties
+of disruption in Bolshoi that can be optionally applied to SatGen
+results. We found that the 𝑓dis distribution of disrupted (D channel)
+Bolshoi subhaloes is well-described by a family of log-normal distributions, the parameters of which are functions of 𝑚 acc (Section 2.4).
+• SatGen is ideally suited to assess the impact of the resolution
+limit of numerical simulations by only including subhaloes with
+
+15
+
+a final mass that lies above the merger tree resolution (i.e., 𝑚 >
+𝜓res 𝑀0 ). In addition, by instead allowing each subhalo to evolve
+down to arbitrary 𝜙res = 𝑚/𝑚 acc (here, we have used values as low
+as 𝜙res = 10−5 ), SatGen can model the subhalo population with an
+effectively “arbitrary resolution”.
+We used this updated model to predict subhalo mass and maximum circular velocity functions, number density profiles, radial bias
+profiles, and substructure mass fractions. We considered the effect
+of both the simulation mass limit and artificial disruption on each
+quantity and studied the dependence of 𝑓sub on host halo mass. We
+summarize our most notable findings below:
+• When the effects of both withering and artificial disruption are
+included, SatGen yields subhalo demographics in excellent agreement with Bolshoi.
+• Artificial disruption only results in a ∼ 8 − 12% suppression
+of 𝑓sub (< 𝑟 vir ) and a ∼ 20% suppression of the SHMF. While still
+significant, this greatly ameliorates previous concerns that the overall
+abundance of dark matter subhaloes could be artificially suppressed
+by a factor of two. However, the impact of artificial disruption is
+more pronounced at smaller host-centric radii, where it halves both
+3|
+˜
+𝐹sub (< 𝑋) and d 𝑁/d𝑥
+sub within ∼ 0.1𝑟 vir .
+• By comparing the SHMF computed by including only subhaloes
+within 𝑟 vir (i.e., consistent with simulation approaches) to the SHMF
+computed by including all surviving subhaloes ever accreted by the
+host, we infer that splashback haloes make up roughly half of the
+total subhalo population. This is in good agreement with results from
+several simulation studies (e.g., Gill et al. 2004; Ludlow et al. 2009;
+Bakels et al. 2021). Hence, it is essential that semi-analytical models
+of subhalo and satellite galaxy evolution properly account for the
+splashback population. This is naturally achieved with full dynamical
+models, such as SatGen, which integrate the orbits of individual
+subhaloes. At the same time, it indicates a serious limitation of orbitaveraged approaches, such as those used in van den Bosch et al.
+(2005b) and Jiang & van den Bosch (2016).
+• We have demonstrated that the radial bias in the subhalo number density (i.e., the dearth of subhaloes in the halo centre relative
+to the host density profile), a feature that is consistently present in
+dark matter-only simulations (e.g., Ghigna et al. 1998; Springel et al.
+2001; Diemand et al. 2004; Springel et al. 2008; Han et al. 2016), is
+predominantly an artifact of the simulation mass resolution (at least
+in the absence of baryonic processes) and not of artificial disruption.
+The latter only slightly enhances the bias and is subdominant to the
+impact of the mass resolution. By allowing subhaloes to evolve down
+to arbitrarily low 𝑚/𝑚 acc (as opposed to having a fixed absolute
+mass limit), the radial bias is completely eliminated. In fact, dynamical friction causes a slight enhancement of the subhalo number
+density relative to the host profile near the halo centre, which marks
+a complete reversal of the trend seen in simulations.
+Although the model presented here is able to accurately reproduce
+the subhalo statistics of a cosmological simulation when its numerical limitations are properly taken into account, the true strength
+of the updated version of SatGen presented here lies in the fact
+that it can be used to predict subhalo demographics with an arbitrarily high resolution and in the absence of artificial disruption.
+We have therefore made the updated code publicly available in the
+hope that it will enable/accommodate a wide variety of future research programs. For example, SatGen could prove a powerful tool
+to investigate claimed discrepancies between simulations and observations regarding the abundance and central concentration of dark
+matter substructure (e.g., Carlsten et al. 2020; Meneghetti et al. 2020)
+MNRAS 000, 1–18 (2021)
+
+16
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+and/or the dark matter deficiency of associated satellite galaxies (e.g.,
+Ogiya 2018; Jackson et al. 2021).
+
+ACKNOWLEDGEMENTS
+The authors thank Uddipan Banik, Nicole Drakos, Dhruba Dutta
+Chowdhury, Zhaozhou Li, and Go Ogiya for helpful conversations
+throughout the development of this work. SBG is supported by the US
+National Science Foundation Graduate Research Fellowship under
+Grant No. DGE-1752134. FCvdB is supported by the National Aeronautics and Space Administration through Grant No. 17-ATP17-0028
+issued as part of the Astrophysics Theory Program. FJ is supported
+by the Troesh Fellowship from the California Institute of Technology.
+
+DATA AVAILABILITY
+The DASH simulation data is available online.14 The updated SatGen
+library is available in the sheridan branch of the SatGen GitHub
+repository.15
+
+REFERENCES
+Aung H., Nagai D., Rozo E., García R., 2021, MNRAS, 502, 1041
+Bakels L., Ludlow A. D., Power C., 2021, MNRAS, 501, 5948
+Behroozi P. S., Wechsler R. H., Conroy C., 2013, ApJ, 770, 57
+Benson A. J., 2017, MNRAS, 467, 3454
+Benson A. J., 2020, MNRAS, 493, 1268
+Benson A. J., Frenk C. S., Baugh C. M., Cole S., Lacey C. G., 2001, MNRAS,
+327, 1041
+Berlind A. A., et al., 2003, ApJ, 593, 1
+Binney J., Tremaine S., 2008, Galactic Dynamics: Second Edition. Princeton
+University Press
+Bonaca A., et al., 2020, ApJ, 892, L37
+Bose S., et al., 2017, MNRAS, 464, 4520
+Boylan-Kolchin M., Springel V., White S. D. M., Jenkins A., 2010, MNRAS,
+406, 896
+Bryan G. L., Norman M. L., 1998, ApJ, 495, 80
+Bullock J. S., Kolatt T. S., Sigad Y., Somerville R. S., Kravtsov A. V., Klypin
+A. A., Primack J. R., Dekel A., 2001, MNRAS, 321, 559
+Burkert A., 2000, ApJ, 534, L143
+Campbell D., van den Bosch F. C., Padmanabhan N., Mao Y.-Y., Zentner
+A. R., Lange J. U., Jiang F., Villarreal A., 2018, MNRAS, 477, 359
+Carlberg R. G., 2012, ApJ, 748, 20
+Carlsten S. G., Greene J. E., Peter A. H. G., Greco J. P., Beaton R. L., 2020,
+ApJ, 902, 124
+Chandrasekhar S., 1943, ApJ, 97, 255
+Chaves-Montero J., Angulo R. E., Schaye J., Schaller M., Crain R. A., Furlong
+M., Theuns T., 2016, MNRAS, 460, 3100
+Cole S., Lacey C. G., Baugh C. M., Frenk C. S., 2000, MNRAS, 319, 168
+Colín P., Avila-Reese V., González-Samaniego A., Velázquez H., 2015, ApJ,
+803, 28
+Conroy C., Wechsler R. H., Kravtsov A. V., 2006, ApJ, 647, 201
+Dalal N., Kochanek C. S., 2002, ApJ, 572, 25
+Delos M. S., 2019, Phys. Rev. D, 100, 063505
+Diemand J., Moore B., Stadel J., 2004, MNRAS, 352, 535
+Diemand J., Kuhlen M., Madau P., 2007, ApJ, 667, 859
+Diemer B., 2020a, arXiv e-prints, p. arXiv:2007.10992
+Diemer B., 2020b, ApJS, 251, 17
+Drakos N. E., Taylor J. E., Benson A. J., 2017, MNRAS, 468, 2345
+
+14
+15
+
+https://cosmo.oca.eu/dash/
+https://github.com/shergreen/SatGen/tree/sheridan
+
+MNRAS 000, 1–18 (2021)
+
+Drakos N. E., Taylor J. E., Benson A. J., 2020, MNRAS, 494, 378
+Erkal D., Belokurov V., Bovy J., Sanders J. L., 2016, MNRAS, 463, 102
+Errani R., Navarro J. F., 2020, arXiv e-prints, p. arXiv:2011.07077
+Facchinetti G., Lavalle J., Stref M., 2020, arXiv e-prints, p. arXiv:2007.10392
+Fong M., Han J., 2020, arXiv e-prints, p. arXiv:2008.03477
+Gan J., Kang X., van den Bosch F. C., Hou J., 2010, MNRAS, 408, 2201
+Gao L., White S. D. M., Jenkins A., Stoehr F., Springel V., 2004, MNRAS,
+355, 819
+Gao L., Navarro J. F., Frenk C. S., Jenkins A., Springel V., White S. D. M.,
+2012, MNRAS, 425, 2169
+Garrison-Kimmel S., et al., 2017, MNRAS, 471, 1709
+Ghigna S., Moore B., Governato F., Lake G., Quinn T., Stadel J., 1998,
+MNRAS, 300, 146
+Gill S. P. D., Knebe A., Gibson B. K., 2004, MNRAS, 351, 399
+Gilman D., Birrer S., Treu T., 2020, A&A, 642, A194
+Giocoli C., Tormen G., Sheth R. K., van den Bosch F. C., 2010, MNRAS,
+404, 502
+Golse G., Kneib J. P., 2002, A&A, 390, 821
+Green S. B., van den Bosch F. C., 2019, MNRAS, 490, 2091
+Green S. B., Aung H., Nagai D., van den Bosch F. C., 2020, MNRAS, 496,
+2743
+Griffen B. F., Ji A. P., Dooley G. A., Gómez F. A., Vogelsberger M., O’Shea
+B. W., Frebel A., 2016, ApJ, 818, 10
+Guo Q., White S., Li C., Boylan-Kolchin M., 2010, MNRAS, 404, 1111
+Han J., Cole S., Frenk C. S., Jing Y., 2016, MNRAS, 457, 1208
+Hayashi E., Navarro J. F., Taylor J. E., Stadel J., Quinn T., 2003, ApJ, 584,
+541
+Hayashi K., Ichikawa K., Matsumoto S., Ibe M., Ishigaki M. N., Sugai H.,
+2016, MNRAS, 461, 2914
+Hearin A. P., Zentner A. R., Berlind A. A., Newman J. A., 2013, MNRAS,
+433, 659
+Hezaveh Y. D., et al., 2016, ApJ, 823, 37
+Hiroshima N., Ando S., Ishiyama T., 2018, Phys. Rev. D, 97, 123002
+Jackson R. A., et al., 2021, MNRAS, 502, 1785
+Jiang F., van den Bosch F. C., 2014, MNRAS, 440, 193
+Jiang F., van den Bosch F. C., 2016, MNRAS, 458, 2848
+Jiang F., van den Bosch F. C., 2017, MNRAS, 472, 657
+Jiang L., Cole S., Sawala T., Frenk C. S., 2015, MNRAS, 448, 1674
+Jiang F., Dekel A., Freundlich J., van den Bosch F. C., Green S. B., Hopkins
+P. F., Benson A., Du X., 2021, MNRAS, 502, 621
+Kampakoglou M., Benson A. J., 2007, MNRAS, 374, 775
+Keeton C. R., Moustakas L. A., 2009, ApJ, 699, 1720
+King I., 1962, AJ, 67, 471
+Klypin A. A., Trujillo-Gomez S., Primack J., 2011, ApJ, 740, 102
+Klypin A., Prada F., Yepes G., Heß S., Gottlöber S., 2015, MNRAS, 447,
+3693
+Knebe A., Arnold B., Power C., Gibson B. K., 2008, MNRAS, 386, 1029
+Knebe A., et al., 2013, MNRAS, 435, 1618
+Kravtsov A. V., Berlind A. A., Wechsler R. H., Klypin A. A., Gottlöber S.,
+Allgood B., Primack J. R., 2004, ApJ, 609, 35
+Lange J. U., van den Bosch F. C., Zentner A. R., Wang K., Villarreal A. S.,
+2019, MNRAS, 487, 3112
+Li Z.-Z., Zhao D.-H., Jing Y. P., Han J., Dong F.-Y., 2020, ApJ, 905, 177
+Lovell M. R., Frenk C. S., Eke V. R., Jenkins A., Gao L., Theuns T., 2014,
+MNRAS, 439, 300
+Ludlow A. D., Navarro J. F., Springel V., Jenkins A., Frenk C. S., Helmi A.,
+2009, ApJ, 692, 931
+Ludlow A. D., Schaye J., Bower R., 2019, MNRAS, 488, 3663
+Mansfield P., Avestruz C., 2020, MNRAS, 500, 3309
+Meneghetti M., et al., 2020, Science, 369, 1347
+Mo H., van den Bosch F. C., White S., 2010, Galaxy Formation and Evolution.
+Cambridge University Press
+Nadler E. O., Mao Y.-Y., Green G. M., Wechsler R. H., 2019, ApJ, 873, 34
+Nadler E. O., et al., 2020a, arXiv e-prints, p. arXiv:2008.00022
+Nadler E. O., et al., 2020b, ApJ, 893, 48
+Navarro J. F., Frenk C. S., White S. D. M., 1997, ApJ, 490, 493
+Necib L., et al., 2020, Nature Astronomy, 4, 1078
+
+The impact of artificial disruption
+Newton O., Cautun M., Jenkins A., Frenk C. S., Helly J. C., 2018, MNRAS,
+479, 2853
+Ngan W. H. W., Carlberg R. G., 2014, ApJ, 788, 181
+Ogiya G., 2018, MNRAS, 480, L106
+Ogiya G., van den Bosch F. C., Hahn O., Green S. B., Miller T. B., Burkert
+A., 2019, MNRAS, 485, 189
+Oguri M., Lee J., 2004, MNRAS, 355, 120
+Okabe N., Okura Y., Futamase T., 2010, ApJ, 713, 291
+Okabe N., Futamase T., Kajisawa M., Kuroshima R., 2014, ApJ, 784, 90
+Onions J., et al., 2012, MNRAS, 423, 1200
+Parkinson H., Cole S., Helly J., 2008, MNRAS, 383, 557
+Peñarrubia J., Benson A. J., 2005, MNRAS, 364, 977
+Peñarrubia J., Navarro J. F., McConnachie A. W., 2008, ApJ, 673, 226
+Peñarrubia J., Benson A. J., Walker M. G., Gilmore G., McConnachie A. W.,
+Mayer L., 2010, MNRAS, 406, 1290
+Pieri L., Bertone G., Branchini E., 2008, MNRAS, 384, 1627
+Pullen A. R., Benson A. J., Moustakas L. A., 2014, ApJ, 792, 24
+Read J. I., Wilkinson M. I., Evans N. W., Gilmore G., Kleyna J. T., 2006,
+MNRAS, 367, 387
+Reddick R. M., Wechsler R. H., Tinker J. L., Behroozi P. S., 2013, ApJ, 771,
+30
+Rico J., 2020, Galaxies, 8, 25
+Rocha M., Peter A. H. G., Bullock J. S., Kaplinghat M., Garrison-Kimmel
+S., Oñorbe J., Moustakas L. A., 2013, MNRAS, 430, 81
+Shu Y., et al., 2015, ApJ, 803, 71
+Somalwar J. J., Chang L. J., Mishra-Sharma S., Lisanti M., 2021, ApJ, 906,
+57
+Springel V., White S. D. M., Tormen G., Kauffmann G., 2001, MNRAS, 328,
+726
+Springel V., et al., 2008, MNRAS, 391, 1685
+Strigari L. E., Koushiappas S. M., Bullock J. S., Kaplinghat M., 2007, Phys.
+Rev. D, 75, 083526
+Taffoni G., Mayer L., Colpi M., Governato F., 2003, MNRAS, 341, 434
+Taylor J. E., Babul A., 2001, ApJ, 559, 716
+Taylor J. E., Babul A., 2004, MNRAS, 348, 811
+Tollet É., Cattaneo A., Mamon G. A., Moutard T., van den Bosch F. C., 2017,
+MNRAS, 471, 4170
+Tormen G., Bouchet F. R., White S. D. M., 1997, MNRAS, 286, 865
+Trujillo-Gomez S., Klypin A., Primack J., Romanowsky A. J., 2011, ApJ,
+742, 16
+Vale A., Ostriker J. P., 2006, MNRAS, 371, 1173
+Vattis K., Toomey M. W., Koushiappas S. M., 2020, arXiv e-prints, p.
+arXiv:2008.11577
+Vegetti S., Koopmans L. V. E., Auger M. W., Treu T., Bolton A. S., 2014,
+MNRAS, 442, 2017
+Vogelsberger M., Zavala J., Loeb A., 2012, MNRAS, 423, 3740
+Wetzel A. R., 2011, MNRAS, 412, 49
+Yang S., Du X., Benson A. J., Pullen A. R., Peter A. H. G., 2020, MNRAS,
+498, 3902
+Zentner A. R., Bullock J. S., 2003, ApJ, 598, 49
+Zentner A. R., Berlind A. A., Bullock J. S., Kravtsov A. V., Wechsler R. H.,
+2005, ApJ, 624, 505
+Zentner A. R., Hearin A. P., van den Bosch F. C., 2014, MNRAS, 443, 3044
+Zhao D. H., Jing Y. P., Mo H. J., Börner G., 2009, ApJ, 707, 354
+van den Bosch F. C., 2017, MNRAS, 468, 885
+van den Bosch F. C., Jiang F., 2016, MNRAS, 458, 2870
+van den Bosch F. C., Ogiya G., 2018, MNRAS, 475, 4066
+van den Bosch F. C., Yang X., Mo H. J., Norberg P., 2005a, MNRAS, 356,
+1233
+van den Bosch F. C., Tormen G., Giocoli C., 2005b, MNRAS, 359, 1029
+van den Bosch F. C., Jiang F., Hearin A., Campbell D., Watson D., Padmanabhan N., 2014, MNRAS, 445, 1713
+van den Bosch F. C., Jiang F., Campbell D., Behroozi P., 2016, MNRAS, 455,
+158
+van den Bosch F. C., Ogiya G., Hahn O., Burkert A., 2018, MNRAS, 474,
+3043
+van den Bosch F. C., Lange J. U., Zentner A. R., 2019, MNRAS, 488, 4984
+
+17
+
+APPENDIX A: INITIAL ORBITS
+Here, we describe our approach for initializing subhalo orbits. We
+specify the initial phase space coordinates of the infalling subhalo as
+{𝑟, 𝜃, 𝜙, 𝑣𝑟 , 𝑣 𝜃 , 𝑣 𝜙 } = {𝑟 vir , 𝜃, 𝜙, −𝑣 cos 𝛾, 𝑣 sin 𝛾 cos 𝛿, 𝑣 sin 𝛾 sin 𝛿}.
+(A1)
+We assume that subhalo infall occurs isotropically, and therefore
+select an initial azimuthal angle, 𝜙, uniformly from [0, 2𝜋) and an
+initial polar angle, 𝜃, by sampling cos 𝜃 uniformly from [0, 1). In
+order to determine the initial velocity vector, the degrees of freedom
+of which are the speed, 𝑣, the angle between the velocity vector and
+the (negative of the) position vector, 𝛾, and an additional angle that
+sets the orientation of the orbital plane, 𝛿, we use the universal model
+of Li et al. (2020), which has been calibrated using a large suite of
+cosmological simulations.
+For all first infall events (i.e., for a given subhalo, only considering
+the first time a subhalo enters into the host virial radius) aggregated
+across all of the simulations and over a wide range of redshift snapshots, Li et al. (2020) find that 𝑢 ≡ 𝑣/𝑉vir,h (here, 𝑉vir,h denotes
+the instantaneous virial velocity of the host) is well-described by a
+universal log-normal distribution that is peaked near unity and is
+independent of subhalo mass and redshift, 𝑧:
+"
+#
+1
+ln2 (𝑢/𝜇1 ) d𝑢
+𝑝(𝑢) d𝑢 = √
+exp −
+.
+(A2)
+𝑢
+2𝜎 2
+2𝜋𝜎1
+1
+
+Here, 𝜇1 = 1.2 and 𝜎1 = 0.2. They also find that mergers with larger
+𝑀vir (instantaneous virial mass of the host) and/or 𝜉 ≡ 𝑚 acc /𝑀vir
+result in more radial subhalo orbits, which is mainly attributed to
+gravitational focusing. By rewriting the host mass, 𝑀vir , in terms of
+its corresponding density peak height, 𝜈 ≡ 𝛿c (𝑧)/𝜎(𝑀vir ), where
+𝛿c (𝑧) is the critical overdensity of collapse and 𝜎 2 (𝑀) is the mass
+variance, the authors find that the distribution of infall angles is
+redshift-independent and only depends on 𝑢, 𝜈, and 𝜉. Specifically,
+cos2 𝛾 follows an exponential distribution,
+
+𝜁
+exp 𝜁 cos2 𝛾 d cos2 𝛾,
+𝑝(cos2 𝛾 | 𝑢, 𝜈, 𝜉) d cos2 𝛾 = 𝜁
+𝑒 −1
+where
+"
+#
+ln2 (𝑢/𝜇2 )
+𝜁 = 𝑎 0 exp −
++ 𝐴(𝑢 + 1) + 𝐵,
+2𝜎12
+𝐴 = 𝑎 1 𝜈 + 𝑎 2 𝜁 𝑐 + 𝑎 3 𝜈𝜁 𝑐 , and
+
+(A3)
+
+(A4)
+
+𝐵 = 𝑏0 + 𝑏1 𝜁 𝑐 ,
+and the best-fit parameters are (𝑎 0 , 𝑎 1 , 𝑎 2 , 𝑎 3 , 𝑏 0 , 𝑏 1 , 𝜇2 , 𝑐) =
+(0.89, 0.3, −3.33, 0.56, −1.44, 9.60, 1.04, 0.43).
+We use equations (A2)–(A4) to sample the initial 𝑣 and 𝛾 for each
+subhalo at infall. In order to set the orientation of the orbital plane,
+we assume isotropy and therefore draw 𝛿 uniformly from [0, 2𝜋).
+Using the 𝑢 distribution of Li et al. (2020) results in a substantial fraction of sampled orbits with initial orbital energies that lie
+above the maximum value sampled in the DASH simulations (corresponding to 𝑥c = 2). This fraction has a slight dependence on the
+host concentration. For example, for 𝑐 vir,h = 10, a total of 25% of
+subhaloes have 𝑥c > 2 at infall and 2% are initially unbound (i.e.,
+𝑣 at infall is larger than the escape velocity). Fortunately, the performance of our DASH-calibrated evolved subhalo density profile
+model and mass-loss prescription both exhibit minimal dependence
+on the orbital parameters. We emphasize that the combined impact
+of dynamical friction and the growth of the host potential results in
+MNRAS 000, 1–18 (2021)
+
+18
+
+S. B. Green, F. C. van den Bosch, and F. Jiang
+
+continuous reduction of the subhalo orbital energy, lowering 𝑥c over
+time. These effects also drive subhaloes that are initially unbound to
+eventually become bound after infall; thus, we include these initially
+unbound orbits in the SatGen subhalo population.
+This paper has been typeset from a TEX/LATEX file prepared by the author.
+
+MNRAS 000, 1–18 (2021)
+
+

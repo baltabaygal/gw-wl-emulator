@@ -1,0 +1,81 @@
+\documentclass[aps,prd,10pt,nofootinbib,twocolumn,superscriptaddress,floatfix,notitlepage]{revtex4-2}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{Plot Layout Check}
+\author{Codex}
+\date{\today}
+
+\maketitle
+
+This file is a quick end-to-end check for the exported paper figures. It verifies
+that single-column panels align visually and that the double-column figure spans
+the text width cleanly in a RevTeX PRD layout.
+
+The single-column figures below should all occupy the same width and feel
+consistent in axis label scale, tick spacing, and overall visual weight.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{plots/figures/sigma_k_vs_kappa_threshold_measured.pdf}
+  \caption{Single-column check: sigma versus threshold.}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{plots/figures/sigma_k_vs_subhalo_factor_paired.pdf}
+  \caption{Single-column check: sigma versus subhalo factor.}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{plots/figures/subhalo_factor_convergence_paper_a.pdf}
+  \caption{Single-column check: convergence panel A.}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{plots/figures/subhalo_factor_convergence_paper_b.pdf}
+  \caption{Single-column check: convergence panel B.}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf}
+  \caption{Single-column check: Vaskonen-inspired production plot.}
+\end{figure}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{plots/figures/subhalo_factor_convergence_paper.pdf}
+  \caption{Double-column check: combined convergence figure.}
+\end{figure*}
+
+\clearpage
+
+\section*{Direct Comparison}
+
+\begin{figure*}[t]
+  \centering
+  \begin{minipage}{0.19\textwidth}
+    \includegraphics[width=\linewidth]{plots/figures/sigma_k_vs_kappa_threshold_measured.pdf}
+  \end{minipage}\hfill
+  \begin{minipage}{0.19\textwidth}
+    \includegraphics[width=\linewidth]{plots/figures/sigma_k_vs_subhalo_factor_paired.pdf}
+  \end{minipage}\hfill
+  \begin{minipage}{0.19\textwidth}
+    \includegraphics[width=\linewidth]{plots/figures/subhalo_factor_convergence_paper_a.pdf}
+  \end{minipage}\hfill
+  \begin{minipage}{0.19\textwidth}
+    \includegraphics[width=\linewidth]{plots/figures/subhalo_factor_convergence_paper_b.pdf}
+  \end{minipage}\hfill
+  \begin{minipage}{0.19\textwidth}
+    \includegraphics[width=\linewidth]{plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf}
+  \end{minipage}
+  \caption{All single-column exports shown at the same width for quick visual comparison.}
+\end{figure*}
+
+\end{document}

@@ -1,0 +1,34 @@
+{
+  "continuous": {
+    "posterior_jsd": 0.6714065714326034,
+    "total_variation": 0.9924742137998708,
+    "credible_region_overlap": {
+      "credible_region_68": 0.0,
+      "credible_region_95": 0.0
+    },
+    "normalized_posterior_shift": {
+      "OmegaM": 6.970702387187988,
+      "sigma8": 10.29720608437409
+    },
+    "mle_offset": {
+      "OmegaM": -0.12727272727272726,
+      "sigma8": 0.2909090909090909
+    }
+  },
+  "compatible": {
+    "posterior_jsd": 0.6869079935220981,
+    "total_variation": 0.9978886646311526,
+    "credible_region_overlap": {
+      "credible_region_68": 0.0,
+      "credible_region_95": 0.0
+    },
+    "normalized_posterior_shift": {
+      "OmegaM": 7.5515360147288595,
+      "sigma8": 10.859623438481687
+    },
+    "mle_offset": {
+      "OmegaM": -0.14545454545454545,
+      "sigma8": 0.2909090909090909
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "generated": "2026-07-09T12:24:10.780955Z",
+  "items": [
+    {
+      "file": "paper_prod/plots/figures/sigma_partition_vs_kthr.pdf",
+      "size": 199551,
+      "modified": "2026-07-09T11:15:45.130984",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_partition_vs_kthr.py",
+        "generated": "2026-07-09T08:15:45.132001Z",
+        "git_commit": "378ea05",
+        "source_data": "data/sigma_partition_vs_kthr_z1.npz",
+        "notes": "zs=1, halo-only (filaments/bias/ell/subhalo off); background floor held at kappa_min = 1e-3 * kappa_thr(N=100) = 1.28e-7; sigma_total from sample_lensing_raw_ml with custom_kappathr; errors from 4th moment.",
+        "output_png": "paper_prod/plots/figures/sigma_partition_vs_kthr.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_kthr.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_partition_vs_kthr.png",
+      "size": 40971,
+      "modified": "2026-07-09T11:15:44.884884",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_sigma_partition_vs_kthr.py",
+        "generated": "2026-07-09T08:15:45.132001Z",
+        "git_commit": "378ea05",
+        "source_data": "data/sigma_partition_vs_kthr_z1.npz",
+        "notes": "zs=1, halo-only (filaments/bias/ell/subhalo off); background floor held at kappa_min = 1e-3 * kappa_thr(N=100) = 1.28e-7; sigma_total from sample_lensing_raw_ml with custom_kappathr; errors from 4th moment.",
+        "output_png": "paper_prod/plots/figures/sigma_partition_vs_kthr.png",
+        "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_kthr.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf",
+      "size": 174186,
+      "modified": "2026-07-09T15:24:06.379443",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache /Users/baltabay/Desktop/gw-wl-emulator/data/vaskonen_fig3_linlin_subhalos_strict_n400000.json",
+        "generated": "2026-07-09T12:24:06.380271Z",
+        "git_commit": "211a370",
+        "seed": 240706,
+        "nreal": 400000
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png",
+      "size": 77927,
+      "modified": "2026-07-09T15:24:06.094042",
+      "metadata": {
+        "script": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "paper_prod/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 400000 --seed 240706 --strict-weak-lensing --cache /Users/baltabay/Desktop/gw-wl-emulator/data/vaskonen_fig3_linlin_subhalos_strict_n400000.json",
+        "generated": "2026-07-09T12:24:06.380271Z",
+        "git_commit": "211a370",
+        "seed": 240706,
+        "nreal": 400000
+      }
+    }
+  ]
+}

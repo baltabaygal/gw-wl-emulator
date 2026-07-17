@@ -1,0 +1,332 @@
+{
+  "phase": "3D",
+  "objective": "cache_reproducibility",
+  "timestamp": "2026-06-16T09:20:49Z",
+  "status": "success",
+  "checked_runs": [
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 250,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 250,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 250,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 1000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 1000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 1000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 5000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 5000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_uniform",
+      "N": 5000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 250,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 250,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 250,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 1000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 1000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 1000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 5000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 5000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_low_z_dominated",
+      "N": 5000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 250,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 250,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 250,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 1000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 1000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 1000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 5000,
+      "seed": 710001,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 5000,
+      "seed": 710002,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    },
+    {
+      "catalog_type": "mixed_high_z_dominated",
+      "N": 5000,
+      "seed": 710003,
+      "cache_verifications": {
+        "catalog_hash_matches": true,
+        "nsf_checkpoint_hash_matches": true,
+        "preprocessing_stats_hash_matches": true,
+        "simulator_git_commit_matches": true,
+        "likelihood_mode_matches": true
+      }
+    }
+  ]
+}

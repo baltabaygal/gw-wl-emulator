@@ -1,0 +1,8 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_k_vs_kappa_threshold.py",
+  "generated": "2026-07-08T08:37:03.732484Z",
+  "git_commit": "bf16cad",
+  "source_data": "data/variance_sweep_data_z1.npz",
+  "output_png": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.pdf"
+}

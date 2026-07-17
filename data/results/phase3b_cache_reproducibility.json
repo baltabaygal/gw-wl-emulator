@@ -1,0 +1,40 @@
+{
+  "catalog_hash_matches_grid": true,
+  "grid_cache_key_matches_current_simulator_commit": true,
+  "grid_integrity": {
+    "axis_OmegaM": {
+      "finite": true,
+      "size": 12,
+      "strictly_increasing": true
+    },
+    "axis_sigma8": {
+      "finite": true,
+      "size": 12,
+      "strictly_increasing": true
+    },
+    "nsf_log_likelihood": {
+      "finite": true,
+      "posterior_finite": true,
+      "posterior_sum": 0.9999999999999999,
+      "shape": [
+        12,
+        12
+      ]
+    },
+    "sim_log_likelihood": {
+      "finite": true,
+      "posterior_finite": true,
+      "posterior_sum": 1.0,
+      "shape": [
+        12,
+        12
+      ]
+    }
+  },
+  "no_nan_inf": true,
+  "nsf_checkpoint_hash_present": true,
+  "objective": "cache_reproducibility",
+  "phase": "3B",
+  "preprocessing_stats_hash_present": true,
+  "smoke_catalog_cache_key_matches_current_simulator_commit": true
+}

@@ -1,0 +1,1407 @@
+                                              Mon. Not. R. Astron. Soc. 000, 1–20 (2013)     Printed 28 March 2014   (MN LATEX style file v1.4)
+
+
+
+
+                                              Statistics of Dark Matter Substructure: I. Model and
+                                              Universal Fitting Functions
+
+                                              Fangzhou Jiang⋆ & Frank C. van den Bosch
+                                              Department of Astronomy, Yale University, New Haven, CT 06511, USA
+
+
+
+
+arXiv:1403.6827v1 [astro-ph.CO] 26 Mar 2014
+                                                                                 ABSTRACT
+                                                                                 We present a new, semi-analytical model describing the evolution of dark matter
+                                                                                 subhaloes. The model uses merger trees constructed using the method of Parkinson
+                                                                                 et al. (2008) to describe the masses and redshifts of subhaloes at accretion, which are
+                                                                                 subsequently evolved using a simple model for the orbit-averaged mass loss rates. The
+                                                                                 model is extremely fast, treats subhaloes of all orders, accounts for scatter in orbital
+                                                                                 properties and halo concentrations, and uses a simple recipe to convert subhalo mass
+                                                                                 to maximum circular velocity. The model accurately reproduces the average subhalo
+                                                                                 mass and velocity functions in numerical simulations. The inferred subhalo mass loss
+                                                                                 rates imply that an average dark matter subhalo loses in excess of 80 percent of its
+                                                                                 infall mass during its first radial orbit within the host halo. We demonstrate that the
+                                                                                 total mass fraction in subhaloes is tightly correlated with the ‘dynamical age’ of the
+                                                                                 host halo, defined as the number of halo dynamical times that have elapsed since its
+                                                                                 formation. Using this relation, we present universal fitting functions for the evolved
+                                                                                 and unevolved subhalo mass and velocity functions that are valid for any host halo
+                                                                                 mass, at any redshift, and for any ΛCDM cosmology.
+                                                                                 Key words: methods: analytical — methods: statistical — galaxies: haloes — dark
+                                                                                 matter
+
+
+
+                                              1   INTRODUCTION                                                  has given rise to two problems in our understanding of
+                                                                                                                galaxy formation: the “missing satellite” problem (Moore et
+                                              Numerical N -body simulations have shown that when two
+                                                                                                                al. 1999; Klypin et al. 1999) and the “too big to fail” prob-
+                                              dark matter haloes merge, the less massive progenitor halo
+                                                                                                                lem (Boylan-Kolchin et al. 2011). Secondly, substructure is
+                                              initially survives as a self-bound entity, called a subhalo,
+                                                                                                                also important in the field of gravitational lensing, where
+                                              orbiting within the potential well of the more massive pro-
+                                                                                                                it can cause time-delays (e.g., Keeton & Moustakas 2009)
+                                              genitor halo. These subhaloes are subjected to tidal forces
+                                                                                                                and flux-ratio anomalies (Metcalf & Madau 2001; Bradač et
+                                              and impulsive encounters with other subhaloes causing tidal
+                                                                                                                al. 2002; Dalal & Kochanek 2002), and for the detectabil-
+                                              heating and mass stripping, and to dynamical friction that
+                                                                                                                ity of dark matter annihilation, where the clumpiness due
+                                              causes them to lose orbital energy and angular momentum
+                                                                                                                to substructure is responsible for a ‘boost factor’ (e.g., Die-
+                                              to the dark matter particles of the ‘host’ halo. Depending
+                                                                                                                mand et al. 2007; Pieri et al. 2008; Giocoli et al. 2008b).
+                                              on its orbit, density profile, and mass, a subhalo therefore
+                                                                                                                Finally, the abundance and properties of dark matter sub-
+                                              either survives to the present day or is disrupted; the opera-
+                                                                                                                structure controls the survivability of fragile structures in
+                                              tional distinction being whether a self-bound entity remains
+                                                                                                                dark matter haloes, such as tidal streams and/or galactic
+                                              or not.
+                                                                                                                disks (Tóth & Ostriker 1992; Taylor & Babul 2001; Ibata et
+                                                   Characterizing the statistics and properties of dark
+                                                                                                                al. 2002; Carlberg 2009).
+                                              matter subhaloes is of paramount importance for various
+                                              areas of astrophysics. First of all, subhaloes are believed
+                                                                                                                     The most common statistic used to describe the sub-
+                                              to host satellite galaxies, and the abundance of satellite
+                                                                                                                structure of dark matter haloes is the subhalo mass function
+                                              galaxies is therefore directly related to that of subhaloes.
+                                                                                                                (hereafter SHMF), dN/d ln(m/M ), which expresses the (av-
+                                              This basic idea underlies the popular technique of subhalo
+                                                                                                                erage) number of subhaloes of mass m per host halo of mass
+                                              abundance matching (e.g., Vale & Ostriker 2004; Conroy
+                                                                                                                M , per logarithmic bin of m/M . Following van den Bosch,
+                                              et al. 2006, 2007; Guo et al. 2011; Hearin et al. 2013) and
+                                                                                                                Tormen & Giocoli (2005), we will distinguish two different
+                                                                                                                SHMFs; the unevolved SHMF, where m is the mass of the
+                                                                                                                subhalo at accretion, and the evolved SHMF, where m re-
+                                              ⋆ E-mail:fangzhou.jiang@yale.edu                                  flects the mass of the surviving, self-bound entity at the
+
+                                              c 2013 RAS
+2     Jiang & van den Bosch
+
+present day, which is reduced with respect to that at accre-      the average mass loss rate of dark matter subhaloes in nu-
+tion due to mass stripping.                                       merical simulations. They found that the functional form
+     The SHMFs of dark matter haloes have been stud-              adopted by B05 adequately describes the average mass loss
+ied using two complementary techniques; N -body simula-           rates in the simulations, but with best-fit values for the free
+tions (e.g., Tormen 1997; Tormen, Diaferio & Syer 1998;           parameters that are substantially different. G08 argued that
+Moore et al. 1998, 1999; Klypin et al. 1999a,b; Ghigna et         this discrepancy arises from the fact that B05 used the ‘N-
+al. 1998, 2000; Stoehr et al. 2002; De Lucia et al. 2004; Die-    branch method with accretion’ of Somerville & Kolatt (1999;
+mand, Moore & Stadel 2004; Gill et al. 2004a,b; Gao et            hereafter SK99) to construct their halo merger trees, which
+al. 2004; Reed et al. 2005; Kravtsov et al. 2004; Giocoli et      results in an unevolved subhalo mass function that is signif-
+al. 2008a, 2010; Weinberg et al. 2008) and semi-analytical        icantly different from what is found in the simulations. This
+techniques based on the extended Press-Schechter (EPS;            was recently confirmed by the authors in a detailed compari-
+Bond et al. 1991) formalism (e.g., Taylor & Babul 2001,           son of merger tree algorithms (Jiang & van den Bosch 2014a;
+2004, 2005a,b; Benson et al. 2002; Taffoni et al. 2003; Oguri     hereafter JB14). Note that this same SK99 method has also
+& Lee 2004; Zentner & Bullock 2003; Peñarrubia & Benson          been used by most of the other semi-analytical models for
+2005; Zentner et al. 2005; van den Bosch et al. 2005; Gan         dark matter substructure, including Taylor & Babul (2004,
+et al. 2010; Yang et al. 2011; Purcell & Zentner 2012). Both      2005a,b), Zentner & Bullock (2003), Zentner et al. (2005)
+methods have their own pros and cons. Numerical simula-           and even the recent study by Purcell & Zentner (2012).
+tions have the virtue of including all relevant, gravitational         In this series of papers we use an overhauled version of
+physics related to the assembly of dark matter haloes, and        the semi-analytical method pioneered by B05 to study the
+the evolution of the subhalo population. However, they are        statistics of dark matter subhaloes in unprecedented detail.
+also extremely CPU intensive, and the results depend on           In particular, we extent and improve upon B05 by (i) using
+the mass- and force-resolution adopted. In addition, there is     halo merger trees constructed with the more reliable method
+some level of arbitrariness in how to identify haloes and sub-    of Parkinson, Cole & Helly (2008), (ii) evolving subhaloes
+haloes in the simulations. In particular, different (sub)halo     using the improved mass-loss model of G08 and accounting
+finders applied to the same simulation output typically yield     for stochasticity in the mass-loss rates due to the scatter
+subhalo mass functions that differ at the 10-20 percent level     in orbital properties and halo concentrations, (iii) consider-
+(Knebe et al. 2011, 2013; Onions et al. 2012) or more (van        ing the entire hierarchy of dark matter subhaloes (including
+den Bosch & Jiang 2014). Semi-analytical techniques, on the       sub-subhaloes, sub-sub-subhaloes, etc.), and (iv) predicting
+other hand, don’t suffer from issues related to subhalo identi-   not only the masses of subhaloes but also their maximum
+fication or force resolution, and are significantly faster, but   circular velocities, Vmax . In this paper, the first in the series,
+their downside is that the relevant physics is only treated       we present the improved semi-analytical model, followed by
+approximately.                                                    a detailed study of the (average) subhalo abundance as func-
+     All semi-analytical methods require two separate ingre-      tion of mass and maximum circular velocity including a pre-
+dients: halo merger trees, which describe the hierarchical        sentation of universal fitting functions. In Paper II (van den
+assembly of dark matter haloes, and a treatment of the var-       Bosch & Jiang 2014) we present a more detailed compari-
+ious physical processes that cause the subhalo population to      son of the model predictions with simulation results, paying
+evolve (dynamical friction, tidal heating and stripping, im-      special attention to the large discrepancies among different
+pulsive encounters). To properly account for all these pro-       simulation results that arise from the use of different sub-
+cesses, which depend strongly on the orbital properties, re-      halo finders. Finally, in Paper III (Jiang & van den Bosch; in
+quires a detailed integration over all individual subhalo or-     preparation) we exploit our semi-analytical model to quan-
+bits. This is complicated by the fact that the mass of the        tify the halo-to-halo variation of populations of dark matter
+parent halo evolves with time. If the mass growth rate is         subhaloes.
+sufficiently slow, the evolution may be considered adiabatic,          This paper is organized as follows. We start in §2 with
+thus allowing the orbits of subhaloes to be integrated an-        a detailed description of our semi-analytical model, includ-
+alytically despite the non-static nature of the background        ing the construction of halo merger trees (§2.1), an updated
+potential. This principle is exploited in many of the semi-       model for the average mass loss rate of subhaloes (§2.2), and
+analytical based models listed above. In reality, however,        a description of how we convert (sub)halo masses to their
+haloes grow hierarchically through (major) mergers, mak-          corresponding Vmax (§2.3). In §3 we demonstrate that the
+ing the actual orbital evolution highly non-linear.               model can accurately reproduce both the subhalo mass and
+     In order to sidestep these difficulties, van den Bosch,      velocity functions obtained from numerical simulations, af-
+Tormen & Giocoli (2005; hereafter B05) considered the av-         ter tuning our single free model parameter, and we discuss
+erage mass loss rate of dark matter subhaloes, where the          the scalings with host halo mass and redshift. §4 presents
+average is taken over the entire distribution of orbital con-     accurate, universal fitting functions for the average subhalo
+figurations (energies, angular momenta, and orbital phases).      mass and velocity functions that are valid for any host halo
+This removes the requirement to actually integrate individ-       mass, redshift and ΛCDM cosmology. In §5 we discuss im-
+ual orbits, allowing for an extremely fast calculation of the     plications of our inferred subhalo mass loss rates, and we
+evolved subhalo mass function. B05 adopted a simple func-         summarize our results in §6.
+tional form for the average mass loss rate, which had two              Throughout we use m and M to refer to the masses
+free parameters which they calibrated by comparing the re-        of subhaloes and host haloes, respectively, use ln and log
+sulting subhalo mass functions to those obtained using nu-        to indicate the natural logarithm and 10-based logarithm,
+merical simulations. In a subsequent paper, Giocoli, Tormen       respectively, and express units that depend on the Hubble
+& van den Bosch (2008; hereafter G08), directly measured          constant in terms of h = H0 /(100 km s−1 Mpc−1 ).
+
+                                                                                                  c 2013 RAS, MNRAS 000, 1–20
+                                                                        Statistics of Dark Matter Substructure I                   3
+
+                                                                      halo. For each individual branching point along the tree (one
+                                                                      example is highlighted in Fig. 1), the end-product of the
+                                                                      merger event is called the descendant halo, while the haloes
+                                                                      that merge are called the progenitors. The main progenitor
+                                                                      of a descendant halo is the progenitor that contributes the
+                                                                      most mass. For example, for the branching point highlighted
+                                                                      in Fig. 1, the purple halo at z = z2 is the main progenitor
+                                                                      of its descendant at z = z1 . The main branch of the merger
+                                                                      tree is defined as the branch tracing the main progenitor of
+                                                                      the main progenitor of the main progenitor, etc. (i.e., the
+                                                                      branch connecting the purple haloes). Note that the main
+                                                                      progenitor halo at redshift z is not necessarily the most mas-
+                                                                      sive progenitor at that redshift. Throughout we shall occa-
+                                                                      sionally refer to the main progenitor haloes of a given host
+                                                                      halo as its zeroth-order progenitors, while the mass history,
+                                                                      M (z), along this branch is called the mass assembly history
+                                                                      (MAH). Haloes that accrete directly onto the main branch
+                                                                      are called first-order progenitors, or, after accretion, first-
+                                                                      order subhaloes. Similarly, haloes that accrete directly onto
+                                                                      first-order progenitors are called second-order progenitors,
+                                                                      and they end up at z = z0 as second-order subhaloes (or
+                                                                      sub-subhaloes) of the host halo. The same logic is used to
+                                                                      define higher-order progenitors and subhaloes, as illustrated
+Figure 1. Illustration depicting the anatomy of a merger tree for     in Fig. 1. An nth -order (sub)halo that hosts an (n + 1)th -
+a host halo (purple sphere at the bottom) at redshift z = z0 . The    order subhalo is called a parent halo of the (n + 1)th -order
+purple spheres to the left illustrate the assembly history of the
+                                                                      subhalo. Throughout, we define (sub)halo masses such that
+main progenitor. We refer to these as ‘zeroth-order’ progenitors,
+                                                                      the mass of an nth -order parent halo includes the masses of
+and they accrete ‘first-order’ progenitors, which end up as (first-
+order) subhaloes at z = z0 . In turn, these first-order progenitors   its subhaloes of order n + 1; we refer to this as the inclusive
+accrete second-order progenitors which end-up as second-order         definition of subhalo mass. Most subhalo finders used to an-
+subhaloes (sub-subhaloes) at z = z0 , etc. The size of a sphere       alyze N -body simulations use the same inclusive definition
+is proportional to its mass, while its color reflects its order, as   of subhalo mass, though not all of them (see Paper II for a
+indicated. The large, shaded box highlights a single branching        detailed discussion).
+point in the tree structure, which shows a descendant halo plus             We construct our merger trees using the EPS formal-
+its single-time-step progenitors. The small shaded boxes present      ism, which has the advantage over using numerical simu-
+at each branching point reflect ‘smooth accretion’, as defined in     lations that it is not hampered by ambiguities having to
+the text.
+                                                                      do with the identification and linking of (sub)haloes. EPS
+                                                                      provides the progenitor mass function (hereafter PMF),
+2     MODEL DESCRIPTION                                               nEPS (Mp , z1 |M0 , z0 ), describing the ensemble-average num-
+                                                                      ber, nEPS (Mp , z1 |M0 , z0 )dMp , of progenitors of mass Mp
+The goal of this series of papers is to present a study of            that a descendant halo of mass M0 at redshift z0 has at
+unprecedented detail regarding the statistics of dark matter          redshift z1 > z0 . Starting from some target host halo mass
+subhaloes. To that extent we use an improved and extended             M0 at z0 , one can use this PMF to draw a set of pro-
+version of the semi-analytical model of B05 which computes            genitor masses Mp,1 , Mp,2 , ..., Mp,N at some earlier time
+the masses of subhaloes for a particular realization of a host        z1 = z0 + ∆z, where
+                                                                                                 PN
+                                                                                                       Mp,i = M0 in order to assure
+                                                                                                   i=1
+halo’s mass assembly history. In what follows we present a            mass conservation. The time-step ∆z used sets the ‘tempo-
+detailed description of the model, including a discussion of          ral resolution’ of the merger tree, and may vary along the
+how and where we make improvements, and add extensions,               tree. This procedure is then repeated for each progenitor
+with respect to the B05 model.                                        with mass Mp,i > Mres , thus advancing ‘upwards’ along the
+                                                                      tree. The minimum mass Mres sets the ‘mass resolution’ of
+                                                                      the merger tree and is typically expressed as a fraction of
+2.1    Halo Merger Trees
+                                                                      the final host mass M0 . The small shaded boxes in Fig. 1,
+The backbone of the B05 model, and of any other semi-                 present at each branching, reflect the mass accreted by the
+analytical model for the substructure of dark matter haloes,          descendant halo in the form of smooth accretion (i.e., not
+is halo merger trees. These describe the hierarchical mass as-        part of any halo) or in the form of progenitor haloes with
+sembly of dark matter haloes, and therefore yield the masses          masses Mp < Mres . Throughout we shall refer to this com-
+and redshifts at which dark matter subhaloes are accreted             ponent as smooth accretion.
+into their hosts.                                                           Haloes at the top of the tree that have no progenitors
+     Before describing the construction of our merger trees,          with mass Mp > Mres are called the leave haloes of the
+it is useful to introduce some terminology that is used               tree, and the mass evolution of a leave halo down to z = 0
+throughout this paper. Fig. 1 shows a schematic represen-             is called the halo’s trajectory. Only one trajectory per tree
+tation of a merger tree. We refer to the halo at the base of          corresponds to a host halo (namely that of the main pro-
+the tree (i.e., the large purple halo at z = z0 ) as the host         genitor), while all other trajectories end up as sub-haloes at
+
+c 2013 RAS, MNRAS 000, 1–20
+4     Jiang & van den Bosch
+
+z = 0 (of different orders). The moment a halo is for the first   redshift z. Since the orbital time of a subhalo is of order the
+time accreted into a more massive halo (i.e., transits from       free-fall time, there is little added value in resolving merger
+being a host halo to a sub-halo) is called the halo’s accretion   trees at higher time resolution than this. We have verified
+time, tacc , and it’s mass at that time is called the accretion   that indeed our results do not change if we use merger trees
+mass, for which we use macc or macc without distinction.          with a smaller time step.
+Throughout we use the subscript ‘0’ to refer to properties
+at redshift z = z0 (typically we adopt z0 = 0); Hence, m0 is
+the z = z0 mass of a sub-halo, which differs from macc due        2.2   Subhalo Mass Evolution
+to mass loss (see §2.2 below). In what follows we refer to the
+mass functions dN/d ln(m0 /M0 ) and dN/d ln(macc /M0 ) as         The next ingredient in the semi-analytical method is a model
+the evolved and unevolved SHMFs of a host halo of mass M0 ,       for the mass evolution of the subhalo as it orbits its host
+respectively.                                                     halo. This is governed by tidal stripping, tidal heating, dy-
+      B05 constructed EPS merger trees using the SK99             namical friction, and the impulsive heating due to high-
+method, but only up to first order; i.e., they only considered    speed encounters with other substructures. Consequently,
+first-order subhaloes, and therefore did not require merger       the mass evolution of a subhalo can vary dramatically along
+trees that resolve the assembly histories of first-order pro-     an orbit, and also depends strongly on the orbital energy
+genitors. We extent this by using full merger trees, thus         and angular momentum (see e.g., Taffoni et al. 2003; Tay-
+allowing us to study the statistics of subhaloes of all or-       lor & Babul 2004; Penarrubia & Benson 2005; Zentner et
+ders. In addition, we also improve upon B05 by using an-          al. 2005; Gan et al. 2010).
+other method to construct our merger trees. In JB14 we                  The unique aspect of the B05 approach is that it con-
+tested and compared a number of different Monte Carlo al-         siders the average mass loss rate of a dark matter subhalo,
+gorithms for constructing EPS-based merger trees, includ-         where the average is taken over all orbital energies, eccentric-
+ing SK99. We showed that the SK99-method results in (i)           ities and phases. Using the fact that dark matter haloes have
+haloes that assemble too late, (ii) merger rates that are too     a universal density profile (e.g., Navarro, Frenk & White
+high by factors of two to three (see also Fakhouri & Ma           1997), and that the distribution of orbital properties of in-
+2008; Genel et al. 2009), and (iii) unevolved subhalo mass        falling subhaloes have only a mild dependence on parent halo
+functions that are much too high, especially for subhaloes        mass (e.g, Zentner et al. 2005; Wang et al. 2005; Khochfar
+with macc ∼ M0 /100. As first pointed out by G08, and as          & Burkert 2006; Wetzel 2011), this average mass loss rate,
+discussed in more detail in JB14, this explains why B05 in-       to first order, only depends on the instantaneous masses of
+ferred an average subhalo mass loss rate that is too high. It     the subhalo, m, and parent halo, M . In fact, B05 postu-
+also implies that other models for dark matter substructure       lated that the dependence on parent halo mass only enters
+that are based on the SK99 algorithm (Taylor & Babul 2004,        through the (instantaneous) mass ratio m/M , i.e.,
+2005; Zentner & Bullock 2003; Zentner et al. 2005; Purcell                    m
+                                                                                    
+                                                                                        m
+                                                                                            ζ
+& Zentner 2012), are likely to suffer from similar systematic     ṁ = −A                        .                                                 (1)
+                                                                             τdyn       M
+errors.
+      As we demonstrated in JB14, the merger tree algorithm       Here the negative sign is to emphasize that m is expected to
+developed by Cole et al. (2000), which is used in the semi-       decrease with time, A and ζ are two free parameters describ-
+analytical substructure models of Benson et al. (2002) and        ing the normalization and mass dependence of the subhalo
+Peñarrubia & Benson (2005), has similar shortcomings as          mass loss rate, respectively, and
+SK99, albeit at a significantly reduced level. However, it                          r
+                                                                                            3π
+still overpredicts the unevolved SHMF by ∼ 40 percent, and        τdyn (z)   =
+                                                                                        16 G ρ̄h (z)
+is therefore not well suited to model the population of dark
+                                                                                                                          −1/2             −1
+matter subhaloes. Of all the methods tested by JB14, the
+                                                                                                           
+                                                                                             −1                ∆vir (z)               H(z)
+one that clearly stood out as the most reliable is that of                   =      1.628h           Gyr                                           (2)
+                                                                                                                178                    H0
+Parkinson et al. (2008; hereafter P08). The P08 algorithm is
+a modification of the binary algorithm of Cole et al. (2000),     is the halo’s dynamical time, with H(z) the Hubble param-
+in which the PMF is modified with respect to the EPS pre-         eter, and ∆vir (z) the virial parameter that expresses the av-
+diction to match results from the Millennium simulation (see      erage density of a virialized dark matter halo, ρ̄h , at redshift
+Cole et al. 2008). As shown in JB14, the P08 algorithm yields     z in units of the critical density at that redshift. Throughout
+merger rates and unevolved SHMFs that are in excellent            this paper we adopt the fitting function for ∆vir (z) given by
+agreement with simulation results within the errors. Hence,       Bryan & Norman (1998).
+in this paper we improve upon B05 by using merger trees                For a subhalo embedded in a static parent halo (Ṁ = 0)
+constructed with the P08 algorithm. Throughout we always          this yields
+adopt a mass resolution of ψres ≡ Mres /M0 = 10−5 unless                         (
+                                                                                     m(t) exp(−∆t/τ )                                   if ζ = 0
+mentioned otherwise, and construct the merger trees using
+                                                                  m(t+∆t) =                  h
+                                                                                                               m
+                                                                                                                   ζ   ∆t
+                                                                                                                             i−1/ζ                 (3)
+the time stepping advocated in Appendix A of P08 (which                              m(t) 1 + ζ                M        τ
+                                                                                                                                        otherwise
+roughly corresponds to ∆z ∼ 10−3 ; somewhat finer/coarser
+at high/low redshift). In order to speed up the code, and to      where τ = τ (z) ≡ τdyn (z)/A is the characteristic mass-loss
+reduce memory requirements, we down-sample the time res-          time scale at redshift z.
+olution of each merger tree by registering progenitor haloes           Although the subhalo mass loss rate in a static halo
+every time step ∆t = 0.1tff (z). Here tff (z) ∝ (1 + z)−3/2 is    is a well defined concept, in reality the parent mass M in-
+the free-fall time for a halo with an overdensity of 200 at       creases with time due to the accretion of matter and other
+
+                                                                                                               c 2013 RAS, MNRAS 000, 1–20
+                                                                       Statistics of Dark Matter Substructure I                     5
+
+subhaloes. Following B05, we utilize the discrete time step-        erties and halo concentrations we consider a simple, but in-
+ping of the merger tree to evolve both m and M . At the             sightful, toy model.
+beginning of each time step the parent halo is assumed to                Consider a subhalo of mass m on an orbit of energy E
+instantaneously increase its mass as described by the merger        and angular momentum L (both per unit mass) inside a host
+tree (Ṁ > 0, ṁ = 0), while in between two time steps we           halo of mass M . In what follows we use r and R to refer to
+set Ṁ = 0 and evolve the subhalo mass, m, according to             halo-centric radii in the subhalo and host halo, respectively.
+Eq. (3). In what follows we consider it understood that m           As the subhalo orbits within the potential of the host halo, it
+and M depend on time, without having to write this time-            experiences dynamical friction, tidal heating and tidal strip-
+dependence explicitly.                                              ping, all of which contribute to the subhalo loosing mass.
+     B05 adopted the subhalo mass loss model given by               Most of this mass loss occurs close to the orbit’s pericen-
+Eqs. (1) and (2) and tuned the free parameters, A and               ter, Rp , where the tidal field of the host is strongest. Hence,
+ζ, such that their evolved SHMF matched that obtained               we may approximate the orbit averaged mass loss rate of a
+from simulations. This resulted in A = 23.7, correspond-            subhalo as
+ing to a characteristic mass-loss time scale at z = 0 equal
+                                                                           m − m(rt )
+to τ0 = 0.13Gyr, and ζ = 0.36. Using high-resolution                ṁ =              .                                           (4)
+                                                                              Tr
+N -body simulations, G08 computed the average mass loss
+rates of dark matter subhaloes as a function of both halo           where rt is the subhalo’s tidal radius at the orbit’s pericen-
+mass and redshift. They found that the functional forms             ter, Tr is the radial orbital period, and m(r) is the subhalo
+of Eqs. (1) and (2) adequately describes the simulation re-         mass enclosed within radius r. Hence, we assume that all the
+sults, but with best-fit values A = 1.54+0.52
+                                          −0.31 (correspond-        mass beyond the tidal radius of the subhalo at the orbit’s
+ing to τ0 = (2.0 ± 0.5)Gyr) and ζ = 0.07 ± 0.03 that are            pericenter is stripped from the subhalo in one radial period.
+very different from those obtained in B05. In particular, the       This is admittedly a crude, and poorly justified, assump-
+much smaller value for A implies significantly lower mass           tion, but as we will show below, it yields results in close
+loss rates. As discussed in G08, this is a manifestation of         agreement with numerical simulations.
+the shortcomings of the SK99 algorithm used by B05 to                    Throughout we assume that both host haloes and sub-
+construct their merger trees; in order to match the evolved         haloes are defined as spheres with an average density, inside
+SHMF in the simulations, B05 had to adopt higher mass               their virial radii, given by ρ̄h = ∆crit (z)ρcrit (z), and with an
+loss rates to compensate for the overabundance of accreted          NFW density profile (Navarro, Frenk & White 1997). Hence,
+subhaloes.                                                          their enclosed mass profile is
+     In this paper we adopt ζ = 0.07 and treat A as a free
+                                                                                    f (c R/Rvir )
+parameter, which we tune by fitting our evolved subhalo             M (R) = M                     ,                               (5)
+mass functions to simulation results. As we show, mainly                                 f (c)
+because we now use more accurate halo merger trees, the             with c the halo concentration parameter, Rvir the halo virial
+resulting value of A (1.34) is in excellent agreement with          radius, and f (x) = ln(1 + x) − x/(1 + x). We assume that, at
+the simulation results of G08.                                      fixed halo mass, the concentrations follow a log-normal dis-
+                                                                    tribution with standard deviation σlog c ≃ 0.12 (e.g., Macciò
+                                                                    et al. 2010) and with a median that depends on halo mass
+2.2.1   Subhalo Mass Loss Rates; a toy model                        and redshift according to
+                                                                                                           −0.11
+An important goal of this work (discussed in detail in Pa-                    4.67               M (z)
+                                                                    c(M, z) =                                                     (6)
+per II) is to assess the halo-to-halo variance of subhalo statis-             1+z             1014 h−1 M⊙
+tics. The main source of this variance is the scatter in mass
+accretion histories (i.e., halo-to-halo variance in the accre-      (Neto et al. 2007).
+tion masses and accretion redshifts of subhaloes), which is             With the mass profile of the host halo specified, we can
+accounted for via our merger trees. However, another impor-         determine the apocenter, Ra and pericenter, Rp of the sub-
+tant source of scatter is that due to variance in the orbital       halo’s orbit, by solving for the roots of
+properties; orbits with more negative orbital energy, or with       1    2[Φ(R) − E]
+smaller angular momentum, will have a smaller pericenter               +             =0                                           (7)
+                                                                    R2       L2
+and therefore experience more tidal stripping. In addition,
+since the tidal radius of a subhalo depends on the density          (Binney & Tremaine 2008). Here
+profiles of host halo and subhalo, a third source of scat-
+                                                                             2        ln(1 + c R/Rvir )
+ter is the variance in halo concentrations, of both the host        Φ(R) = −Vvir                                                  (8)
+halo and the subhalo. Using numerical simulations, G08 in-                              f (c) R/Rvir
+deed found a substantial scatter in the subhalo mass loss           is the p
+                                                                           gravitational potential of the NFW host halo, with
+rates, which is well represented by a log-normal with a stan-       Vvir = G M/Rvir the host halo’s virial velocity. The radial
+dard deviation of σlog(ṁ/M ) ∼ 0.25. However, G08 measured         orbital period is given by
+the mass loss rates averaged over a time step of ∼ 0.1Gyr,                   Z Ra
+which is much shorter than an orbital period. Hence, their                                       dR
+                                                                    Tr = 2                                       ,                (9)
+mass loss rates are not truly orbit-averaged, and their scatter
+                                                                                    p
+                                                                              Rp       2[E − Φ(R)] − L2 /R2
+contains a contribution due to variations in ṁ/M along indi-
+vidual orbits. In order to gauge the scatter in orbit-averaged      (Binney & Tremaine 2008), and the tidal radius of the sub-
+subhalo mass loss rates due to the variance in orbital prop-        halo at R = Rp is obtained by solving
+
+c 2013 RAS, MNRAS 000, 1–20
+6     Jiang & van den Bosch
+
+
+
+
+Figure 2. Results obtained from the toy model. Left Panel: orbit-averaged mass-loss rates, ṁ, as a function of the orbit-averaged subhalo
+mass, m̄, for a host halo of mass M = 1013 h−1 M⊙ at z = 0. Grey dots represent the 10,000 individual Monte-Carlo realizations. The
+solid red line is the best-fit to the median, which corresponds to Eq.(1)-(2) with A = 0.81 and ζ = 0.04. The dashed black line represents
+the average subhalo mass-loss rates of G08, as measured from numerical simulations, which has A = 1.54 and ζ = 0.07. Right Panel:
+the distribution of orbit-averaged mass-loss rates at log(m̄/M ) = −2. The distribution can be approximated as a log-normal distribution
+with dispersion σlog(ṁ/M ) = 0.17 (red curve).
+
+
+                                           1/3
+                                                                        For our toy model we follow Gan et al. (2010) and assume
+                  m(rt )/M (Rp )                                        that the probability distribution for Rc and η is separable,
+rt = Rp           Ω2 R3
+                                                  ,         (10)
+             2 + G Mp (Rpp ) − dd ln M
+                                       |
+                                  ln R Rp
+                                                                        i.e., P(Rc , η) = P(Rc ) P(η), and draw the values for Rc and
+                                                                        η from Eqs. (15) and (14), respectively† .
+(e.g., von Hoerner 1957; King 1962; Taylor & Babul 2001),                      Using this toy model, we compute orbit-averaged mass
+where                                                                   loss rates for large ensembles of subhaloes as follows. For
+Ωp = L/Rp2                                                   (11)       a given host halo mass, we first draw a subhalo mass, m,
+                                                                        from a uniform distribution on the interval log(m/M ) ∈
+is the instantaneous angular speed at pericenter.                       [−6.0, −0.5]. ‡ Next we draw concentrations for both the
+     The final ingredient for our toy model is the probabil-            host halo and subhalo, using the log-normal distribution de-
+ity distribution, P(E, L), for the orbital energies and angu-           scribed above, as well as values for the orbital energy and an-
+lar momenta of dark matter subhaloes. For convenience, we               gular momentum of the subhalo. These are used to compute
+characterize E and L via the radius of a circular orbit, Rc ,           the radial orbital period, Tr , and the subhalo’s tidal radius,
+and the orbital circularity, η. The relations between (E, L)            rt , from which we ultimately compute the mass loss rate us-
+and (Rc , η) are given by                                               ing Eq. (4). The left-hand panel of Fig. 2 shows the resulting
+     1 2                                                                orbit-averaged mass loss rates, ṁ/M , as function of the or-
+E=    V + Φ(Rc ) ,                                           (12)       bit averaged subhalo mass, m̄/M , where m̄ = m − (ṁ Tr )/2.
+     2 c
+                                                                        Both have been normalized by the host halo mass, M ,
+with Vc the circular speed at R = Rc , and                              for convenience. The dots are the results obtained for our
+L = η Lc (E)                                                 (13)       toy model, using 10,000 subhaloes for a host halo of mass
+                                                                        M = 1013 h−1 M⊙ . We find that our model results are well
+with Lc (E) = Rc Vc the maximum angular momentum for                    fit by Eqs. (1)-(2) with A = 0.81 and ζ = 0.04, which is
+an orbit of energy E. Using high-resolution numerical simu-             shown as the solid line. Hence, our toy model lends further
+lations, Zentner et al. (2005) has shown that the circularity           support to the functional form of the average subhalo mass
+distribution for the orbits of subhaloes at infall is well fit by       loss rate introduced by B05. For comparison, the dashed line
+P (η) ∝ η 1.22 (1 − η)1.22 .                                 (14)
+Zentner et al. (2005) also showed that the distribution of Rc           † Actually, we sample the circularities from the modified distri-
+for the infalling subhaloes is well approximated by a uniform           bution, P(η) dη = π2 sin(πη) dη, which accurately fits Eq. (14)
+distribution covering the range [0.6 Rvir , Rvir ], i.e.,               and has the advantage that it allows values of η to be drawn by
+                                                                       direct inversion.
+               5/3    if 0.6 ≤ Rc /Rvir ≤ 1.0                           ‡ We have verified that drawing subhalo mass from the unevolved
+P(Rc ) =                                                     (15)
+               0      otherwise                                         SHMF instead does not alter any of the results.
+
+                                                                                                        c 2013 RAS, MNRAS 000, 1–20
+                                                                                     Statistics of Dark Matter Substructure I                       7
+
+is the best-fit relation obtained by G08 from their numerical
+simulations. As is apparent, the latter is somewhat steeper
+(ζ = 0.07), and implies somewhat larger mass loss rates
+(A = 1.54). We believe that this discrepancy between our
+toy model and the G08 simulation results is most likely due
+to the fact that our toy model ignores dynamical friction,
+which reduces the orbit’s pericentric distance as well as the
+radial orbital period, both of which will boost the mass loss
+rate. Since dynamical friction is more important for more
+massive subhaloes, taking dynamical friction into account is
+likely to increase both ζ and A, bringing the toy model in
+better agreement with the simulation results.
+     As mentioned above, the main goal of the toy model
+is to gain some insight regarding the scatter in ṁ/M that
+arises due to variance in the orbital properties and halo con-
+centrations. The right panel of Fig. 2 plots the distribution
+of normalized subhalo mass loss rates, dP/d(ṁ/M ), at fixed
+m̄/M = 0.01, which is well fit by a log-normal with a stan-
+dard deviation σlog(ṁ/M ) = 0.17 (red curve). Note that this
+scatter is substantially smaller than the σlog(ṁ/M ) ≃ 0.25
+measured by G08 from their simulations, as expected. In
+fact, our results imply that the contribution to the variance
+measure by G08 due√to variations in ṁ/M along an orbit
+are of the order of 0.252 − 0.172 ≃ 0.18, comparable to                           Figure 3. The ratio Vmax /Vacc as function of m/macc for 2735
+the scatter that arises from variations in orbital properties,                    subhaloes in the Rhapsody simulations (black dots). The solid,
+which is roughly what one expects. Since our model requires                       red line is the best-fit equation of the form (19) with best-fit pa-
+orbit-averaged mass loss rates, we will model the scatter in                      rameter (η, µ) = (0.44, 0.60). This is the relation we use through-
+ṁ/M using a log-normal distribution with σlog(ṁ/M ) = 0.17                      out to compute the maximum circular velocities of dark matter
+                                                                                  subhaloes in our semi-analytical model. The solid and dashed
+(see §2.4 below).
+                                                                                  blue curves are the best-fit results of Hayashi et al. (2003) and
+                                                                                  Peñarrubia et al. (2010), and are shown for comparison.
+2.3     Converting Mass to Maximum Circular
+        Velocity
+                                                                                       For subhaloes, we use the results of Hayashi et al. (2003)
+In addition to subhalo mass, we also want the semi-                               and Peñarrubia et al. (2008, 2010), who, using idealized nu-
+analytical model to be able to yield the maximum circular                         merical simulations, have shown that the evolution of the
+velocity Vmax for each of its subhaloes. The maximum cir-                         maximum circular velocity of a dark matter subhalo depends
+cular velocity of a halo of mass M depends on its density                         solely on the total amount of mass stripped, and not on
+distribution. In the case of NFW haloes                                           the details of how or when that mass is stripped. Following
+                        r
+                                          c                                       Peñarrubia et al. (2008) we therefore write
+Vmax = 0.465 Vvir                                     ,                    (16)
+                                ln(1 + c) − c/(1 + c)                                                (m/macc )ν
+                                                                                  Vmax = 2µ Vacc                  ,                              (19)
+where                                                                                              (1 + m/macc )µ
+                                                  1/3            1/3          where macc and Vacc are the subhalo mass and maximum
+                                          M                  H(z)
+Vvir = 159.43 km s−1                                                              circular velocity at the time of accretion. In order to con-
+                                     1012 h−1 M⊙             H0
+                                                                                  strain the two free parameter ν and µ, we use results
+                     1/6
+                                                                                  from the Rhapsody simulation project (Wu et al. 2013a,b),
+      
+          ∆vir (z)
+                            ,                                              (17)   a large suite of 96 high-resolution, simulations of cluster-
+           178
+                                                                                  sized dark matter haloes with a present-day mass of M =
+is the virial velocity of a dark matter halo of virial mass                       1014.8±0.05 h−1 M⊙ . These have been re-simulated with high
+M at redshift z. It is well known that the concentration of                       resolution from a cosmological volume of 1h−3 Gpc3 in a
+a dark matter halo is strongly correlated with its MAH, in                        ΛCDM cosmology with Ωm = 0.25, ΩΛ = 0.75, Ωb = 0.04,
+the sense that haloes that assemble earlier are more con-                         h = 0.7, σ8 = 0.8 and spectral index ns = 1.0 (hereafter
+centrated (e.g., Navarro et al. 1997; Wechsler et al. 2002;                       ‘Rhapsody cosmology’). As in our model, the host haloes
+Ludlow et al. 2013). We use the model of Zhao et al. (2009),                      are defined as spherical, overdense regions with an average
+according to which                                                                density equal to ∆vir ρcrit . Using the 6D phase-space halo
+                                            8.4 1/8                            finder ROCKSTAR (Behroozi et al. 2013a,b), Wu et al. (2013b)
+                                    t
+                            
+c(M, t) = 4.0 1 +                                        .                 (18)   measured subhalo mass and velocity functions covering more
+                                3.75 t0.04
+                                                                                  than four orders of magnitude in subhalo mass. Fig. 3 plots
+Here t0.04 is the proper time at which the host halo’s main                       the ratio Vmax /Vacc as function of m/macc for a random
+progenitor gained 4 percent of its mass at proper time t,                         subset of 2735 subhaloes from the Rhapsody simulations,
+which we extract from the halo’s merger tree, as described                        kindly provided to us in electronic format by H. Wu. Fitting
+below.                                                                            Eq. (19) to these data we obtain the best-fit relation indi-
+
+c 2013 RAS, MNRAS 000, 1–20
+8     Jiang & van den Bosch
+
+cated by the red curve, which has (ν, µ) = (0.44, 0.60). As         tory (MAH) back in time until the leaf’s most massive pro-
+we show in Paper II, the same relation also accurately fits         genitor reaches a mass M < 0.04Mleaf . This ‘extension’ of
+results from the Bolshoi (Klypin et al. 2011) and MultiDark         the merger tree is used to compute t0.04 (using simple lin-
+(Prada et al. 2012; Riebe et al. 2013) simulations, and is in-      ear interpolation in between time steps), which is used in
+dependent of host halo mass. For comparison, the solid and          turn to compute Vmax for the leaf halo using Eqs. (16) -
+dashed blue curves are the Vmax /Vacc - m/macc relations ob-        (18). Tracing the trajectory forward in time, each time step
+tained by Peñarrubia et al. (2010) and Hayashi et al. (2003),      we use the past trajectory (plus its extension) to compute
+respectively, using high-resolution, idealized N -body simu-        Vmax using the same approach. Once the halo associated
+lations of individual subhaloes orbiting in a static, spherical     with the trajectory becomes a subhalo, it starts to experi-
+NFW host halo. These roughly bracket the results from the           ence mass loss, as described by Eq. (1), and we use Eq. (19)
+cosmological Rhapsody simulations.                                  with (ν, µ) = (0.44, 0.60) to compute the evolution of its
+                                                                    maximum circular velocity. As we demonstrate in §3 below,
+                                                                    this method yields SHVFs in excellent agreement with sim-
+2.4   Computing Subhalo Mass and Velocity                           ulation results (see also Paper II).
+      Functions
+Having described all the ingredients, we now outline how
+these are combined to compute the subhalo mass and ve-              3     RESULTS
+locity functions of a host halo of mass M0 at redshift z0 .         Our model as described above yields, at each redshift, the
+We first construct a merger tree, with a mass resolution of         evolved SHMF and SHVF for all orders of subhaloes. In this
+ψres = 10−5 , as described in §2.1. Next, we follow each tra-       section, we tune the free parameter Ā, compare the resulting
+jectory forward in time, starting from the redshift zacc at         model predictions with a few simulation results, and discuss
+which the trajectory’s halo first becomes a subhalo, evolv-         how the subhalo mass and velocity functions scale with halo
+ing the subhalo mass in between merger-tree time steps all          mass and redshift.
+the way to z = z0 . The subhalo mass loss rate is given by
+Eqs. (1) - (2) with ζ = 0.07, and a normalization A that is a
+trajectory-specific random variable drawn from the follow-          3.1    Testing and Calibrating the Model
+ing log-normal distribution
+                                                                    The symbols with errorbars in Fig. 4 are the evolved SHMFs
+                            log2 (A/Ā)
+                                            
+             log e                               dA                 of first-order subhaloes at z0 = 0, obtained by G08 using a
+P(A) dA = √           exp −       2
+                                                    .       (20)    set of simulations for a flat ΛCDM cosmology with Ωm = 0.3,
+            2π σlog A         2 σlog A            A
+                                                                    ΩΛ = 0.7, Ωb = 0.04, h = H0 /(100 km s−1 Mpc−1 ) = 0.7
+Here σlog A = σlog(ṁ/M ) = 0.17 and the median Ā is our           and with initial density fluctuations described by a scale-
+model’s single free parameter, which we tune to reproduce           invariant power spectrum with normalization σ8 = 0.9.
+the z = 0 subhalo mass function from simulations as de-             Host haloes are defined as spheres with an average density
+scribed in §3.1 below. Note that this scatter in the normal-        equal to ∆vir ρcrit , and their subhaloes are identified using
+ization A takes account of the scatter in subhalo mass loss         the subhalo finder SURV§ that was developed by Tormen et
+rates due to the variance in orbital properties and halo con-       al. (2004) and G08. Results are shown for two mass bins:
+centrations.                                                        log[M0 /(h−1 M⊙ )] ∈ [12.0, 12.5], for which the average is
+     Note that we loop over trajectories sorted by increas-         12.23, and log[M0 /(h−1 M⊙ )] ∈ [13.5, 14.0], for which the
+ing order, which assures that each subhalo is evolved in its        average is 13.72. These bins contain a total of 3349 and 127
+properly evolved parent halo. Throughout we also assume             host haloes, respectively. The error bars indicate the rms val-
+that subhaloes always continue to orbit within the parent           ues of dN/d log(m/M0 ) in the logarithmic m/M0 -bins with
+halo that directly hosts it: in particular, if a first-order sub-   the width of 0.2 dex and bin-centers corresponding to the
+halo of mass m1 is orbiting within a zeroth-order parent            positions of the symbols.
+halo of mass m0 , and hosts a second-order sub-halo (i.e., a              The solid curves in Fig. 4 are the corresponding model
+sub-subhalo) of mass m2 , the latter is evolved using Eq (1)        predictions for host haloes of mass M0 = 1012.23 h−1 M⊙ and
+with M = m1 and m = m2 , while m1 is evolved using the              M0 = 1013.72 h−1 M⊙ , respectively, obtained by averaging
+same equation but with M = m0 and m = m1 . In other                 over 10,000 Monte Carlo realizations (i.e., merger trees). We
+words, we ignore the possibility that a higher-order subhalo        have tuned Ā, which basically controls the overall normaliza-
+is stripped from its direct parent, which would cause its or-       tion, such that the model curves match the G08 simulation
+der to decrease by one. We also ignore the possibility of           results. The resulting best-fit value is Ā = 1.34 (correspond-
+subhalo-subhalo mergers inside a parent halo, which would           ing to a present-day mass-loss time scale of τ0 = 2.3Gyr).
+cause the order of the less-massive subhalo to increase by          Interestingly, with Ā close to unity, we have that the av-
+one. As discussed in Paper II, these oversimplified assump-         erage time scale for subhalo mass loss is basically just the
+tions do not seem to have a significant impact on the accu-         dynamical time of the halo. We return to this somewhat in-
+racy of our model.                                                  triguing result in §5. From here on we keep Ā fixed, so that
+     In order to compute the subhalo velocity function,             the model is fully determined.
+dN/d log(Vmax /Vvir ), with Vvir the virial velocity of the host
+halo, we compute Vmax at each time step along each trajec-
+tory of the host halo’s merger tree using the following ap-         § SURV differs from most other subhalo finders in that it uses prior
+proach. Starting from the trajectory’s leave point, we first        information based on the host halo’s merger tree to identify its
+use the P08 algorithm to construct the mass accretion his-          subhaloes.
+
+                                                                                                     c 2013 RAS, MNRAS 000, 1–20
+                                                                        Statistics of Dark Matter Substructure I                     9
+
+                                                                     Fig. 5 are the average, cumulative mass and velocity func-
+                                                                     tions for subhaloes of all orders obtained by Wu et al., using
+                                                                     the subhalo finder ROCKSTAR. Note that these are normalized
+                                                                     with respect to the present day mass, M0 , and virial veloc-
+                                                                     ity, Vvir,0 , of their host halo. Because of the high resolution
+                                                                     of the Rhapsody simulations, the Wu et al. data probes sub-
+                                                                     haloes all the way down to m = 10−5 M0 (Vmax ∼ 0.03Vvir,0 ),
+                                                                     an improvement of ∼ 1.5 orders of magnitude in normal-
+                                                                     ized subhalo mass with respect to the G08 results shown
+                                                                     in Fig. 4. However, at the massive end the results pub-
+                                                                     lished by Wu et al. (2013b) only extent to m ∼ 0.03M0
+                                                                     (Vmax ∼ 0.3Vvir,0 ), which is roughly where the cumula-
+                                                                     tive abundances drop below unity. We therefore comple-
+              log(M0 /h−1 M⊙ ) =
+                                                                     ment the data of Wu et al. (2013b) with simulation data
+                                                                     from the MultiDark simulation, which covers a cosmolog-
+                                                                     ical volume of 1h−3 Gpc3 , but at significantly lower reso-
+                                                                     lution. Using the publicly available ROCKSTAR catalog¶ of
+                                                                     haloes and subhaloes at z = 0, we compute the cumula-
+                                                                     tive SHMF and SHVF, averaged over 2393 host haloes with
+                                                                     masses in the range 1014.5 h−1 M⊙ ≤ M0 ≤ 1015 h−1 M⊙ .
+                                                                     The results are shown as open circles in Fig. 5, and cover
+                                                                     the ranges m/M0 ∼     > 10−3 and V               >
+                                                                                                          max /Vvir,0 ∼ 0.15. Note that
+Figure 4. Comparison of average, evolved SHMFs at z = 0 ob-
+                                                                     the MultiDark and Rhapsody results are in excellent agree-
+tained from N -body simulations (symbols with errorbars) with
+predictions from our semi-analytical model (solid lines). The sim-   ment in the range where they overlap. This is true de-
+ulation data is taken from the study by G08 and corresponds          spite the fact that the MultiDark simulation corresponds
+to host halo mass bins of log[M0 /( h−1 M⊙ )] ∈ [12.0, 12.5] and     to a slightly different cosmology ([Ωm , ΩΛ , Ωb , h, σ8 , ns ] =
+[13.5, 14.0], as indicated. The model results have been obtained     [0.27, 0.73, 0.047, 0.7, 0.82, 0.95]) than the Rhapsody simu-
+averaging over 10,000 Monte Carlo realizations for host haloes of    lations. Using our semi-analytical model, we have verified
+M0 = 1012.23 h−1 M⊙ and 1013.72 h−1 M⊙ , which are the average       though that this slight difference in cosmological parame-
+halo masses in the corresponding mass bins from the simulation.      ters has a negligible impact on the SHMF (see Paper II).
+Finally, the dashed curve is the unevolved subhalo mass function,         The solid curves in Fig. 5 correspond to our model pre-
+obtained from our merger trees, and is shown for comparison.
+                                                                     dictions, averaged over 10,000 Monte Carlo realizations of
+                                                                     host haloes with a present-day mass of M0 = 1014.8 h−1 M⊙
+                                                                     in the Rhapsody cosmology. In order to estimate the SHMF
+      Note that our best-fit value for Ā is in good agreement       and SHVF for subhaloes of all orders we have summed the
+with the Ā = 1.54+0.52
+                      −0.31 obtained by G08 from the median          contributions of orders one to four; as shown below, the con-
+mass loss rates inferred directly from their simulations. This       tribution of subhaloes of even higher order is negligible (see
+is a dramatic improvement with respect to B05, who inferred          also JB14). The grey bands indicate the standard deviation
+Ā = 23.7, and owes entirely to the use of more accurate             due to halo-to-halo variance, while the dashed curves re-
+merger trees. Note that our model accurately reproduces              flect the unevolved, cumulative SHMF and SHVF. Note that
+the slope and host mass dependence of SHMF (see also Pa-             our semi-analytical model accurately reproduces the simula-
+per II and §3.2 below), which is a feature that cannot be            tion results over the entire ranges in m/M0 and Vmax /Vvir,0
+controlled by the freedom in Ā. It is worth mentioning that         shown, without tuning any of the parameters in our mass
+the stochasticity in the mass-loss model ( σlog A = 0.17) ac-        loss model or in the P08 merger tree algorithm. Hence, we
+tually causes a boost of the normalization of the SHMF; if           conclude that our model can accurate reproduce both the
+we ignore this stochasticity, the best-fit value for the me-         SHMFs and SHVFs for subhaloes of first order and all or-
+dian mass-loss normalization is Ā ∼ 1.2. The fact that the          ders, and for different host halo masses and cosmologies.
+best-fit value for Ā depends on the (amount of) stochasticity       This conclusion is further strengthened in Paper II, where
+used is a manifestation of the log-normal nature of the dis-         we compare our model predictions with an even larger set
+tribution of orbit-averaged mass loss rates (see right-hand          of simulation results.
+panel of Fig. 2), which causes the mean to be larger than
+the median.
+      Finally, the dashed curve in Fig. 4 represents the un-         3.2   Mass and Redshift Dependence
+evolved SHMFs obtained from the same Monte Carlo merger              Having tested and calibrated our mass-loss model, we
+trees. Note that the unevolved SHMF is independent of host           now explore how the subhalo mass and velocity func-
+halo mass (see e.g., B05; Li & Mo 2009; Yang et al. 2011),           tions scale with host halo mass, redshift and subhalo or-
+and is therefore identical for the two mass bins shown. The          der. To that extent we compute the average SHMFs,
+differences between this (universal) dashed curve and the            dN/d log(m/M0 ), and SHVFs, dN/d log(Vmax /Vvir,0 ), aver-
+solid curves reflects the global impact of subhalo mass strip-       aged over 10,000 Monte Carlo realizations, for host haloes
+ping integrated over the assembly history of the host halo.
+      To further test our model, we once more use the Rhap-
+sody simulations of Wu et al. (2013a,b). The filled circles in       ¶ http://hipacc.ucsc.edu/Bolshoi/MergerTrees.html
+
+
+c 2013 RAS, MNRAS 000, 1–20
+10     Jiang & van den Bosch
+
+
+
+
+Figure 5. The average, cumulative mass function (left-hand panel) and velocity function (right-hand panel) at z = 0 for subhaloes
+of all orders in host haloes of mass M0 ≃ 1014.8 h−1 M⊙ . The filled and open circles are results from the high-resolution Rhapsody
+simulations (Wu et al. 2013b; M0 = 1014.8±0.05 h−1 M⊙ ) and the publicly available MultiDark simulation (Prada et al. 2012; M0 ∈
+[1014.5 , 1015 ] h−1 M⊙ ), respectively, and have both been obtained using the (sub)halo finder ROCKSTAR. The solid curves are our model
+predictions for M0 = 1014.8 h−1 M⊙ , averaged over 10,000 Monte Carlo realizations based on the Rhapsody cosmology. The gray
+bands indicate the corresponding halo-to-halo variance, while the dashed curves indicate the corresponding unevolved mass and velocity
+functions. Note the exquisite agreement between model and simulation results.
+
+
+of masses log[M0 /(h−1 M⊙ )] = 11, 12, .., 15, and redshifts           of all orders is slightly, but significantly, steeper than that
+z0 = 0, 1, 3 and 5 in the Rhapsody cosmology.                          of first-order subhaloes (see §4 below).
+                                                                            The upper, right-hand panel Fig. 6 plots the SHMFs
+      The upper, left-hand panel of Fig. 6 plots the z = 0
+                                                                       of all orders for host haloes of mass M0 = M0 (z0 ) =
+SHMFs for the five different host halo masses, as indicated.
+                                                                       1013 h−1 M⊙ at different redshifts z0 as indicated. At higher
+Solid and dashed curves correspond to evolved and un-
+                                                                       redshifts host haloes of the same mass have a larger abun-
+evolved SHMFs. As already mentioned several times, the lat-
+                                                                       dance of subhaloes than their counterparts at lower red-
+ter is universal, and therefore displays no mass dependence.
+                                                                       shifts. The unevolved SHMF, on the other hand, is indepen-
+The evolved SHMFs on the other hand, are clearly mass-
+                                                                       dent of redshift. As discussed in B05, the subhalo mass frac-
+dependent with a normalization that increases systemati-
+                                                                       tion of a given halo at redshift z is a trade-off between the
+cally with increasing host halo mass. This mass dependence,
+                                                                       time scale, τacc , on which new subhaloes are being ‘accreted’
+first noticed in numerical simulations by Gao et al. (2004)
+                                                                       by the host halo, and the time scale, τ = τdyn /A ≃ τdyn , of
+and in semi-analytical models by B05, simply reflects that
+                                                                       subhalo mass loss. The latter evolves with redshift as de-
+more massive haloes form later: the universality of the un-
+                                                                       scribed by Eq. (2), and therefore was shorter in the past.
+evolved SHMF shows that, on average, all haloes accrete
+                                                                       The former depends on the detailed mass assembly history
+(sub)haloes of the same, normalized mass. Since subhaloes
+                                                                       of the host halo, and is thus a function of both redshift and
+that are accreted earlier will be more depleted, host haloes
+                                                                       halo mass. In the limit where τacc ≪ τdyn , subhalo mass loss
+that assemble earlier, accrete their subhaloes earlier, which
+                                                                       is negligible and the normalization of the SHMF will increase
+thus will be more depleted by the present day.
+                                                                       with time. The opposite limit, in which τacc ≫ τdyn , is equiv-
+     The upper, middle panel of Fig. 6 plots the z = 0                 alent to that of subhalo mass loss in a static parent halo. In
+SHMFs of different orders for a host halo of mass M0 =                 this case, the normalization of the SHMF will decrease with
+1013 h−1 M⊙ , as indicated. Note how with each increasing              time. Since τacc is of order the Hubble time, which is always
+order the normalization reduces by roughly an order of mag-            larger than the dynamical time of a halo, we are in the latter
+nitude, while the slope steepens. Hence, when computing the            regime, which explains why the normalization of the SHMF
+SHMF for subhaloes of all orders one only has to sum the               decreases with decreasing redshift.
+contributions of subhaloes of orders one and two, unless one                The lower panels of Fig. 6 plot the same results as the
+aims to reach exquisite precision. Throughout this paper we            upper panels, but for the SHVFs. Overall the trends are
+always sum subhaloes up to fourth order, but none of our re-           very similar except for one important difference: the un-
+sults would change noticeably if we were to ignore the third           evolved SHVFs are not universal. As is evident from the
+and fourth order subhaloes. The gray line shows the SHMF               lower left- and lower right-hand panels, the unevolved SHVF
+of all orders, which is clearly completely dominated by first-         increases with decreasing host halo mass and decreasing red-
+order subhaloes. Note, though, that the slope of the SHMF              shift. As discussed in §4 below, this is a consequence of the
+
+                                                                                                      c 2013 RAS, MNRAS 000, 1–20
+                                                                         Statistics of Dark Matter Substructure I                       11
+
+                                                                    log[M0 /h−1 M⊙ ] =                        log[M0 (z0 )/h−1 M⊙ ] =
+
+
+
+
+               log[M0 /h−1 M⊙ ] =
+
+
+
+
+Figure 6. Average SHMFs (upper panels) and SHVFs (lower panels) obtained by averaging over 10,000 merger trees each. Left-hand
+panels: Results for different host halo masses, as indicated, with solid and dashed curves corresponding to the evolved and unevolved
+mass/velocity functions, respectively. Middle panels: Evolved SHMFs and SHVFs of different orders (different colors, as indicated), for
+a host halo of mass M0 = 1013 h−1 M⊙ at z = 0. Right-hand panels: Results for a host halo of mass M0 = 1013 h−1 M⊙ at different
+redshifts, as indicated. As in the left-hand panels, solid and dashed curves correspond to evolved and unevolved mass/velocity functions,
+respectively. Note how the unevolved SHMF is independent of mass and redshift, which is not the case for the unevolved SHVF.
+
+
+concentration-mass-redshift relation of dark matter haloes,            are roughly consistent (within a factor ∼ 2) with current
+and causes a cross-over in the mass- and redshift- depen-              constraints. The reason is that the alleged universality of
+dence of the evolved SHVFs at the massive end.                         the unevolved SHMF, first eluded to by B05 and then con-
+                                                                       firmed in numerical simulations by G08 and Li & Mo (2009),
+                                                                       only holds approximately. This was demonstrated in Yang
+                                                                       et al. (2011), who showed that the slope of the unevolved
+4   UNIVERSAL MODELS FOR THE SUBHALO                                   SHMF depends weakly, but significantly, on the effective
+    MASS AND VELOCITY FUNCTIONS                                        slope of the matter power spectrum.
+Fig. 6 suggests that the SHMF has a universal shape, with
+a normalization that depends on halo formation time. This
+universality has its origin in the universal shape of the un-                In order to have a sufficient dynamic range to probe
+evolved SHMF, and suggest that it should be straightfor-               how the subhalo mass and velocity functions scale with mass
+ward to obtain a fitting function for the evolved SHMF,                and cosmology, we construct average SHMFs and SHVFs
+dN/d ln(m/M0 ), that is valid for any M0 , any redshift, z0 ,          for host haloes spanning the mass range 1011 h−1 M⊙ ≤
+and any cosmology. In fact, the results of Fig. 6 suggest that         M0 ≤ 1015 h−1 M⊙ in cosmologies that span the range
+a similar universal fitting function may be found for both the         0.1 ≤ Ωm ≤ 0.5, 0.5 ≤ σ8 ≤ 1.0 and 0.5 ≤ h ≤ 1.0. Our
+evolved and unevolved SHVFs. In this section we present                ‘baseline’ is a host halo of mass M0 = 1013 h−1 M⊙ in the
+such universal fitting functions, and demonstrate how their            Rhapsody cosmology [(Ωm , h, σ8 ) = (0.25, 0.73, 0.8)], which
+normalizations can be computed from very simple consid-                falls roughly midway of the ranges considered. When vary-
+erations. The results of this section are summarized in Ap-            ing cosmology, we only vary one of these three cosmological
+pendix A, where we provide a simple step-by-step descrip-              parameters per time with respect to this baseline cosmol-
+tion of how to compute these universal fitting functions.              ogy and compute the average SHMF and SHVF for host
+     Before we proceed, though, we caution that what fol-              haloes with M0 = 1011 h−1 M⊙ and 1015 h−1 M⊙ , in each
+lows should only be used to describe subhalo mass and ve-              case averaging over 20,000 Monte Carlo realizations at red-
+locity functions in ΛCDM cosmologies with parameters that              shift z0 = 0.
+
+c 2013 RAS, MNRAS 000, 1–20
+12      Jiang & van den Bosch
+                                    1st order                       2nd order                            all orders
+
+
+
+
+             log[dN/d log(m/M0 )]
+
+
+
+
+             log(ratio)
+
+
+
+                                     renormalize
+
+                                                                                                                      M0 = 1011 h−1 M⊙
+                                                                                                                      M0 = 1011 h−1 M⊙
+                                                                                                                      M0 = 1015 h−1 M⊙
+
+
+
+
+             log[dN/d log(m/M0 )]
+                                                                                                                      M0 = 1015 h−1 M⊙
+                                                                                                                      M0 = 1011 h−1 M⊙
+                                                                                                                      M0 = 1011 h−1 M⊙
+                                                                                                                      M0 = 1015 h−1 M⊙
+                                                                                                                      M0 = 1015 h−1 M⊙
+
+
+
+
+                                                                                                          M0 = 1011 h−1 M⊙
+                                                                                                          M0 = 1011 h−1 M⊙
+                                                                                                          M0 = 1015 h−1 M⊙
+                                                                                                          M0 = 1015 h−1 M⊙
+
+
+
+
+             log(ratio)
+
+
+                                                                   log(m/M0 )
+Figure 7. The average SHMFs at redshift z = 0 for different cosmologies and host halo masses obtained by averaging over 20,000 merger
+trees each. Panels in the upper and lower rows show the results before and after renormalization by the subhalo mass fraction fs , as
+described in the text. Panels in the left, middle, and right columns show the results for subhaloes of first order, second order, and all
+orders. Curves of different line style and thickness correspond to different cosmology and halo mass, as indicated. The solid black curves
+represent the fiducial ‘baseline’ model, which corresponds to a host halo of mass M0 = 1013 h−1 M⊙ in the Rhapsody cosmology. The
+dashed, light-red curves in the upper panels of the upper row represent the universal unevolved SHMFs. Solid, red curves are the fitting
+functions of the form of Eq. (22) that best-fit the fiducial baseline model; the bottom panels in each row show the ratios with respect to
+this fitting function.
+
+                                                                                Z 1             Z 1
+4.1   Evolved Subhalo Mass Function                                                 dN                 dN
+                                                                        fs ≡      ψ    dψ =                  dψ,                         (21)
+                                                                             ψres
+                                                                                    dψ           ψres
+                                                                                                      d ln ψ
+The upper panels of Fig.7 plot the SHMFs for z = 0 host
+haloes with masses of 1011 h−1 M⊙ and 1015 h−1 M⊙ for
+                                                                        where we have used ψ as shorthand for m/M0 . Through-
+the 6 extreme cosmologies considered here. The left, mid-
+                                                                        out this section we adopt a mass resolution of ψres = 10−4 .
+dle, and right columns show the results for first-order sub-
+                                                                        In the lower panels of Fig. 7, we have renormalized the
+haloes, second-order subhaloes, and subhaloes of all-orders,
+                                                                        SHMFs in the upper panels by multiplying dN/d log(m/M0 )
+respectively. The dashed, light-red curves are the corre-
+                                                                        with the factor fs,fid /fs , where fs,fid is the subhalo mass
+sponding unevolved SHMFs, which are virtually identical for
+                                                                        fraction of our fiducial ‘baseline’ (i.e., a host halo of mass
+all masses and cosmologies shown. As expected, the evolved
+                                                                        M0 = 1013 h−1 M⊙ in the Rhapsody cosmology). Clearly,
+SHMFs also have very similar shapes, but normalizations
+                                                                        this renormalization brings all SHMFs in excellent agree-
+that differ by up to ∼ 1.1dex. Upon inspection, one can dis-
+                                                                        ment with each other; the small discrepancies at the massive
+cern that the normalization of the evolved SHMF increases
+                                                                        end are consistent with being due to statistical noise. Hence,
+with increasing Ωm and M0 , and with decreasing h and σ8 .
+                                                                        we conclude that the evolved SHMFs (of any given order)
+     The normalization of the SHMF can be characterized                 constitute a universal, one-parameter family.
+by the total mass fraction in subhaloes with masses m ≥                      This family of functions can be well fitted by a
+ψres M0 :                                                               Schechter-like function of the form
+
+                                                                                                        c 2013 RAS, MNRAS 000, 1–20
+                                                                          Statistics of Dark Matter Substructure I                      13
+                                            1st order                                            2nd order
+
+
+
+
+                      fs
+
+
+
+
+                                                 Nτ                                                  Nτ
+Figure 8. The relation between subhalo mass fraction fs and the host halo’s ‘dynamical age’, Nτ , defined as the number of dynamical
+time scales elapsed, since the formation of the (average) host halo (see Eq. [24]). The left- and right-hand panels correspond to first- and
+second-order subhaloes, respectively. Filled circles of different colors and sizes represent different cosmologies and host halo masses, as
+indicated, while the solid, red lines are the best-fit relations of Eqs. (26) and (27).
+
+
+ dN                                                                      in substructure is the outcome of a competition between
+       = γψ α exp (−βψ ω ) ,                                  (22)
+d ln ψ                                                                   halo accretion and halo stripping. For any particular sub-
+where α, β, γ and ω are free parameters. The best-fit val-               halo, the mass that remains bound is basically determined
+ues for the power-law slope α are −0.78, −0.93, and −0.82                by how long it has been exposed to tidal stripping. Since
+for the SHMFs of first-order, second-order and all-orders, re-           the unevolved SHMF is universal, it is therefore natural to
+spectively. Note that studies of subhalo mass functions based            suspect that the subhalo mass fraction, fs , of a host halo
+on N -body simulations have reported values for α for the                is closely correlated to its ‘age’, expressed in units of the
+SHMFs of all-orders that cover the entire range from −0.7 to             dynamical time. For a host halo of mass M0 at redshift z0
+−1.1. As discussed in detail in Paper II, this large range owes          this can be defined as
+partially to limited quality of the simulation data, but also                              Z t(zform )
+                                                                                                           dt
+to the fact that different studies have used different subhalo           Nτ (M0 , z0 ) ≡                          .                    (24)
+                                                                                            t0
+                                                                                                         τdyn (t)
+finders. The best-fit parameters for β and ω are somewhat
+degenerate, but we obtain good fits for (β, ω) = (50, 4) for             Here t is the lookback time, τdyn (t) is the corresponding dy-
+SHMFs of first-order and all-orders and (25, 1) for second-              namical time given by Eq. (2), t0 is the lookback time to
+order subhaloes. Finally, the normalization constant γ is re-            redshift z0 , and zform = zform (M0 , z0 ) is the halo’s forma-
+lated to the subhalo mass fraction, fs , via:                            tion redshift, which we define as the redshift at which the
+             ωβ s                                                        main progenitor of the halo has reached a mass M0 /2. As we
+γ=          ω
+                            fs ,                              (23)       demonstrate below, formulating the age of the halo in terms
+     Γ[s, βψres ] − Γ[s, β]
+                                                                         of the elapsed number of dynamical times captures all the
+with Γ(a, x) the incomplete gamma function, and s ≡                      relevant mass, redshift and cosmology dependence.
+(1 + α)/ω. The red, solid curves in Fig. 7 represent these                    In order to compute the formation redshift, zform , we
+best-fit functions to the fiducial ‘baseline’ SHMF, while the            use the model of Giocoli et al. (2012; hereafter G12), which
+smaller panels show the ratios with respect to this fidu-                yields, for any cosmology, the median redshift zf at which
+cial fitting function. These reveal a very weak, but system-             the main progenitor of a halo of mass M0 at redshift z0 has
+atic, upturn at the low-mass end for SHMFs of first-order                reached a mass f M0 . This requires solving
+and all-orders. This upturn is not captured by the simple                                            p
+power-law behavior of Eq. (22). A similar, albeit more pro-              δc (zf ) = δc (z0 ) + w̃f    σ 2 (f M0 ) − σ 2 (M0 ),         (25)
+nounced upturn, is also present in the unevolved, first-order                              p                                      3
+SHMF, which, as shown by JB14, is therefore better de-                   where w̃f =        2 ln(αf + 1) and αf = 0.815e−2f /f 0.707 .
+                                                                                2
+scribed by a double-Schechter-like function, dN/d ln ψ =                 Here σ (M ) is the mass variance and δc (z) ≡ 1.686/D(z)
+(γ1 ψ α1 + γ2 ψ α2 ) exp(−βψ ω ). Although the extra degrees of          with D(z) the linear growth rate normalized to unity at
+freedom of such a fitting function would also improve the                z = 0. We define zform as the solution of Eq. (25) for zf
+quality of the fits to our inferred SHMFs, we don’t believe              with f = 0.5.
+this is warranted by the level of accuracy of our model. We                   Fig. 8 plots the subhalo mass fraction, fs , obtained from
+therefore choose to describe the evolved SHMFs with the                  the evolved SHMFs shown in Fig. 7, as function of the halo
+simpler Eq. (22).                                                        ‘age’ Nτ , computed using Eq. (24) with zform obtained from
+     With the parameters α, β and ω specified, what remains              the G12 model as described above. As expected, these two
+is to obtain an easy-to-use characterization of the normal-              quantities are tightly correlated. We find that the subhalo
+ization parameter γ, or equivalently, of the subhalo mass                mass fractions for first and second order subhaloes are ac-
+fraction, fs . The fraction of a halo’s mass that is locked up           curately described by
+
+c 2013 RAS, MNRAS 000, 1–20
+14         Jiang & van den Bosch
+           0.3563                                                       its final mass M0 . For the characteristic subhalo mass at
+fs,1st =          − 0.075 ,                                     (26)
+            Nτ0.6                                                       accretion we take hmacc i = M0 /10, which is close to the ex-
+and                                                                     ponential cut-off scale of the unevolved SHMF. Hence, we
+            0.0535                                                      have that
+fs,2nd =           − 0.0035 ,                                   (27)
+             Nτ1.3                                                             Vvir (0.1f M0 , z0 )
+                                                                        a=C                         ,                               (30)
+respectively, which are indicated by the red lines. We em-                     Vmax (0.1f M0 , zf )
+phasize that these relations are valid for any halo mass, M0 ,          where we have introduced the normalization C which we
+any redshift, z0 , and any reasonable ΛCDM cosmology. Note              tune such that a = 1 for our fiducial ‘baseline’ model. For a
+that, since our halo mass definition is ‘inclusive’, the first-         given value of f , one can use the G12 model to compute the
+order mass fraction fs,1st also describes the mass fraction             corresponding zf , and use Eqs. (17) and (16) to compute
+in subhaloes of all orders. Also, recall that the mass frac-            Vvir (0.1f M0 , z0 ) and Vmax (0.1f M0 , zf ) , respectively. The
+tions in Eqs. (26) and (27) correspond to a mass resolution             latter requires the halo concentration parameter, c, which
+of ψres = 10−4 . This needs to be taken into account when               we compute using the concentration-mass-redshift relation
+using these mass fractions to compute the SHMF normal-                  of Zhao et al. (2009).
+ization parameter, γ, with the help of Eq. (23).                              We have experimented with different values for f , and
+     The above relations between fs and Nτ allow one to                 obtain the best results for f = 0.25, for which C = 1.536.
+write down the average, evolved SHMF for a halo of arbi-                The right-hand panels of Fig. 9 plot dN/d log(Vacc /Vvir,0 )
+trary mass, at any redshift, and for a wide range of ΛCDM               versus a Vacc /Vvir,0 , where a is computed using Eq. (30) with
+cosmologies. We now examine whether similar, universal fit-             these best-fit values. It is clear that this simple rescaling ac-
+ting functions can be found to describe both the evolved and            counts for virtually all the halo mass dependence in the un-
+unevolved SHVFs.                                                        evolved SHVF. The rescaled, unevolved SHVFs are almost
+                                                                        indistinguishable from each other and are well fit by Eq. (28)
+4.2   The Unevolved SHVF                                                with α = −3.2, β = 2.2, γ = 2.05, ω = 13, and a = 1 (red
+                                                                        curve). Some discrepancies that go beyond statistical noise
+The unevolved SHVF, dN/d ln(Vacc /Vvir,0 ), provides the ba-            are evident at the high-velocity end (aVacc /Vvir,0 ∼ > 0.9), but
+
+sis for the popular technique of subhalo abundance match-               only for the most massive host haloes. Although the discrep-
+ing. Unfortunately, the convenient universality present in              ancies are within a factor of two, we caution that the ‘univer-
+the case of the unevolved mass function does not hold for               sal’ unevolved SHMF presented here is less reliable for the
+the unevolved velocity function. This is easy to understand             most massive subhaloes in the most massive (cluster-sized)
+from the fact that the relation between macc and Vacc =                 host haloes.
+Vmax (zacc ) depends on the concentration-mass-redshift rela-                 We have also verified that the same scale parame-
+tion. Hence, the ‘mapping’ of macc /M0 into Vacc /Vvir,0 de-            ter a (with f = 0.25) also describes the cosmology- and
+pends on mass, redshift and cosmology.                                  redshift- dependences quite well. There is a weak depen-
+      The left-hand panels of Fig. 9 show the unevolved                 dence of the power-law slope α on cosmology, but this only
+SHVFs of all-orders for host haloes of different masses in              becomes cumbersome when the cosmological parameters de-
+the Rhapsody cosmology, as indicated. These have been ob-               viate substantially (i.e., by about a factor of two or more)
+tained averaging over 20,000 Monte-Carlo realizations. Al-              from the ‘baseline’ Rhapsody cosmology with (Ωm , h, σ8 ) =
+though both the normalization and the scale at which the                (0.25, 0.73, 0.8). Overall, though, the rescaling introduced
+transition to exponential decay occurs differ from one SHVF             here, and summarized in Appendix A, allows one to compute
+to the other, the shapes still look close to universal. Hence,          reliable, unevolved subhalo velocity functions for host haloes
+it is natural to describe the unevolved velocity function with          of different mass, at different redshifts, and for a broad range
+a functional form                                                       of ΛCDM cosmologies.
+  dN
+        = γ (aψ)α exp [−β (aψ)ω ] ,                       (28)
+d ln ψ
+                                                                        4.3   The Evolved SHVF
+where we have introduced a scale parameter, a, in addition
+to the free parameters α, β, γ, and ω. We now seek to find              The left-hand panels of Fig. 10 plot the evolved SHVFs cor-
+a parameterization of a for which the unevolved SHVF is                 responding to the unevolved SHVFs shown in Fig. 9. Sim-
+(close to) universal, i.e., for which the other parameters are          ilar to the evolved mass functions, the power-law slopes
+independent of host mass, redshift and cosmology.                       of the evolved velocity functions are independent of host
+     To do so, we use the fact that                                     halo mass, and the normalization increases with increas-
+                                                                        ing M0 . However, at the high-velocity end this halo mass-
+Vmax (macc , zacc )   Vmax (macc , zacc )   Vvir (macc , z0 )
+                    =                     ×                   . (29)    dependence flips over, and the exponential cut-off occurs
+  Vvir (M0 , z0 )      Vvir (macc , z0 )     Vvir (M0 , z0 )            at smaller Vmax /Vvir,0 for more massive host haloes. As we
+Since the second factor on the right-hand side only de-                 demonstrate in Paper II, these trends are consistent with
+pends on macc /M0 , and has no dependence on cosmol-                    results from N -body simulations.
+ogy or redshift, and since the mass function of macc /M0                     In an attempt to construct a universal fitting func-
+is universal, a logical choice for the scale factor a is                tion for the evolved SHVF, we first apply the rescaling that
+Vvir (hmacc i, z0 )/Vmax (hmacc i, hzacc i) where hmacc i and hzacc i   successfully describes the non-universality of the unevolved
+are representative values for the mass and redshift at accre-           SHVF. This results in the rescaled velocity functions shown
+tion. For the latter we use the redshift zf by which the main           in the middle panels of Fig. 10. The cut-off now occurs at
+progenitor of the host halo has assembled a faction f of                roughly the same scale, which has removed the ‘cross-over’
+
+                                                                                                        c 2013 RAS, MNRAS 000, 1–20
+                                                                             Statistics of Dark Matter Substructure I                                     15
+
+
+
+
+                                  log(M0 /h−1 M⊙ ) =
+
+
+
+
+                                                                   rescale
+
+
+
+
+Figure 9. Panels on the left show the unevolved subhalo velocity functions, dN/d log(Vacc /Vvir,0 ), for five different host halo masses,
+as indicated, in the Rhapsody cosmology. Each of these has been obtained by averaging 20,000 merger trees. In the panels on the right,
+these have been rescaled using the scale parameter a given by Eq. (30). In both panels the red curves correspond to the fitting function
+of the form of Eq. (28) that best-fit the results for M0 = 1013 h−1 M⊙ , which has best-fit parameters α = −3.2, β = 2.2, γ = 2.05,
+ω = 13, and (by definition) a = 1. The bottom panel plots the ratios relative to this fitting function.
+
+
+                                                                                                                                                 −1/ζ
+present in the left-hand panels. The normalizations, though,                                              
+                                                                                                              ma
+                                                                                                                   ζ 
+still depend on host halo mass, which reflects the impact of            m(t) = macc 1 + ζ A                               Ñτ (tacc ) − Ñτ (t)           (32)
+                                                                                                              M0
+subhalo mass evolution. Hence, we expect that this normal-
+ization scales with the halo’s dynamical age, Nτ . Recall that          where t is lookback time, tacc and macc are the lookback time
+in the case of the evolved mass function, the normalization             and subhalo mass at accretion, M0 is the present day mass
+constant is simply proportional to the subhalo mass frac-               of the host halo, and
+tion fs , which, after all, is simply an integral of the mass                       Z t             −ζ
+                                                                                             M (t)              dt
+function. In the case of the evolved SHVF, we assume that               Ñτ (t) ≡                                                                     (33)
+                                                                                             M0               τdyn (t)
+the normalization scales with fsb , where b is some constant.                        0
+
+By trial and error we find that b = 1.4 accurately cap-                 is some measure for the number of dynamical times that
+tures the scaling of the SHVFs. This is demonstrated in                 have elapsed in an evolving dark matter halo since lookback
+the right-hand panels of Fig. 10, which indicates that renor-           time t.
+malization by fs1.4 yields SHVFs that are almost indistin-                   It is interesting to see what this implies for the amount
+guishable. This universal, evolved SHVF is well described               of mass that is stripped from a typical subhalo during its first
+by Eq. (28) with (α, β, γ, ω) = (−2.6, 4, 0.248, 15). As with           radial orbit. In units of the mass of the subhalo at infall, this
+the unevolved SHVF, small discrepancies are evident at the              is given by
+high-velocity end for the most massive host haloes, but over-
+                                                                         ∆m     macc − m(tacc − Tr )
+all this two-stage process of rescaling and renormalization                   ≡                                                                       (34)
+nicely captures the mass-, redshift- and cosmology depen-                macc          macc
+dence of the evolved SHVF for subhaloes of all-orders (see              with Tr the radial orbital period given by Eq. (9). Without
+also Appendix A).                                                       loosing generality, we set tacc = Tr , so that the subhalo has
+                                                                        just completed its first radial orbit at the present day. In
+                                                                        this case, we have that
+                                                                                                               ζ               −1/ζ
+5   DISCUSSION                                                           ∆m                ma
+                                                                                                      
+                                                                              = 1 − 1 + ζA                           Ñτ (Tr )                        (35)
+                                                                         macc              M0
+The results presented in this paper show that the orbit-
+averaged subhalo mass-loss rates are accurately described               Using the toy model described in §2.2.1 we find that the dis-
+by                                                                      tribution of Tr at z = 0 is close to uniform over the interval
+           m
+                 
+                     m
+                         ζ                                             [5, 9] Gyr, which has its origin in the uniform distribution of
+ṁ = −A                       .                             (31)        Rs (Tr depends strongly on E but has very little dependence
+          τdyn       M
+                                                                        on L).
+with τdyn the halo’s (instantaneous) dynamical time, ζ =                      The left-hand panel of Fig. 11 plots Ñτ as function of
+0.07, and A a random variable that follows a log-normal                 lookback time, t, where we have assumed, for simplicity,
+distribution with median Ā = 1.34 and dispersion σlog A =              that dark matter haloes grow in mass exponentially on a
+0.17. This implies that, in an orbit-averaged sense, dark mat-          time scale τM , i.e., M (t) = M0 exp(−t/τM ). We also as-
+ter subhaloes evolve as                                                 sumed a ‘Planck cosmology’ with Ωm = 0.318, ΩΛ = 0.682
+
+c 2013 RAS, MNRAS 000, 1–20
+16        Jiang & van den Bosch
+
+
+
+
+          log(M0 /h−1 M⊙ ) =
+
+
+
+
+                                            rescale                                    renormalize
+
+
+
+
+Figure 10. Same as Fig. 9, but here we show the corresponding results for the evolved SHVFs, dN/d log(Vmax /Vvir,0 ). After rescaling
+with the scale parameter a, the various SHVFs have a universal shape, but different normalizations (panels in middle column). This
+dependence can be renormalized by scaling the SHVFs with a factor fs1.4 (panels in right-hand column). After this two-step process of
+rescaling and renormalization, the evolved SHVFs are accurately described by Eq. (28) with α = −2.6, β = 4, γ = 0.248, and ω = 15
+(red curves).
+
+
+and h = 0.671, but we emphasize that the results are al-              their infall mass after one radial orbit. Hence, subhaloes lose
+most indistinguishable for other, similar cosmologies, such           the vast majority (typically more than 80 percent) of their
+as those advocated by different data releases of the WMAP             mass during their very first radial orbit. We emphasize that
+experiment. Results are shown for four different values of            most of this mass loss is likely to occur near pericenter (and
+τM , ranging from infinity (i.e., no evolution in host halo           hence, roughly a time Tr /2 after infall), but we caution that
+mass) to τM = 1Gyr (i.e., host halo mass has grown by al-             our model only treats orbit-averaged mass-loss rates, and
+most a factor three during the last Gyr). This more than              should therefore not be used to make predictions regarding
+covers the range of growth rates of dark matter haloes in             mass-loss rates on significantly shorter time-scales.
+the mass range 1011 h−1 M⊙ < M0 < 1015 h−1 M⊙ . As is                      The dependence of ∆m/macc on macc /M0 owes to two
+evident, the interval Tr ∈ [5, 9]Gyr translates roughly into          effects: (i) the concentration-mass relation of dark mat-
+Ñ (T ) ∈ [2, 4], with very little dependence on τ k . Hence,
+  τ   r                                               M
+                                                                      ter haloes, which makes subhaloes with a lower value of
+the typical radial orbital period of a subhalo following infall       macc /M0 relatively denser compared to its host halo, and
+lasts roughly 2 to 4 dynamical times. This may sound some-            therefore more resilient to tidal stripping, and (ii) dynami-
+what counter-intuitive, but note that the dynamical time is           cal friction, which will cause more massive subhaloes to lose
+an average for the entire halo, which is not representative of        more orbital energy and angular momentum, reducing their
+orbits at first infall.                                               pericentric distance, and thus causing enhanced stripping.
+     The right-hand panel of Fig. 11 plots the distribution           However, with the dramatic mass stripping rates revealed
+of ∆m/macc for the same Planck cosmology, obtained using              here, it is also clear that dynamical friction cannot play a
+Eq. (35) with ζ = 0.07 and τM = 10Gyr (roughly represen-              very important role after first pericentric passage; as a rule
+tative for a Milky-Way sized dark matter halo, though the             of thumb, the dynamical friction time is only shorter than
+                                                                      the Hubble time if m/M ∼    > 0.1 (e.g., Mo, van den Bosch &
+results only depend very weakly on τM ). The orbital peri-
+ods, Tr , are sampled from a uniform distribution covering            White 2010). Even if a subhalo is that massive at infall, it
+the range from 5 to 9 Gyr, while the mass-loss rate nor-              is very likely to be stripped below this limit after its first
+malization parameter, A, is sampled from the log-normal               pericentric passage. Hence, mass stripping is a far more im-
+given by Eq. (20) with Ā = 1.34. Results are shown for               portant process for the evolution of dark matter subhaloes
+five different values of macc /M0 , as indicated. The medi-           than dynamical friction (see also Taffoni et al. 2003; Tay-
+ans of the distributions are indicated by arrows, and range           lor & Babul 2004; Peñarrubia & Benson 2005; Zentner et
+from 0.80 for macc /M0 = 10−5 to 0.95 for macc /M0 = 10−1 .           al. 2005; Gan et al. 2010), and one does not make large
+Sampling macc /M0 from the actual unevolved SHMF for                  errors by ignoring dynamical friction altogether.
+macc /M0 ≥ 10−5 yields a distribution that is intermediate
+between those for macc /M0 = 10−4 and macc /M0 = 10−5
+with a median of 0.827. Note that only a minute fraction of
+subhaloes is expected to hang on to more than 50 percent of           6   SUMMARY
+                                                                      We have presented a new semi-analytical model that uses
+                                                                      EPS merger trees to generate evolved subhalo populations.
+k This also implies that the results presented here are insensitive   The model is based on the method pioneered by B05, and
+to deviations of M (t)/M0 from an exponential                         evolves the mass of dark matter haloes using a simple model
+
+                                                                                                     c 2013 RAS, MNRAS 000, 1–20
+                                                                         Statistics of Dark Matter Substructure I                    17
+
+
+
+
+Figure 11. Left-hand panel: the quantity Ñτ , defined by Eq. (33), as function of lookback time t for four different values of the time-
+scale for halo mass growth, τM , as indicated. As is apparent, Ñτ is not very sensitive to how host halo masses grow over time. This
+is a manifestation of the small value for ζ, which indicates that subhalo mass loss rates depend only weakly on host halo mass. Right-
+hand panel: Distributions of the fractional subhalo mass lost during the first radial orbit after infall, ∆m/macc . Results are shown for
+five different values of macc /M0 , as indicated. Arrows indicate the medians of the corresponding distributions. Note that subhaloes,
+on average, lose more than 80 percent of their infall mass during their first radial orbit. All these results are for a Planck cosmology
+with (Ωm , h) = (0.318, 0.671), but results are very similar for other ΛCDM cosmologies that are consistent with current observational
+constraints.
+
+
+for the orbit-averaged subhalo mass loss rate. This avoids             rameter such that the model reproduces the normalization
+having to integrate individual subhalo orbits, as done in              of the evolved SHMF in the numerical simulations of G08,
+other semi-analytical models for dark matter substructure              the same model can accurately reproduce the evolved sub-
+(e.g., Taylor & Babul 2004, 2005a,b; Benson et al. 2002;               halo mass and velocity functions in numerical simulations for
+Taffoni et al. 2003; Oguri & Lee 2004; Zentner & Bullock               host haloes of different mass, in different ΛCDM cosmolo-
+2003; Peñarrubia & Benson 2005; Zentner et al. 2005; Gan              gies, and for subhaloes of different orders, without having to
+et al. 2010). We have made a number of improvements and                adjust this parameter.
+extensions with respect to the original B05 model; in par-                  The inferred orbit-averaged mass loss rates are consis-
+ticular, we                                                            tent with the simulation results of G08, and imply that an
+                                                                       average dark matter subhalo loses in excess of 80 percent of
+   (i) use Monte Carlo merger trees constructed using the
+                                                                       its infall mass during its first radial orbit within the host
+method of P08, which, as demonstrated in JB14, yields re-
+                                                                       halo. More massive subhaloes, in units of the normalized
+sults in much better agreement with numerical simulations
+                                                                       mass, m/M , lose their mass more rapidly due to (i) the
+than the Somerville & Kolatt (1999) method used by B05.
+                                                                       concentration-mass relation of dark matter haloes, which
+   (ii) construct and use complete merger trees, rather than
+                                                                       causes subhaloes with smaller m/M to be more resilient
+just the mass assembly histories of the main progenitor. This
+                                                                       to tidal stripping, and (ii) dynamical friction, which causes
+allows us to investigate the statistics of subhaloes of different
+                                                                       more massive subhaloes to lose more orbital energy and an-
+orders.
+                                                                       gular momentum, resulting in enhanced stripping. Accord-
+   (iii) adopt a new mass loss model, that is calibrated
+                                                                       ing to our mass loss model, subhaloes with an infall mass
+against numerical simulations and which also accounts for
+                                                                       that is 10 percent of the host halo mass will lose on average
+the scatter in subhalo mass loss rates that arises from scat-
+                                                                       more than 95 percent of their infall mass during their first
+ter in orbital properties (energy and angular momentum)
+                                                                       radial orbital period.
+and (sub)halo concentrations.
+                                                                            One of the main findings of this paper is that the aver-
+   (iv) include a method for converting halo mass to max-
+                                                                       age subhalo mass and velocity functions, both evolved and
+imum circular velocity, thus allowing us to study subhalo
+                                                                       unevolved, can be accurately fit by a simple Schechter-like
+velocity functions as well as subhalo mass functions.
+                                                                       function of the form
+     In this paper, the first in a series that addresses the             dN
+statistics of dark matter subhaloes, we have mainly focussed                   = γ (ψ)α exp [−β(ψ)ω ] .                             (36)
+                                                                        d ln ψ
+on the average subhalo mass and velocity functions, where
+the average is taken over large numbers of Monte Carlo re-             where, depending on which function is being considered, ψ
+alizations for a certain host halo mass, M0 , redshift, z0 , and       is m/M0 , ma /M0 , Vmax /Vvir,0 , or Vacc /Vvir,0 . In particular,
+cosmology. Our model has only one free parameters, which               restricting ourselves to ΛCDM cosmologies with parameters
+sets the overall normalization of the orbit-averaged mass              that are consistent with recent constraints within a factor
+loss rates of dark matter subhaloes. After tuning this pa-             of roughly two, we find that
+
+c 2013 RAS, MNRAS 000, 1–20
+18     Jiang & van den Bosch
+
+   • The unevolved SHMF is (close to) universal, with the           den Bosch, in preparation), we use our model to investigate,
+parameters (α, β, γ, ω) independent of host halo mass, red-         in unprecedented detail, the halo-to-halo variance of dark
+shift and cosmology (see also B05; Li & Mo 2009; Yang et            matter substructure, which is important, among others, for
+al. 2011). We emphasize, though, that although the func-            assessing the severity of the ‘too-big-to-fail’ problem (see
+tional form of Eq. (36) can adequately describe this uni-           also Purcell & Zentner 2012).
+veral unevolved SHMF, it is more accurately described by
+the double-Schechter-like function presented in JB14.
+   • The evolved SHMF has a universal shape (i.e., fixed α, β       ACKNOWLEDGMENTS
+and ω), which is accurately described by Eq. (36), but with
+a normalization, γ, that depends on host halo mass, redshift        We are grateful to Andrew Wetzel and Mike Boylan-Kolchin
+and cosmology. We have demonstrated that γ is tightly cor-          for helpful discussions and to Hao-Yu Wu for sharing some
+related with the ‘dynamical age’ of the host halo, defined as       of their data from the Rhapsody simulation project. We also
+the number of halo dynamical times that have elapsed since          thank the people behind the MultiDark simulation for mak-
+its formation (i.e., since redshift z1/2 at which the host halo’s   ing their halo catalogs publicly available, and the organizers
+main progenitor reaches a mass equal to M0 /2). Using this          of the program ”First Galaxies and Faint Dwarfs: Clues to
+relation we have presented a universal fitting function for         the Small Scale Structure of Cold Dark Matter” held at
+the average, evolved SHMF that is valid for any host halo           the Kavli Institute for Theoretical Physics (KITP) in Santa
+mass, at any redshift, and for any ΛCDM cosmology. The              Barbara, for creating a stimulating, interactive environment
+corresponding power-law slopes, α, are −0.78, −0.93 and             that started the research presented in this paper, and the
+−0.82 for first-order subhaloes, second-order subhaloes (i.e.,      KITP staff for all their help and hospitality. This research
+sub-subhaloes), and for subhaloes of all orders, significantly      was supported in part by the National Science Foundation
+shallower than what has been claimed in numerous studies            under Grant No. PHY11-25915.
+based on numerical simulations (see Paper II for a detailed
+discussion).
+   • Unlike the unevolved mass function, the unevolved              REFERENCES
+SHVF is not universal, in that the parameter β is found
+                                                                    Behroozi P. S., Wechsler R. H., Wu H.-Y., 2013a, ApJ, 762, 109
+to depend on host mass, redshift and cosmology. This has
+                                                                    Behroozi P. S., Wechsler R. H., Wu H.-Y., Busha M.T., Klypin
+its origin in the concentration-mass-redshift relation of dark
+                                                                       A.A., Primack J.R., 2013b, ApJ, 763, 18
+matter haloes, and can be accounted for by replacing ψ in           Benson A. J., Frenk C. S., Lacey C. G., Baugh C. M., Cole S.,
+Eq. (36) with aψ, where a is a (universal) scale factor given          2002, MNRAS, 333,177
+by a ∝ Vvir (M0 /40, z0 )/Vmax (M0 /40, z0.25 ). When using this    Binney J., Tremaine S., 2008, Galactic Dynamics, Princeton Uni-
+simple rescaling, one obtains a universal fitting function for         versity Press
+the unevolved SHVF whose parameters α, β, γ and ω are in-           Bradac̆ M., Schneider P., Steinmetz M., Lombardi M., King L. J.,
+dependent of host mass, redshift and cosmology. Note that              Porcas R., 2002, A&A, 388, 373
+this unevolved SHVF is one of the key ingredients in the            Bond J. R., Cole S., Efstathiou G., Kaiser N., 1991, ApJ, 379,
+popular method of subhalo abundance matching.                          440
+                                                                    Boylan-Kolchin M., Bullock J. S., Kaplinghat M., 2011, MNRAS,
+   • Taking into account both the ‘dynamical age’-
+                                                                       415, L40
+dependence of the normalization of the evolved SHMF and             Bryan G. L., Norman M. L., 1998, ApJ, 495, 80
+the ‘a’-scaling of the unevolved SHVF, also yields a univer-        Carlberg R. G., 2009, ApJ, 705L, 223
+sal fitting function for the evolved SHVF. In this case we          Cole S., Lacey C. G., Baugh C. M., Frenk C. S., 2000, MNRAS,
+find that the power-law slope for the evolved SHVF of all              319, 168
+orders is equal to α = −2.6.                                        Cole S., Helly J., Frenk C. S., Parkinson H., 2008, MNRAS, 383,
+                                                                       546
+     The various, universal fitting functions for the subhalo       Conroy C., Wechsler R. H., Kravtsov A. V., 2006, ApJ, 647, 201
+mass and velocity functions presented here, and summarized          Conroy C., Wechsler R. H., Kravtsov A. V., 2007, ApJ, 668, 826
+                                                                    Dalal N., Kochanek C. S., 2002, ApJ, 572, 25
+in Appendix A, can be used to quickly compute the average
+                                                                    De Lucia G., Kauffmann G., Springel V., White S. D. M., Lanzoni
+abundance of subhaloes of given mass or maximum circular
+                                                                       B., Stoehr F., Tormen G., Yoshida N., 2004, MNRAS, 348, 333
+velocity, at any redshift, and for any (reasonable) ΛCDM            Diemand J., Moore B., Stadel J., 2004, MNRAS, 352, 535
+cosmology, without having to run and analyze high resolu-           Diemand J., Kuhlen M., Madau P., 2007, ApJ, 657, 262
+tion numerical simulations. In the second paper in this series      Fakhouri, O., Ma, C.-P., 2008, MNRAS, 386, 577
+(van den Bosch & Jiang 2014), we compare subhalo mass               Gan J., Kang X., van den Bosch F. C., Hou J., 2010, MNRAS,
+and velocity functions obtained from different simulations             408, 2201
+and with different subhalo finders, among each other, and           Gao L., White S. D. M., Jenkins A., Stoehr F., Springel V., 2004,
+with predictions from our semi-analytical model. We demon-             MNRAS, 355, 819
+strate that our model is in excellent agreement with simu-          Genel S., Genzel R., Bouché N., Naab T., Sternberg A., 2009,
+                                                                       ApJ, 701, 2002
+lation results that analyze their data with halo finders that
+                                                                    Ghigna S., Moore B., Governato F., Lake G., Quinn T., Stadel
+use the full 6D phase-space information (e.g., ROCKSTAR), or
+                                                                       J., 1998, MNRAS, 300, 146
+that use temporal information (e.g., SURV). Results obtained        Ghigna S., Moore B., Governato F., Lake G., Quinn T., Stadel
+using subhalo finders that only rely on the densities in con-          J., 2000, ApJ, 544, 616
+figuration space are shown to dramatically underpredict the         Giocoli C., Tormen G., van den Bosch F. C., 2008a, MNRAS,
+abundance of massive subhaloes, by more than an order of               386, 2135 [G08]
+magnitude. In the third paper in this series (Jiang & van           Giocoli C., Pieri L., Tormen G., 2008b, MNRAS, 387, 689
+
+                                                                                                   c 2013 RAS, MNRAS 000, 1–20
+                                                                       Statistics of Dark Matter Substructure I                     19
+
+Giocoli C., Tormen G., Sheth R. K., van den Bosch F. C., 2010,        Somerville R. S., Kolatt T. S., 1999, MNRAS, 305, 1
+    MNRAS, 404, 502                                                   Stoehr F., White S. D. M., Tormen G., Springel V., 2002, MN-
+Giocoli C., Tormen G., Sheth R. K., 2012, MNRAS, 422, 185                 RAS, 335, L84
+    [G12]                                                             Taffoni G., Mayer L., Colpi M., Governato F., 2003, MNRAS,
+Gill S. P. D., Knebe A., Gibson B. K., 2004a, MNRAS, 351, 399             341, 434
+Gill S. P. D., Knebe A., Gibson B. K., Dopita M. A., 2004b,           Taylor J. E., Babul A., 2001, ApJ, 559, 716
+    MNRAS, 351, 410                                                   Taylor J. E., Babul A., 2004, MNRAS, 348, 811
+Guo Q., White S., Boylan-Kolchin M., De Lucia G., Kauffmann           Taylor J. E., Babul A., 2005a, MNRAS, 364, 515
+    G., Lemson G., Li C., Springel V., Weinmann S., 2011, MN-         Taylor J. E., Babul A., 2005b, MNRAS, 364, 535
+    RAS, 413, 101                                                     Tormen G., 1997, MNRAS, 290, 411
+Hayashi E., Navarro J. F., Taylor J. E., Stadel J., Quinn T., 2003,   Tormen G., Diaferio A., Syer D., 1998, MNRAS, 299, 728
+    ApJ, 584, 541                                                     Tormen G., Moscardini L., Yoshida N., 2004, MNRAS, 350, 1397
+Hearin A. P., Zentner A. R., Berlind A. A., Newman J. A., 2013,       Tóth G., Ostriker J. P., 1992, ApJ, 389, 5
+    MNRAS, 433, 659                                                   Vale A., Ostriker J. P., 2004, MNRAS, 353, 189
+Ibata R. A., Lewis G. F., Irwin M. J., Quinn T., 2002, MNRAS,         van den Bosch, F. C., Tormen, G., Giocoli, C., 2005, MNRAS,
+    332, 915                                                              359, 1029 [B05]
+Jiang F., van den Bosch F.C., 2014, MNRAS, in press                   van den Bosch, F. C., Jiang F., 2014, MNRAS, submitted
+    (arXiv:1311.5225) [JB14]                                          von Hoerner S., 1957, ApJ, 125, 451
+Keeton C. R., Moustakas L. A., 2009, ApJ, 699, 1720                   Wang H. Y., Jing Y. P., Mao S., Kang X., 2005, MNRAS, 364,
+Khochfar S., Burkert A., 2006, A&A, 445, 403                              424
+King I., 1962, AJ, 67, 471                                            Weinberg D. H., Colombi S., Davé R., Katz N., 2008, ApJ, 678,
+Knebe A., Knollmann S. R., Muldrew S. I., Pearce F. R., Aragon-           6
+    Calvo M. A., Ascasibar Y., Behroozi P. S., Ceverino D., 2011,     Wetzel A. R., 2011, MNRAS, 412, 49
+    MNRAS, 415, 2293                                                  Wechsler R. H., Bullock J. S., Primack J. R., Kravtsov A. V.,
+Knebe A., Pearce F. R., Lux H., Ascasibar Y., Behroozi P. S.,             Dekel A., 2002, ApJ, 568, 52
+    Casado J., Moran C. C., Diemand J., 2013, MNRAS, 435,             Wu H.-Y., Hahn O., Wechsler R. H., Mao Y.-Y., Behroozi P. S.,
+    1618                                                                  2013a, ApJ, 763, 70
+Klypin A., Gottlöber S., Kravtsov A. V., Khokhlov A. M., 1999,       Wu H.-Y., Hahn O., Wechsler R. H., Behroozi P. S., Mao Y.-Y.,
+    ApJ, 516, 530                                                         2013b, ApJ, 767, 23
+Klypin A., Kravtsov A. V., Valenzuela O., Prada F., 1999, ApJ,        Yang X., Mo H. J., Zhang Y., van den Bosch F. C., 2011, ApJ,
+    522, 82                                                               741, 13
+Klypin A. A., Trujillo-Gomez S., Primack J. R., 2011, ApJ, 740,       Zentner A. R., Bullock J. S., 2003, ApJ, 598, 49
+    102                                                               Zentner A. R., Berlind A. A., Bullock J. S., Kravtsov A. V., Wech-
+Kravtsov A. V., Berlind A. A., Wechsler R. H., Klypin A. A.,              sler R. H., 2005, ApJ, 624, 505
+    Gottlöber S., Allgood B., Primack J. R., 2004, ApJ, 609, 35      Zhao D. H., Jing Y. P., Mo H. J., Börner G., 2009, ApJ, 707, 354
+Li Y., Mo H.J., 2009, preprint (arXiv:0908.0301)
+Ludlow A. D., Navarro J. F., Boylan-Kolchin M., Bett P. E.,
+    Angulo R. E., Li M., White S. D. M., Frenk C. et al. , 2013,
+    MNRAS, 432, 1103                                                  APPENDIX A: UNIVERSAL FITTING
+Macciò A. V., Kang X., Fontanot F., Somerville R. S., Koposov        FUNCTIONS FOR THE SUBHALO MASS AND
+    S., Monaco P., 2010, MNRAS, 402, 1995                             VELOCITY FUNCTIONS
+Metcalf R. B., Madau P., 2001, ApJ, 563, 9
+Mo H., van den Bosch F.C., White S.D.M., 2010, Galaxy Forma-          This appendix describes how to compute an average mass or
+    tion and Evolution, Cambridge University Press                    velocity function (evolved or unevolved) for subhaloes of all
+Moore B., Governato F., Quinn T., Stadel J., Lake G., 1998, ApJ,      orders. We have shown in §4 that the average evolved and
+    499, L5                                                           unevolved subhalo mass and velocity functions of a host halo
+Moore B., Ghigna S., Governato F., Lake G., Quinn T., Stadel          of mass M0 at redshift z0 are well described by the general
+    J., Tozzi P., 1999, ApJ, 524, L19                                 fitting function
+Navarro J. F., Frenk C. S., White S. D. M., 1997, ApJ, 490, 493
+Neto A. F., Gao L., Bett P., Cole S., Navarro J. F., Frenk C. S.,      dN
+                                                                             = γ (aψ)α exp [−β (aψ)ω ] ,                          (A1)
+    White S. D. M., Springel V., et al. , 2007, MNRAS, 381, 1450      d ln ψ
+Oguri, M., Lee, J., 2004, MNRAS, 355, 120
+                                                                      where ψ stands for the corresponding quantity; macc /M0 ,
+Parkinson, H., Cole, S., Helly, J., 2008, MNRAS, 383, 557 [P08]
+Peøñarrubia J., Benson A. J., 2005, MNRAS, 364, 977
+                                                                      m/M0 , Vacc /Vvir,0 , or Vmax /Vvir,0 . For subhaloes of all or-
+Peñarrubia J., Navarro J. F., McConnachie A. W., 2008, ApJ,          ders, the corresponding best-fit values for α, β, γ, ω and a
+    673, 226                                                          are listed in Table A1. As is evident, they are completely
+Peñarrubia J., Benson A. J., Walker M. G., Gilmore G., Mc-           described by the subhalo mass fraction fs and the scale pa-
+    Connachie A. W., Mayer L., 2010, MNRAS, 406, 1290                 rameter a. In what follows we outline the steps required to
+Pieri L., Bertone G., Branchini E., 2008, MNRAS, 384, 1627            compute these two values for a host halo of mass M0 at
+Prada F., Klypin A.A., Cuesta A.J., Betancort-Rijo J.E., Primack      redshift z0 in a given ΛCDM cosmology:
+    J., 2012, MNRAS, 423, 3018
+Purcell C. W., Zentner A. R., 2012, JCAP, 12, 007                        (i) Obtain the redshift zf , by which the main progenitor
+Onions J., Knebe A., Pearce F. R., Muldrew S. I., Lux H., Knoll-      has assembled a fraction f of its final mass M0 at redshift
+    mann S. R., Ascasibar Y., Behroozi P. et al. , 2012, MNRAS,       z0 . In particular, compute zf for f = 0.5, 0.25, and 0.04
+    423, 1200                                                         using the G12 model for formation redshift, by solving for
+Reed D., Governato F., Quinn T., Gardner J., Stadel J., Lake G.,      the root of
+    2005, MNRAS, 359, 1537                                                                        p
+Riebe K., et al., 2013, Astron. Nachrichten, 334, 691                 δc (zf ) = δc (z0 ) + w̃f   σ 2 (f M0 ) − σ 2 (M0 ),        (A2)
+
+c 2013 RAS, MNRAS 000, 1–20
+20     Jiang & van den Bosch
+
+Table A1. Parameters for universal SHMF and SHVF.
+
+ ψ                     γ          α      β     ω       a
+ (1)                  (2)        (3)    (4)   (5)     (6)
+
+ macc /M0             0.22      -0.91    6    3        1
+ m/M0                0.31fs     -0.82   50    4        1
+ Vacc /Vvir,0         2.05       -3.2   2.2   13    Eq.(A3)
+ Vmax /Vvir,0       5.45fs1.4    -2.6    4    15    Eq.(A3)
+
+
+                p                                     3
+where w̃f = 2 ln(αf + 1) and αf = 0.815e−2f /f 0.707 .
+  (ii) Compute the ‘dynamical age’, Nτ , of the host halo
+using Eq. (24) with zform = z0.5 . Use this to infer the subhalo
+mass fraction, fs , from Eq.(26).
+  (iii) Compute the scale parameter, a, given by
+             Vvir (M0 /40, z0 )
+a = 1.536                         ,                           (A3)
+            Vmax (M0 /40, z0.25 )
+with Vvir and Vmax given by Eqs. (17) and (16), respectively,
+and with z0.25 obtained in step (i). Note that the computa-
+tion of Vmax requires the halo concentration parameter, c,
+which can be computed from the z0.04 obtained under step
+(i) using the concentration-mass-redshift relation of Zhao et
+al. (2009), given by Eq. (18).
+      Although we believe this ‘recipe’ to be reliable for host
+haloes that cover a wide range in halo masses and redshifts,
+and for a wide range of cosmologies, we caution that we
+have only been able to test it against numerical simulations
+over the mass range 1011 h−1 M⊙ ∼   < M < 1015 h−1 M at rel-
+                                         0 ∼           ⊙
+atively low redshifts, and for a range of cosmologies that are
+all similar to the best-fit cosmologies advocated by the recent
+CMB experiments (see Paper II for details). We therefore
+caution against using this method blindly for cosmologies
+and/or halo masses that are very different from those men-
+tioned above. Finally, we mention that the fitting function
+for the unevolved SHMF described by the parameters in Ta-
+ble A1 is less accurate than that presented in JB14. Hence,
+if accuracy is a concern, we recommend the latter over the
+one presented here.
+
+
+
+
+                                                                     c 2013 RAS, MNRAS 000, 1–20
+

@@ -1,11 +1,15 @@
 #include <complex>
+#include <array>
 #include <vector>
+#include <set>
+#include <map>
 #include <random>
 #include <ctime>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <filesystem>
+#include <functional>
 #include <gsl/gsl_sf_expint.h>
 
 
@@ -15,6 +19,8 @@ namespace fs = filesystem;
 typedef mt19937_64 rgen;
 
 const double PI = 3.141592653589793238463;
+// Speed of light in internal units (kpc/Gyr); gives c/H(z) = CLIGHT/Hz(z) kpc comoving.
+const double CLIGHT = 306.535;
 
 string to_string_prec(const double a, const int n);
 bool fileExists(const string& filename);
@@ -22,8 +28,14 @@ bool fileExists(const string& filename);
 vector<double> linlist(double xmin, double xmax, int Nx);
 vector<double> loglist(double xmin, double xmax, int Nx);
 
-double randomreal(double x1, double x2, rgen &mt);
-double randomreal(double x1, double x2);
+inline double randomreal(double x1, double x2, rgen &mt) {
+    double r01 = (double)mt() * (1.0 / (double)mt.max());
+    return (x1 + (x2-x1)*r01);
+}
+inline double randomreal(double x1, double x2) {
+    double r01 = (double)rand() * (1.0 / (double)RAND_MAX);
+    return (x1 + (x2-x1)*r01);
+}
 
 double NPDF(double x, double mu, double sigma);
 double logNPDF(double x, double mu, double sigma);
@@ -55,3 +67,6 @@ void writeToFile(vector<double> &x, vector<double> &y, vector<double> &z, vector
 vector<double> readdata(fs::path filename);
 vector<vector<double> > readdata(fs::path filename, int N);
 vector<vector<double> > readdataCSV(fs::path filename);
+
+vector<vector<double> > MCMC_sampling(int N, int Nburnin, function<double(vector<double>&)> logpdf, vector<double> &initial, vector<double> &steps, vector<vector<double> > &priors, function<double(vector<double>&)> cut, rgen &mt, int print, int printL, fs::path filename);
+

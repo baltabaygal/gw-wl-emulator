@@ -1,0 +1,33 @@
+font.family: serif
+font.serif: Computer Modern Roman, Times New Roman, DejaVu Serif
+font.size: 10
+mathtext.fontset: cm
+text.usetex: False
+
+axes.titlesize: 11
+axes.labelsize: 10
+axes.linewidth: 0.8
+
+xtick.direction: in
+ytick.direction: in
+xtick.top: True
+ytick.right: True
+xtick.minor.visible: True
+ytick.minor.visible: True
+xtick.labelsize: 9
+ytick.labelsize: 9
+
+legend.frameon: False
+legend.fontsize: 9
+
+lines.linewidth: 1.5
+lines.markersize: 4
+
+figure.dpi: 300
+savefig.dpi: 300
+savefig.bbox: standard
+savefig.pad_inches: 0.0
+savefig.format: pdf
+
+pdf.fonttype: 42
+ps.fonttype: 42

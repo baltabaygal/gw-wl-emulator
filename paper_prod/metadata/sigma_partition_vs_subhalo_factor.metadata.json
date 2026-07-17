@@ -1,0 +1,9 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_partition_vs_subhalo_factor.py",
+  "generated": "2026-07-09T14:21:14.089860Z",
+  "git_commit": "211a370",
+  "source_data": "data/sigma_partition_vs_subhalo_factor_z1.npz",
+  "notes": "Per-host substructure variance partition for the fiducial host M=1e13, z_l=0.5, z_s=1, kappa_thr=1e-3 (flat production default), m_floor=1e7. Exact Campbell integrals over the encounter ensemble (area-weighted y in [0.05 kpc, rmax]); strong = resolved clump shot noise, weak = model-3 unresolved Gaussian sigma; quadrature-exact partition (Poisson restriction theorem), machinery validated in playground/analytic/wsub_partition_proof.py + wsub_mc_partition.py and against C++ subhalo_model=3.",
+  "output_png": "paper_prod/plots/figures/sigma_partition_vs_subhalo_factor.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_subhalo_factor.pdf"
+}

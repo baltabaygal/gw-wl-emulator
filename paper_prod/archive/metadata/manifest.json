@@ -1,0 +1,110 @@
+{
+  "generated": "2026-07-07T09:22:58.716401Z",
+  "items": [
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+      "size": 190573,
+      "modified": "2026-07-07T12:21:31.020653",
+      "metadata": {
+        "source": "plots/sigma_k_vs_kappa_threshold_measured.png",
+        "copied_to": "paper_prod/plots/figures/sigma_k_vs_kappa_threshold_measured.png",
+        "copied_at": "2026-07-07T09:21:31.022319Z",
+        "git_commit": "bf16cad"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.pdf",
+      "size": 333736,
+      "modified": "2026-07-07T12:19:24.834658",
+      "metadata": {
+        "source": "plots/sigma_k_vs_subhalo_factor_paired.png",
+        "copied_to": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+        "copied_at": "2026-07-07T09:21:31.033539Z",
+        "git_commit": "bf16cad"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+      "size": 291789,
+      "modified": "2026-07-07T12:21:31.033352",
+      "metadata": {
+        "source": "plots/sigma_k_vs_subhalo_factor_paired.png",
+        "copied_to": "paper_prod/plots/figures/sigma_k_vs_subhalo_factor_paired.png",
+        "copied_at": "2026-07-07T09:21:31.033539Z",
+        "git_commit": "bf16cad"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper.pdf",
+      "size": 49348,
+      "modified": "2026-07-07T12:04:04.534168",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper.png",
+      "size": 112231,
+      "modified": "2026-07-07T12:04:04.749026",
+      "metadata": null
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+      "size": 22650,
+      "modified": "2026-07-07T12:21:13.208171",
+      "metadata": {
+        "script": "scripts/plot_subhalo_factor_paper.py",
+        "command": "/Users/baltabay/miniforge3/envs/test/bin/python /Users/baltabay/Desktop/gw-wl-emulator/scripts/plot_subhalo_factor_paper.py",
+        "generated": "2026-07-07T09:21:13.210321Z",
+        "git_commit": "bf16cad",
+        "outputs": [
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png"
+        ]
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png",
+      "size": 53653,
+      "modified": "2026-07-07T12:21:13.208543",
+      "metadata": {
+        "script": "scripts/plot_subhalo_factor_paper.py",
+        "command": "/Users/baltabay/miniforge3/envs/test/bin/python /Users/baltabay/Desktop/gw-wl-emulator/scripts/plot_subhalo_factor_paper.py",
+        "generated": "2026-07-07T09:21:13.210321Z",
+        "git_commit": "bf16cad",
+        "outputs": [
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+          "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png"
+        ]
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf",
+      "size": 17596,
+      "modified": "2026-07-07T12:21:03.112892",
+      "metadata": {
+        "script": "scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "/Users/baltabay/miniforge3/envs/test/bin/python /Users/baltabay/Desktop/gw-wl-emulator/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 20000 --seed 240706",
+        "generated": "2026-07-07T09:21:03.305381Z",
+        "git_commit": "bf16cad",
+        "seed": 240706,
+        "nreal": 20000,
+        "output_png": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png",
+        "output_pdf": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf"
+      }
+    },
+    {
+      "file": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png",
+      "size": 204874,
+      "modified": "2026-07-07T12:21:02.898909",
+      "metadata": {
+        "script": "scripts/plot_vaskonen_fig3_linlin_subhalos.py",
+        "command": "/Users/baltabay/miniforge3/envs/test/bin/python /Users/baltabay/Desktop/gw-wl-emulator/scripts/plot_vaskonen_fig3_linlin_subhalos.py --output /Users/baltabay/Desktop/gw-wl-emulator/paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png --nreal 20000 --seed 240706",
+        "generated": "2026-07-07T09:21:03.305381Z",
+        "git_commit": "bf16cad",
+        "seed": 240706,
+        "nreal": 20000,
+        "output_png": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.png",
+        "output_pdf": "paper_prod/plots/figures/vaskonen_fig3_linlin_subhal_submitted.pdf"
+      }
+    }
+  ]
+}

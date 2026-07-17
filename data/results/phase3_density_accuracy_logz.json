@@ -1,0 +1,185 @@
+{
+  "nsim": 200000,
+  "rows": [
+    {
+      "point": "truth",
+      "theta": [
+        0.67,
+        0.3,
+        0.85
+      ],
+      "z": 0.5,
+      "tv": 0.05131,
+      "kl_sim_nsf": 0.0099,
+      "mean_logdens_resid": -1.8402
+    },
+    {
+      "point": "truth",
+      "theta": [
+        0.67,
+        0.3,
+        0.85
+      ],
+      "z": 1.5,
+      "tv": 0.01947,
+      "kl_sim_nsf": 0.00593,
+      "mean_logdens_resid": -1.5363
+    },
+    {
+      "point": "truth",
+      "theta": [
+        0.67,
+        0.3,
+        0.85
+      ],
+      "z": 2.5,
+      "tv": 0.02259,
+      "kl_sim_nsf": 0.02024,
+      "mean_logdens_resid": -1.8988
+    },
+    {
+      "point": "sim_smoke_map",
+      "theta": [
+        0.67,
+        0.335,
+        0.747
+      ],
+      "z": 0.5,
+      "tv": 0.03961,
+      "kl_sim_nsf": 0.0038,
+      "mean_logdens_resid": -0.745
+    },
+    {
+      "point": "sim_smoke_map",
+      "theta": [
+        0.67,
+        0.335,
+        0.747
+      ],
+      "z": 1.5,
+      "tv": 0.01616,
+      "kl_sim_nsf": 0.00384,
+      "mean_logdens_resid": -1.8701
+    },
+    {
+      "point": "sim_smoke_map",
+      "theta": [
+        0.67,
+        0.335,
+        0.747
+      ],
+      "z": 2.5,
+      "tv": 0.01462,
+      "kl_sim_nsf": 0.01303,
+      "mean_logdens_resid": -1.8789
+    },
+    {
+      "point": "nsf_corner",
+      "theta": [
+        0.67,
+        0.2,
+        1.05
+      ],
+      "z": 0.5,
+      "tv": 0.05849,
+      "kl_sim_nsf": 0.01406,
+      "mean_logdens_resid": -0.6866
+    },
+    {
+      "point": "nsf_corner",
+      "theta": [
+        0.67,
+        0.2,
+        1.05
+      ],
+      "z": 1.5,
+      "tv": 0.01989,
+      "kl_sim_nsf": 0.00619,
+      "mean_logdens_resid": -1.8799
+    },
+    {
+      "point": "nsf_corner",
+      "theta": [
+        0.67,
+        0.2,
+        1.05
+      ],
+      "z": 2.5,
+      "tv": 0.0223,
+      "kl_sim_nsf": 0.01762,
+      "mean_logdens_resid": -1.8844
+    },
+    {
+      "point": "mid_grid",
+      "theta": [
+        0.67,
+        0.27,
+        0.92
+      ],
+      "z": 0.5,
+      "tv": 0.09499,
+      "kl_sim_nsf": 0.06052,
+      "mean_logdens_resid": -1.9781
+    },
+    {
+      "point": "mid_grid",
+      "theta": [
+        0.67,
+        0.27,
+        0.92
+      ],
+      "z": 1.5,
+      "tv": 0.02693,
+      "kl_sim_nsf": 0.00775,
+      "mean_logdens_resid": -1.9244
+    },
+    {
+      "point": "mid_grid",
+      "theta": [
+        0.67,
+        0.27,
+        0.92
+      ],
+      "z": 2.5,
+      "tv": 0.01749,
+      "kl_sim_nsf": 0.02018,
+      "mean_logdens_resid": -1.9127
+    },
+    {
+      "point": "high_OmegaM",
+      "theta": [
+        0.67,
+        0.4,
+        0.65
+      ],
+      "z": 0.5,
+      "tv": 0.02818,
+      "kl_sim_nsf": 0.00319,
+      "mean_logdens_resid": -0.2645
+    },
+    {
+      "point": "high_OmegaM",
+      "theta": [
+        0.67,
+        0.4,
+        0.65
+      ],
+      "z": 1.5,
+      "tv": 0.02696,
+      "kl_sim_nsf": 0.00529,
+      "mean_logdens_resid": -1.8967
+    },
+    {
+      "point": "high_OmegaM",
+      "theta": [
+        0.67,
+        0.4,
+        0.65
+      ],
+      "z": 2.5,
+      "tv": 0.02137,
+      "kl_sim_nsf": 0.01155,
+      "mean_logdens_resid": -1.8596
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "script": "paper_prod/scripts/plot_subhalo_factor_paper.py",
+  "generated": "2026-07-08T08:37:04.974841Z",
+  "git_commit": "bf16cad",
+  "outputs": [
+    "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.pdf",
+    "paper_prod/plots/figures/subhalo_factor_convergence_paper_b.png"
+  ]
+}

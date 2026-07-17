@@ -1,0 +1,87 @@
+{
+  "configuration": {
+    "nsim_per_z": 1000,
+    "resolution": 12,
+    "source_catalog": "data/mock_catalogs/phase3/mixed_uniform_central_N1000_seed610001_57cb44ad1ef0f9d4.npz"
+  },
+  "full_mixed_smoke": {
+    "credible_region_overlap": {
+      "credible_region_68": 0.0,
+      "credible_region_95": 0.16666666666666666
+    },
+    "mle_offset": {
+      "OmegaM": -0.10909090909090907,
+      "sigma8": 0.2909090909090909
+    },
+    "normalized_posterior_shift": {
+      "OmegaM": 8.0271621250568,
+      "sigma8": 7.7876058081502615
+    },
+    "posterior_jsd": 0.607844794876327,
+    "total_variation": 0.947312481827653
+  },
+  "objective": "redshift_slice_decomposition",
+  "phase": "3B",
+  "slices": {
+    "high_z": {
+      "catalog": "data/mock_catalogs/phase3b_redshift_slices/mixed_slice_z2.5_N333_3d5f67fd1878176f.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.05555555555555555,
+        "credible_region_95": 0.05405405405405406
+      },
+      "grid": "data/results/phase3b_redshift_slice_grids/combined_2d_mixed_slice_z2.5_N333_3d5f67fd1878176f_3e76344eac74.npz",
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.1454545454545454
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 4.2841461199853885,
+        "sigma8": 4.503246003288483
+      },
+      "plot": "plots/figures/phase3b_redshift_slice/high_z_contours.png",
+      "posterior_jsd": 0.583010017881587,
+      "total_variation": 0.941185574673968,
+      "z": 2.5
+    },
+    "low_z": {
+      "catalog": "data/mock_catalogs/phase3b_redshift_slices/mixed_slice_z0.5_N327_1e7fecaaef18d0e7.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.058823529411764705
+      },
+      "grid": "data/results/phase3b_redshift_slice_grids/combined_2d_mixed_slice_z0.5_N327_1e7fecaaef18d0e7_fdf86348ab29.npz",
+      "mle_offset": {
+        "OmegaM": -0.12727272727272726,
+        "sigma8": 0.21818181818181814
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 380.2195773553904,
+        "sigma8": 27.07918024884586
+      },
+      "plot": "plots/figures/phase3b_redshift_slice/low_z_contours.png",
+      "posterior_jsd": 0.6452270800755636,
+      "total_variation": 0.9806634632941063,
+      "z": 0.5
+    },
+    "mid_z": {
+      "catalog": "data/mock_catalogs/phase3b_redshift_slices/mixed_slice_z1.5_N340_f5724bc6c9f7bd27.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "grid": "data/results/phase3b_redshift_slice_grids/combined_2d_mixed_slice_z1.5_N340_f5724bc6c9f7bd27_a120bb80dabe.npz",
+      "mle_offset": {
+        "OmegaM": 0.018181818181818188,
+        "sigma8": -0.10909090909090902
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 103.99985404038074,
+        "sigma8": 12.263307079520294
+      },
+      "plot": "plots/figures/phase3b_redshift_slice/mid_z_contours.png",
+      "posterior_jsd": 0.687677503094396,
+      "total_variation": 0.9985527256350895,
+      "z": 1.5
+    }
+  }
+}

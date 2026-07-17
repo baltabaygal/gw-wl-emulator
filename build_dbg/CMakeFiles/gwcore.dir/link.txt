@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgwcore.a CMakeFiles/gwcore.dir/basics.cpp.o CMakeFiles/gwcore.dir/cosmology.cpp.o CMakeFiles/gwcore.dir/lensing.cpp.o CMakeFiles/gwcore.dir/lnmu_wrapper.cpp.o CMakeFiles/gwcore.dir/subhalo.cpp.o
+/usr/bin/ranlib libgwcore.a

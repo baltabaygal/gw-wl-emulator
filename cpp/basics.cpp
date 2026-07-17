@@ -48,15 +48,7 @@ vector<double> loglist(double xmin, double xmax, int Nx) {
     }
 }
 
-// random real number in the range (x_1,x_2)
-double randomreal(double x1, double x2, rgen &mt) {
-    long double r01 = mt()/(1.0*mt.max());
-    return (x1 + (x2-x1)*r01);
-}
-double randomreal(double x1, double x2) {
-    long double r01 = rand()/(1.0*RAND_MAX);
-    return (x1 + (x2-x1)*r01);
-}
+// randomreal is inlined in basics.h
 
 // normal distribution
 double NPDF(double x, double mu, double sigma) {
@@ -483,8 +475,10 @@ vector<vector<double> > readdataCSV(fs::path filename) {
     double A;
     
     ifstream infile;
-    infile.open(filename);
+    infile.open(filename); // skip the first row (column names)
     if (infile) {
+        getline(infile, line);
+
         while (getline(infile, line)) {
             stringstream ss(line);
             string token;
@@ -500,4 +494,116 @@ vector<vector<double> > readdataCSV(fs::path filename) {
     }
     infile.close();
     return data;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------------------------------------- */
+/*                                                           MCMC sampler                                                                         */
+/* ---------------------------------------------------------------------------------------------------------------------------------------------- */
+
+// flat priors
+double prior(double x, vector<double> &bounds) {
+    double lower = bounds[0], upper = bounds[1];
+    if (lower == upper) {
+        return 1.0;
+    }
+    if (x < lower || x > upper) {
+        return 0.0;
+    }
+    return 1.0/(upper-lower);
+}
+
+// sample N values from a PDF using Metropolis-Hastings MCMC sampler
+vector<vector<double> > MCMC_sampling(int N, int Nburnin, function<double(vector<double>&)> logpdf, vector<double> &initial, vector<double> &steps, vector<vector<double> > &priors, function<double(vector<double>&)> cut, rgen &mt, int print, int printL, fs::path filename) {
+    
+    ofstream outfile;
+    if (print > 0) {
+        outfile.open(filename);
+    }
+    
+    vector<vector<double> > samples(N);
+    int Npar = initial.size();
+    
+    // create normal distributions for each parameter based on its proposal width
+    vector<normal_distribution<>> proposal_distributions;
+    for (double step : steps) {
+        proposal_distributions.push_back(normal_distribution<>(0.0, step));
+    }
+    
+    vector<double> current = initial;
+    double logpcurrent = logpdf(current);
+    
+    vector<double> prop;
+    double logpprop, priorratio, paccept;
+    int nnew = 0;
+    for (int j = -Nburnin; j < N;) {
+        
+        // propose new point
+        prop = current;
+        for (int i = 0; i < Npar; i++) {
+            prop[i] += proposal_distributions[i](mt);
+        }
+        
+        // compute prior ratio
+        priorratio = 1.0;
+        for (int i = 0; i < Npar; i++) {
+            priorratio *= prior(prop[i], priors[i])/prior(current[i], priors[i]);
+        }
+        
+        // apply the cut
+        if (priorratio > 0.0) {
+            priorratio = cut(prop);
+        }
+        
+        if (priorratio > 0.0) {
+            logpprop = logpdf(prop);
+            paccept = randomreal(0.0,1.0,mt);
+            
+            // accept or reject the proposed sample
+            if (log(paccept) < logpprop - logpcurrent - log(priorratio)) {
+                current = prop;
+                logpcurrent = logpprop;
+                if (j >= 0) {
+                    nnew++;
+                }
+            }
+            
+            // after burn-in, add the element to the chain
+            if (j >= 0) {
+                if (print > 0) {
+                    for (int jp = 0; jp < Npar; jp++) {
+                        outfile << current[jp] << "   ";
+                    }
+                    if (printL > 0) {
+                        outfile << logpcurrent;
+                    }
+                    outfile << endl;
+                }
+                samples[j] = current;
+                if (printL > 0) {
+                    samples[j].push_back(logpcurrent);
+                }
+            }
+            j++;
+        }
+        
+        if (print > 0) {
+            cout << j << "   " << nnew << "   " << logpcurrent << "   " << "\r" << flush;
+        }
+        
+        // for debugging
+        if (isnan(logpcurrent)) {
+            for (int i = 0; i < Npar; i++) {
+                cout << current[i] << "   ";
+            }
+            cout << endl;
+        }
+    }
+    
+    if (print > 0) {
+        outfile.close();
+        cout << "acceptance ratio = " << nnew/(1.0*N) << endl;
+    }
+    
+    return samples;
 }

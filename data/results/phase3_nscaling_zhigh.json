@@ -1,0 +1,24 @@
+{
+  "ln2": 0.6931471805599453,
+  "nsim": 10000,
+  "seeds": [
+    100,
+    777
+  ],
+  "rows": [
+    {
+      "N": 1000,
+      "jsd_sim_vs_sim": 0.483522,
+      "tv_sim_vs_sim": 0.822872,
+      "jsd_nsf_vs_sim": 0.453204,
+      "tv_nsf_vs_sim": 0.756702
+    },
+    {
+      "N": 5000,
+      "jsd_sim_vs_sim": 0.693147,
+      "tv_sim_vs_sim": 1.0,
+      "jsd_nsf_vs_sim": 0.680693,
+      "tv_nsf_vs_sim": 0.996213
+    }
+  ]
+}

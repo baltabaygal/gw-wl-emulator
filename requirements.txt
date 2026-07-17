@@ -1,0 +1,9 @@
+numpy
+matplotlib
+h5py
+pytest
+pyDOE3
+psutil
+jupyter
+notebook
+ipykernel

@@ -1,0 +1,187 @@
+{
+  "train": {
+    "num_points": 544,
+    "nsamples_per_point": 10000,
+    "total_valid": 4555180,
+    "total_nan": 884820,
+    "valid_fraction": 0.8373492647058823,
+    "coverage": {
+      "z": [
+        0.05617473861843006,
+        9.978635201855948
+      ],
+      "h": [
+        0.5917951837885443,
+        0.7598741887622424
+      ],
+      "OmegaM": [
+        0.2007566288919623,
+        0.3999264658221096
+      ],
+      "sigma8": [
+        0.6504206054944752,
+        1.0494657623658366
+      ]
+    },
+    "metadata": {
+      "Nhalos": 100,
+      "bias": true,
+      "config_hash": "00dd0d2ac8a7d1ce658eff61a3a0e8eb",
+      "dataset_schema_version": "1.1",
+      "dataset_version": "1.1",
+      "ell": true,
+      "filaments": true,
+      "generation_timestamp": "2026-06-15 11:17:56",
+      "git_branch": "phase_1-4665179221458693490",
+      "git_commit": "cf5b73ee43b23f525be7ebead75a7493d3250a48",
+      "nsamples_per_point": 10000,
+      "seed": 1123,
+      "split": "train"
+    },
+    "parameter_ranges": {
+      "OmegaM": [
+        0.15,
+        0.45
+      ],
+      "h": [
+        0.59,
+        0.76
+      ],
+      "sigma8": [
+        0.4,
+        1.4
+      ],
+      "z": [
+        0.01,
+        10.0
+      ]
+    },
+    "type_counts": {
+      "train": 544
+    }
+  },
+  "validation": {
+    "num_points": 457,
+    "nsamples_per_point": 10000,
+    "total_valid": 3669229,
+    "total_nan": 900771,
+    "valid_fraction": 0.8028947483588621,
+    "coverage": {
+      "z": [
+        0.029642063902106705,
+        9.991874949786
+      ],
+      "h": [
+        0.5901625302678342,
+        0.7596895043055428
+      ],
+      "OmegaM": [
+        0.150451117118757,
+        0.4498533286353281
+      ],
+      "sigma8": [
+        0.4004808362495068,
+        1.396839486725567
+      ]
+    },
+    "metadata": {
+      "Nhalos": 100,
+      "bias": true,
+      "config_hash": "15b008a8093bbd9995e69bdd14c819cd",
+      "dataset_schema_version": "1.1",
+      "dataset_version": "1.1",
+      "ell": true,
+      "filaments": true,
+      "generation_timestamp": "2026-06-15 11:22:31",
+      "git_branch": "phase_1-4665179221458693490",
+      "git_commit": "cf5b73ee43b23f525be7ebead75a7493d3250a48",
+      "nsamples_per_point": 10000,
+      "seed": 2123,
+      "split": "validation"
+    },
+    "parameter_ranges": {
+      "OmegaM": [
+        0.15,
+        0.45
+      ],
+      "h": [
+        0.59,
+        0.76
+      ],
+      "sigma8": [
+        0.4,
+        1.4
+      ],
+      "z": [
+        0.01,
+        10.0
+      ]
+    },
+    "type_counts": {
+      "interpolation": 263,
+      "ood": 194
+    }
+  },
+  "test": {
+    "num_points": 458,
+    "nsamples_per_point": 10000,
+    "total_valid": 3806204,
+    "total_nan": 773796,
+    "valid_fraction": 0.8310489082969432,
+    "coverage": {
+      "z": [
+        0.02394285478993676,
+        9.908178360157292
+      ],
+      "h": [
+        0.590028999954188,
+        0.7594236239099281
+      ],
+      "OmegaM": [
+        0.15066495955730536,
+        0.4490755383967292
+      ],
+      "sigma8": [
+        0.40604478168937197,
+        1.3992719472599866
+      ]
+    },
+    "metadata": {
+      "Nhalos": 100,
+      "bias": true,
+      "config_hash": "07d52187915c7a7c581d879db9281e30",
+      "dataset_schema_version": "1.1",
+      "dataset_version": "1.1",
+      "ell": true,
+      "filaments": true,
+      "generation_timestamp": "2026-06-15 11:27:04",
+      "git_branch": "phase_1-4665179221458693490",
+      "git_commit": "cf5b73ee43b23f525be7ebead75a7493d3250a48",
+      "nsamples_per_point": 10000,
+      "seed": 3123,
+      "split": "test"
+    },
+    "parameter_ranges": {
+      "OmegaM": [
+        0.15,
+        0.45
+      ],
+      "h": [
+        0.59,
+        0.76
+      ],
+      "sigma8": [
+        0.4,
+        1.4
+      ],
+      "z": [
+        0.01,
+        10.0
+      ]
+    },
+    "type_counts": {
+      "interpolation": 264,
+      "ood": 194
+    }
+  }
+}

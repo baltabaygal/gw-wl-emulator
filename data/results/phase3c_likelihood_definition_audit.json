@@ -1,0 +1,39 @@
+{
+  "phase": "3C",
+  "audit_version": "1.0",
+  "timestamp": "2026-06-16T09:55:00Z",
+  "verdict": "COMPATIBILITY_REQUIRED",
+  "matrix": {
+    "event_level_formula": {
+      "simulator": "Histogram bin probability mass: P_i = N_bin / N_total",
+      "nsf_continuous": "Continuous probability density: p(x_i | z_i, theta)",
+      "nsf_simulator_compatible": "Integrated flow probability: P_i = integral_bin p(x | z_i, theta) dx",
+      "critical": true,
+      "impact": "Introduces theta-dependent scale differences as the PDF shape shifts."
+    },
+    "support_truncation": {
+      "simulator": "Clamped to [-1.0, 1.0]",
+      "nsf_continuous": "Infinite support (-inf, inf)",
+      "nsf_simulator_compatible": "Clamped to [-1.0, 1.0]",
+      "critical": true,
+      "impact": "Far-tail events can have arbitrarily low density, biasing posteriors."
+    },
+    "support_floor": {
+      "simulator": "1e-12",
+      "nsf_continuous": "None (unfloored)",
+      "nsf_simulator_compatible": "1e-12",
+      "critical": true,
+      "impact": "Zero-probability events dominate log-likelihood sum without a floor."
+    },
+    "redshift_handling": {
+      "simulator": "round(z, 2)",
+      "nsf_continuous": "Exact float z",
+      "nsf_simulator_compatible": "round(z, 2)",
+      "critical": false,
+      "impact": "Minor differences in catalog membership grouping."
+    }
+  },
+  "conclusions": {
+    "action_required": "Option A (Simulator Compatible Likelihood Mode) must be implemented for NSF to align support truncation, bin integration, and zero-probability floors."
+  }
+}

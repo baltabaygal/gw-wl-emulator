@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /work
 COPY . /work
 
-RUN pip install --no-cache-dir numpy matplotlib scipy pybind11
+RUN pip install --no-cache-dir -r requirements.txt pybind11 scipy
 
 # Build explicitly with pybind11_DIR set
 RUN chmod +x /work/scripts/build.sh && \

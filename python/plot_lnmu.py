@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Load samples
-x = np.loadtxt("../wrapper_test.txt")
+x = np.loadtxt("../data/raw/wrapper_test.txt")
 
 print("N =", len(x))
 print("mean(lnmu) =", np.mean(x))

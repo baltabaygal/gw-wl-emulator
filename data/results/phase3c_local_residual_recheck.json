@@ -1,0 +1,41 @@
+{
+  "nsim_per_z": 1000,
+  "theta_points": {
+    "truth": {
+      "theta": [
+        0.67,
+        0.3,
+        0.85
+      ],
+      "sim_histogram_sum": -3819.679972264282,
+      "nsf_continuous_sum": 1282.898681640625,
+      "nsf_compatible_sum": -3807.521240234375,
+      "residual_continuous_minus_sim": 5102.578653904907,
+      "residual_compatible_minus_sim": 12.158732029906787
+    },
+    "sim_smoke_map": {
+      "theta": [
+        0.67,
+        0.3272727273,
+        0.7590909091
+      ],
+      "sim_histogram_sum": -3894.5089260859404,
+      "nsf_continuous_sum": 1254.2449951171875,
+      "nsf_compatible_sum": -3838.91552734375,
+      "residual_continuous_minus_sim": 5148.753921203128,
+      "residual_compatible_minus_sim": 55.5933987421904
+    },
+    "nsf_smoke_map": {
+      "theta": [
+        0.67,
+        0.2,
+        1.05
+      ],
+      "sim_histogram_sum": -4141.003243964705,
+      "nsf_continuous_sum": 1351.1839599609375,
+      "nsf_compatible_sum": -3734.33251953125,
+      "residual_continuous_minus_sim": 5492.187203925642,
+      "residual_compatible_minus_sim": 406.6707244334548
+    }
+  }
+}

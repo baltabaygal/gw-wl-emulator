@@ -1,0 +1,13 @@
+{
+  "subhalo": true,
+  "zs": 1,
+  "Nreal": 1000,
+  "total_seconds": 93.056312083,
+  "subhalo_precompute_seconds": 0.474758916,
+  "smooth_host_seconds_measured": 0.006364522,
+  "subhalo_seconds_measured": 92.303854682,
+  "host_events": 99271,
+  "subhalo_calls": 99271,
+  "subhalo_clumps": 1335693783,
+  "mean_clumps_per_subhalo_call": 13455.024962
+}

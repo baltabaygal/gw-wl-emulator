@@ -1,0 +1,14 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_partition_vs_N_bias.py",
+  "generated": "2026-07-17T08:24:14.936129Z",
+  "git_commit": "a556fe3",
+  "source_data": "data/sigma_partition_vs_kthr_bias_z1.npz",
+  "estimator": "clip1",
+  "plateau_sigma": 0.031347166951999454,
+  "flatness_relrange_sigma_total_core": 0.020540573206578462,
+  "xmin_nexp": 0.0001,
+  "nexp_at_kappa_min": 110047.7063146317,
+  "notes": "Same data and estimator as sigma_partition_vs_kthr_bias (see its metadata); x-axis changed to <N> = NhfNFW(zs=1, kappa_thr) from playground/compute_nexp_vs_kthr.py (<N>=100 at the production threshold; <N> ~ 0.013/kappa_thr in the low-threshold regime). Points with <N> < 0.0001 dropped (kappa_thr >~ 0.5: <N> collapses super-exponentially, weak arm already at plateau), and the plot ends at the model domain boundary <N>(kappa_min) ~ 1.1e+05 \u2014 beyond it (kappa_thr < kappa_min) the weak arm is empty and the explicit arm re-includes the sub-floor band no arm ever covered, so the total genuinely grows (sub-floor points kept in the npz).",
+  "output_png": "paper_prod/plots/figures/sigma_partition_vs_N_bias.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_N_bias.pdf"
+}

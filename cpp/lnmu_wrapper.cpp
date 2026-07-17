@@ -48,6 +48,8 @@ LnmuStats compute_lnmu_stats_fast(
     C.OmegaM = cp.OmegaM;
     C.sigma8 = cp.sigma8;
     C.h      = cp.h;
+    C.As     = cp.As;
+    C.kpivot = cp.kpivot;
 
     C.OmegaB = cp.OmegaB;
     C.zeq    = cp.zeq;
@@ -77,15 +79,46 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.bias   = sp.bias;
     cfg.ell    = sp.ell;
     cfg.write  = 0;
+    cfg.strict_weak_lensing = sp.strict_weak_lensing;
+    cfg.subhalo = sp.subhalo;
+    cfg.m_floor = sp.m_floor;
+    cfg.subhalo_threads = sp.subhalo_threads;
+    cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
+    cfg.subhalo_model = sp.subhalo_model;
+    cfg.subhalo_brute = sp.subhalo_brute;
+    cfg.subhalo_factor = sp.subhalo_factor;
+    cfg.kappathr_flat = sp.kappathr_flat;
+    cfg.kappa_anchor = sp.kappa_anchor;
+    cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
+    cfg.kappa_anchor_value = sp.kappa_anchor_value;
+    cfg.bias_model = sp.bias_model;
+    cfg.bias_Rperp = sp.bias_Rperp;
+    cfg.bias_weak = sp.bias_weak;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
     auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
 
-    // Compute meankappa
+    // Compute meankappa (same anchor options as lensing::sample_lnmu)
     double meankappa = 0.0;
-    for (auto &r : raw)
-        meankappa += r.kappa;
-    meankappa /= raw.size();
+    if (sp.kappa_anchor == 2) {
+        meankappa = sp.kappa_anchor_value;
+    } else if (sp.kappa_anchor == 1) {
+        double sum = 0.0;
+        size_t nk = 0;
+        for (auto &r : raw) {
+            if (r.kappa <= sp.kappa_anchor_cut) { sum += r.kappa; nk++; }
+        }
+        if (nk > 0) {
+            meankappa = sum / nk;
+        } else {
+            for (auto &r : raw) meankappa += r.kappa;
+            meankappa /= raw.size();
+        }
+    } else {
+        for (auto &r : raw)
+            meankappa += r.kappa;
+        meankappa /= raw.size();
+    }
 
     // First pass: compute lnmu values and mean
     std::vector<double> lnmu_values;
@@ -195,12 +228,22 @@ std::vector<double> sample_lnmu(
     const CosmologyParams& cp,
     const SamplingParams& sp
 ) {
+    return sample_lnmu_with_diagnostics(z, cp, sp).lnmu;
+}
+
+LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
+    double z,
+    const CosmologyParams& cp,
+    const SamplingParams& sp
+) {
     cosmology C;
 
     // cosmology parameters
     C.OmegaM = cp.OmegaM;
     C.sigma8 = cp.sigma8;
     C.h      = cp.h;
+    C.As     = cp.As;
+    C.kpivot = cp.kpivot;
 
     C.OmegaB = cp.OmegaB;
     C.zeq    = cp.zeq;
@@ -230,6 +273,24 @@ std::vector<double> sample_lnmu(
     cfg.bias   = sp.bias;
     cfg.ell    = sp.ell;
     cfg.write  = 0;
+    cfg.strict_weak_lensing = sp.strict_weak_lensing;
+    cfg.subhalo = sp.subhalo;
+    cfg.m_floor = sp.m_floor;
+    cfg.subhalo_threads = sp.subhalo_threads;
+    cfg.subhalo_parallel_threshold = sp.subhalo_parallel_threshold;
+    cfg.subhalo_model = sp.subhalo_model;
+    cfg.subhalo_brute = sp.subhalo_brute;
+    cfg.subhalo_factor = sp.subhalo_factor;
+    cfg.kappathr_flat = sp.kappathr_flat;
+    cfg.kappa_anchor = sp.kappa_anchor;
+    cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
+    cfg.kappa_anchor_value = sp.kappa_anchor_value;
+    cfg.bias_model = sp.bias_model;
+    cfg.bias_Rperp = sp.bias_Rperp;
+    cfg.bias_weak = sp.bias_weak;
 
-    return L.sample_lnmu(C, z, mt, cfg);
+    LnmuSampleDiagnostics out;
+    out.lnmu = L.sample_lnmu(C, z, mt, cfg);
+    out.invalid_stats = L.get_last_invalid_stats();
+    return out;
 }

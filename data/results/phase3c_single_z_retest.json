@@ -1,0 +1,80 @@
+{
+  "z=0.5": {
+    "continuous": {
+      "posterior_jsd": 0.6931471401685139,
+      "total_variation": 0.9999999868378902,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "mle_offset": {
+        "OmegaM": -0.10909090909090907,
+        "sigma8": 0.21818181818181814
+      }
+    },
+    "compatible": {
+      "posterior_jsd": 0.6931471757217451,
+      "total_variation": 0.9999999988266683,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "mle_offset": {
+        "OmegaM": -0.10909090909090907,
+        "sigma8": 0.21818181818181814
+      }
+    }
+  },
+  "z=1.5": {
+    "continuous": {
+      "posterior_jsd": 0.6630122494227051,
+      "total_variation": 0.9876041176399686,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.058823529411764705
+      },
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.18181818181818188
+      }
+    },
+    "compatible": {
+      "posterior_jsd": 0.6422120901367987,
+      "total_variation": 0.9759617190013629,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.058823529411764705
+      },
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.18181818181818188
+      }
+    }
+  },
+  "z=2.5": {
+    "continuous": {
+      "posterior_jsd": 0.6880281800448769,
+      "total_variation": 0.9986550285800063,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.10909090909090913
+      }
+    },
+    "compatible": {
+      "posterior_jsd": 0.6880605443852041,
+      "total_variation": 0.9986648116679755,
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "mle_offset": {
+        "OmegaM": -0.09090909090909088,
+        "sigma8": 0.21818181818181814
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "single_context_eval_time": 0.016961002349853517,
+  "unbatched_grid_eval_time": 8.304012060165405,
+  "batched_grid_eval_time": 11.931248903274536,
+  "sim_grid_eval_time_reference": 200.0,
+  "speedup_vs_unbatched_nsf": 0.6959885027531666,
+  "speedup_vs_sim_grid": 16.762704526691245,
+  "speedup_unbatched_vs_sim_grid": 24.08474344099354
+}

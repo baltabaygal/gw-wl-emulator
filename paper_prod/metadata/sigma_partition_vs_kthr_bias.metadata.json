@@ -1,0 +1,13 @@
+{
+  "script": "paper_prod/scripts/plot_sigma_partition_vs_kthr_bias.py",
+  "generated": "2026-07-17T08:24:13.992940Z",
+  "git_commit": "a556fe3",
+  "source_data": "data/sigma_partition_vs_kthr_bias_z1.npz",
+  "estimator": "clip1",
+  "plateau_sigma": 0.031347166951999454,
+  "flatness_relrange_sigma_total_core": 0.020540573206578462,
+  "below_floor_max_sigma_ratio": 1.0205436502345646,
+  "notes": "zs=1, halo-only + correlated bias field (bias_model=1, Rperp=8441 kpc) with the conditional weak arm (bias_weak). weak/strong/total measured from sample_lensing_raw_ml via the kappa_weak per-ray split, kappa_tot<=1 core mask, 8 seeds, 4k-100k rays per threshold (adaptive below 1e-5); Var_w+Var_s+2Cov=Var_tot exact on the shared mask. weak(shot) = analytic Campbell sigma_W (floor-consistent, = production injection, clip-insensitive); weak(corr.) = sqrt(Var_w - shot^2) on the core mask. The FIGURE plots the model domain kappa_thr >= kappa_min = 1.28e-7 (absolute floor 1e-3*kappa_thr(N=100)) where conservation holds; the npz additionally holds sub-floor points (down to 1e-8) documenting the floor semantics: there the weak arm is empty by construction, strong == total exactly, and the total genuinely grows (law-level 1.145x plateau in Var at 1e-8) because the explicit arm re-includes the sub-floor band no arm ever covered \u2014 the band's clustering mean grows ~ln(1/kappa) (untruncated NFW), which is why the model is defined with an absolute floor; below kt~3e-8 the rmaxfNFW r<=1e6 kpc bisection ceiling also truncates the largest cells. Raw-law conservation (incl. clustering + cross terms) established analytically by playground/sigma_partition_bias_vs_kthr.cpp (shot to 4.4e-9, total to 4.7e-4 for kt>=kappa_min); raw MC Var is tail-junk (formal clustering variance doubles between 5 and 6 sigma field excursions - clamp scan in the probe).",
+  "output_png": "paper_prod/plots/figures/sigma_partition_vs_kthr_bias.png",
+  "output_pdf": "paper_prod/plots/figures/sigma_partition_vs_kthr_bias.pdf"
+}

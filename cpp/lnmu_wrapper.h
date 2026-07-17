@@ -1,11 +1,17 @@
 #pragma once
 #include <vector>
 #include <cstdint>
+#include "invalid_stats.h"
 
 struct CosmologyParams {
     double OmegaM = 0.315;
     double sigma8 = 0.811;
     double h      = 0.674;
+
+    // primordial amplitude: As > 0 normalizes P(k) directly (sigma8 ignored);
+    // As <= 0 keeps the sigma8 normalization.
+    double As     = -1.0;
+    double kpivot = 5.0e-5;   // comoving kpc^-1 (= 0.05 Mpc^-1)
 
     // grid defaults
     double OmegaB = 0.0493;
@@ -29,9 +35,35 @@ struct SamplingParams {
     int bias    = 1;
     int ell     = 1;
     int Nhalos  = 100;
+    bool strict_weak_lensing = false;
+    bool subhalo = false;
+    double m_floor = 1.0e7;
+    int subhalo_threads = 1;
+    int subhalo_parallel_threshold = 200000;
+    int subhalo_model = 3;   // reduced-host + Wsub (default since 2026-07-09)
+    bool subhalo_brute = false;
+    double subhalo_factor = 1.0e-2;  // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12)
+    double kappathr_flat = -1.0;   // <= 0 = legacy <N>=Nhalos rule (default, reverted 2026-07-10); > 0 = flat explicit-halo threshold
+    int kappa_anchor = 0;          // mean-kappa anchor: 0 legacy batch mean (default, bit-identical),
+    double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
+    double kappa_anchor_value = 0.0; // used only when kappa_anchor == 2
+    int bias_model = 0;            // 0 legacy iid cell bias (default, bit-identical); 1 correlated 1D field
+    double bias_Rperp = 8441.0;    // comoving kpc transverse window radius = R_L(1e14) (bias_model = 1 only)
+    bool bias_weak = false;        // weak arm: kappa_W conditional on the field (requires bias_model = 1)
+};
+
+struct LnmuSampleDiagnostics {
+    std::vector<double> lnmu;
+    InvalidSampleStats invalid_stats;
 };
 
 std::vector<double> sample_lnmu(
+    double z,
+    const CosmologyParams& cosmo,
+    const SamplingParams& sampling
+);
+
+LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     double z,
     const CosmologyParams& cosmo,
     const SamplingParams& sampling

@@ -1,0 +1,5 @@
+{
+  "status": "deferred",
+  "reason": "central mixed smoke benchmark failed simulator-vs-NSF posterior agreement",
+  "required_before_rerun": "Phase 3B likelihood/reference diagnosis"
+}

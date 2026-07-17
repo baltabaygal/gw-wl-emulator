@@ -27,6 +27,13 @@ public:
     double h;
     double T0;
     double ns;
+    // primordial amplitude mode: As > 0 sets the P(k) normalization directly
+    // (sigma8 is then ignored); As <= 0 keeps the original sigma8 normalization.
+    double As = -1.0;
+    double kpivot = 5.0e-5;      // pivot scale, comoving kpc^-1 (= 0.05 Mpc^-1)
+    // derived amplitudes, filled by initialize_normalization() for either mode
+    double sigma8_derived = 0.0; // via the code's smooth window Ws, not a tophat
+    double As_derived = 0.0;
     double OmegaR;
     double OmegaL;
     double OmegaC;
@@ -54,9 +61,12 @@ public:
         return OmegaL/Az(z);
     }
     
-    // growth function
+    // growth function (Carroll-Press-Turner). gfid = g_CPT(z=0) at the fiducial
+    // cosmology (OmegaM=0.315), so Dg(0)=1 there; the same constant enters the
+    // As -> deltaH8 mapping in initialize_normalization() to cancel this convention.
+    static constexpr double gfid = 0.7869370293916;
     double Dg(double z) {
-        return 5.0/2.0*OmegaMz(z)/(pow(OmegaMz(z),4.0/7.0) - OmegaLz(z) + (1+OmegaMz(z)/2.0)*(1+OmegaLz(z)/70.0))/(1+z)/0.7869370293916;
+        return 5.0/2.0*OmegaMz(z)/(pow(OmegaMz(z),4.0/7.0) - OmegaLz(z) + (1+OmegaMz(z)/2.0)*(1+OmegaLz(z)/70.0))/(1+z)/gfid;
     }
     
     // spherical collapse threshold
@@ -115,26 +125,26 @@ private:
     
     // CDM matter power spectrum
     double Deltak(double k, double deltaH) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TM(k),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TM(k),2.0));
     }
     double Plin(double z, double k, double deltaH) {
-        return pow(Deltak(k, deltaH)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(Deltak(k, deltaH)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // FDM matter power spectrum
     double DeltakF(double k, double deltaH, double m22) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMF(k,m22),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TMF(k,m22),2.0));
     }
     double PlinF(double z, double k, double deltaH, double m22) {
-        return pow(DeltakF(k, deltaH, m22)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakF(k, deltaH, m22)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // WDM matter power spectrum
     double DeltakW(double k, double deltaH, double m3) {
-        return sqrt(pow(306.535*k/H0,3.0+ns)*pow(deltaH*TMW(k,m3),2.0));
+        return sqrt(pow(CLIGHT*k/H0,3.0+ns)*pow(deltaH*TMW(k,m3),2.0));
     }
     double PlinW(double z, double k, double deltaH, double m3) {
-        return pow(DeltakW(k, deltaH, m3)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakW(k, deltaH, m3)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
     // white noise enhanced matter power spectrum
@@ -142,14 +152,20 @@ private:
         return Deltak(k, deltaH) + pow(k/kc,3.0)*Deltak(kc, deltaH);
     }
     double PlinE(double z, double k, double deltaH, double kc) {
-        return pow(DeltakE(k, deltaH, kc)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
+        return (2.0*pow(PI,2.0))*pow(DeltakE(k, deltaH, kc)*Dg(z), 2.0)/(pow(k,3.0));
     }
     
-    vector<vector<double> > DeltaBlist;
+    vector<double> kBlist;
+    vector<vector<double> > logDeltaBlist;
     
     // magnetic field enhanced matter power spectrum
     double DeltakB(double k, double deltaH, double B) {
-        return sqrt(pow(Deltak(k, deltaH),2.0) + pow(interpolate(k/h*1000.0, DeltaBlist),2.0));
+        double kmin = kBlist.front()*h/1000.0;
+        double kmax = kBlist.back()*h/1000.0;
+        if (k > kmin && k < kmax) {
+            return sqrt(pow(10.0, 2.0*interpolate2(B, k/h*1000.0, Blist, kBlist, logDeltaBlist)) + pow(Deltak(k, deltaH),2.0));
+        }
+        return Deltak(k, deltaH);
     }
     double PlinB(double z, double k, double deltaH, double B) {
         return pow(DeltakB(k, deltaH, B)*Dg(z), 2.0)/(pow(k,3.0)/(2.0*pow(PI,2.0)));
@@ -228,9 +244,17 @@ private:
     vector<vector<double> > zt;
     
 public:
-    
+
     // halo bias b(M,z)
     double halobias(double z, double sigma);
+
+    // growth-free linear matter power spectrum P(k) [kpc^3] in the code's
+    // convention: Delta^2(k) = (ck/H0)^(3+ns) (deltaH8 TM(k))^2 with NO Dg
+    // factor — the same normalization as the sigmalist tables, so consumers
+    // multiply by Dg(z) at the amplitude level (bias field layer, 2026-07-16).
+    double Pk0(double k) {
+        return 2.0*pow(PI,2.0)*pow(Deltak(k, deltaH8),2.0)/pow(k,3.0);
+    }
     
     // star formation rate
     double fstar(double z, double M, double Mc, double Mt, double epsilon, double alpha, double beta);
@@ -272,31 +296,57 @@ public:
     vector<vector<vector<vector<double> > > > EDMHMFlist;
     vector<vector<vector<double> > > EDMFMFlist;
     
-    void initialize0() {
-        
-        // directory for output files
-        if (!fs::exists(outdir)) {
-            fs::create_directories(outdir);
-        }
-        
+    vector<double> Blist;
+    vector<vector<vector<double> > > BDMsigmalist;
+    vector<vector<vector<vector<double> > > > BDMHMFlist;
+    vector<vector<vector<double> > > BDMFMFlist;
+    
+    // background quantities + power spectrum normalization only (no sigma(M)/HMF
+    // tables). Cheap enough for diagnostics: at most two sigmaC integrals.
+    void initialize_normalization() {
         OmegaR = OmegaM/(1+zeq);
         OmegaL = 1.0 - OmegaM - OmegaR;
         OmegaC = OmegaM - OmegaB;
         fB = OmegaB/OmegaM;
-        
+
         H0 = 0.000102247*h;
         rhoc = 277.394*pow(h,2.0);
         rhoM0 = OmegaM*rhoc;
         M8 = 4.0*PI/3.0*pow(8000.0/h,3.0)*rhoM0;
-                
+
+        // P(k) amplitude. The code's convention is Delta^2(k,z) =
+        // (ck/H0)^(3+ns) (deltaH8 TM(k))^2 Dg(z)^2 with Dg = [g_CPT/(1+z)]/gfid.
+        // As-mode maps the primordial amplitude Delta_R^2 = As (k/kpivot)^(ns-1)
+        // through the standard relation Delta_m^2 = (4/25) As (ck/H0)^4
+        // (k/kpivot)^(ns-1) T^2 D^2/OmegaM^2 (D -> a in matter domination), giving
+        //   deltaH8 = (2/5) gfid sqrt(As) (c kpivot/H0)^((1-ns)/2) / OmegaM.
+        // sigma8-mode inverts sigmaC as before. NOTE sigmaC uses the smooth window
+        // Ws, not a tophat, so sigma8_derived vs CAMB agrees only to a few %.
+        if (As > 0.0) {
+            deltaH8 = 0.4*gfid*sqrt(As)*pow(CLIGHT*kpivot/H0,(1.0-ns)/2.0)/OmegaM;
+        } else {
+            deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
+        }
+        sigma8_derived = deltaH8*sigmaC(M8, 1.0)[0];
+        As_derived = pow(deltaH8*OmegaM/(0.4*gfid), 2.0)*pow(CLIGHT*kpivot/H0, ns-1.0);
+    }
+
+    void initialize0() {
+
+        // directory for output files
+        if (!fs::exists(outdir)) {
+            fs::create_directories(outdir);
+        }
+
+        initialize_normalization();
+
         zlist = loglist(zmin,zmax,Nz);
         Mlist = loglist(Mmin,Mmax,NM);
-                
+
         zdc = dclist();
         zt = tlist();
-        
+
         // NFW halo parameters, computed with CDM sigma
-        deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
         sigmalist = sigmalistf(0.0, 0.0, 0.0, 0.0);
         logMcharlist = logMcharlistf();
         conslist = conslistf();
@@ -393,20 +443,65 @@ public:
             writeToFile(kclist, EDMsigmalist, outdir/"sigma_EDM.dat");
             writeToFile(kclist, zlist, Mlist, EDMHMFlist, outdir/"HMF_EDM.dat");
         }
-        if (dm == 4) {
-            double B = 0.2;
-            DeltaBlist = readdataCSV("PS_PMF.csv");
+        if (dm == 4 || dm == 5) {
+            // read Delta spectra for different B values and extract list of B and k values
+            vector<vector<double> > tmp  = readdata(outdir/"DeltaBinf.dat",3);
+            if (dm == 5) {
+                tmp  = readdata(outdir/"DeltaBpt.dat",3);
+            }
             
-            // fix deltaH to match the input sigma8
-            deltaH8 = sigma8/sigmaB(M8, 1.0, B)[0];
-                        
-            // halo mass function and halo growth rate
-            sigmalist = sigmalistf(0.0, 0.0, 0.0, B);
-            HMFlist = HMFlistf();
-            halobiaslist = halobiaslistf();
+            set<double> xs, ys;
+            for (const auto &row : tmp) {
+                xs.insert(row[0]);
+                ys.insert(row[1]);
+            }
+            Blist.assign(xs.begin(), xs.end());
+            kBlist.assign(ys.begin(), ys.end());
             
-            writeToFile(sigmalist, outdir/"sigma_B.dat");
-            writeToFile(zlist, Mlist, HMFlist, outdir/"HMF_B.dat");
+            xs.clear(); ys.clear();
+            map<double,int> x_index, y_index;
+            for (int i = 0; i < Blist.size(); ++i) {
+                x_index[Blist[i]] = i;
+            }
+            for (int j = 0; j < kBlist.size(); ++j) {
+                y_index[kBlist[j]] = j;
+            }
+
+            vector<vector<double> > tmp2(Blist.size(), vector<double>(kBlist.size()));
+            for (const auto &row : tmp) {
+                double x = row[0];
+                double y = row[1];
+                double z = row[2];
+                
+                int jx = x_index[x];
+                int jy = y_index[y];
+
+                tmp2[jx][jy] = log10(z);
+            }
+            logDeltaBlist = tmp2;
+            tmp.clear(); tmp2.clear();
+            
+            for (double B : Blist) {
+                // fix deltaH to match the input sigma8
+                deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
+                                
+                // halo mass function and halo growth rate
+                sigmalist = sigmalistf(0.0, 0.0, 0.0, B);
+                HMFlist = HMFlistf();
+                halobiaslist = halobiaslistf();
+                
+                BDMsigmalist.push_back(sigmalist);
+                BDMHMFlist.push_back(HMFlist);
+            }
+            
+            if (dm == 4) {
+                writeToFile(Blist, BDMsigmalist, outdir/"sigma_Binf.dat");
+                writeToFile(Blist, zlist, Mlist, BDMHMFlist, outdir/"HMF_Binf.dat");
+            }
+            if (dm == 5) {
+                writeToFile(Blist, BDMsigmalist, outdir/"sigma_Bpt.dat");
+                writeToFile(Blist, zlist, Mlist, BDMHMFlist, outdir/"HMF_Bpt.dat");
+            }
         }
     }
     
@@ -438,11 +533,8 @@ public:
             HMFlist = HMFlistf();
             halobiaslist = halobiaslistf();
         }
-        if (dm == 4) {
-            deltaH8 = sigma8/sigmaB(M8, 1.0, x)[0];
-            sigmalist = sigmalistf(0.0, 0.0, 0.0, x);
-            HMFlist = HMFlistf();
-            halobiaslist = halobiaslistf();
+        if (dm == 4 || dm == 5) {
+            cout << "not implemented..." << endl;
         }
     }
     

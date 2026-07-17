@@ -1,0 +1,255 @@
+{
+  "configuration": {
+    "N": 1000,
+    "fixed_h": 0.67,
+    "grid_type": "2d",
+    "nsim_per_z": 1000,
+    "resolution": 12,
+    "z_values": [
+      0.5,
+      1.5,
+      2.5
+    ]
+  },
+  "objective": "single_z_isolation",
+  "phase": "3B",
+  "results": {
+    "z=0.5": {
+      "catalog": "data/mock_catalogs/phase3b_single_z/single_z_central_N1000_seed620500_z0.5_6314f8b6cacffca6.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "grid": "data/results/phase3b_single_z_grids/combined_2d_single_z_central_N1000_seed620500_z0.5_6314f8b6cacffca6_cc927f4e3f77.npz",
+      "mle_offset": {
+        "OmegaM": -0.10909090909090907,
+        "sigma8": 0.21818181818181814
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 21.952198190123795,
+        "sigma8": 13.11527236317156
+      },
+      "nsf_summary": {
+        "OmegaM": {
+          "MAP": 0.2,
+          "ci68": [
+            0.2,
+            0.25935632866164815
+          ],
+          "ci95": [
+            0.2,
+            0.32727272727272727
+          ],
+          "mean": 0.22584026004369445,
+          "median": 0.2181818181818182,
+          "std": 0.03743133769311096
+        },
+        "sigma8": {
+          "MAP": 1.05,
+          "ci68": [
+            1.05,
+            1.05
+          ],
+          "ci95": [
+            0.6863636363636364,
+            1.05
+          ],
+          "mean": 1.0257047478193022,
+          "median": 1.05,
+          "std": 0.08853812400364637
+        }
+      },
+      "plot": "plots/figures/phase3b_single_z/single_z_z0p5_contours.png",
+      "posterior_jsd": 0.6931471401685139,
+      "sim_summary": {
+        "OmegaM": {
+          "MAP": 0.3090909090909091,
+          "ci68": [
+            0.3090909090909091,
+            0.3090909090909091
+          ],
+          "ci95": [
+            0.3090909090909091,
+            0.3090909090909091
+          ],
+          "mean": 0.3094792184775153,
+          "median": 0.3090909090909091,
+          "std": 0.0038100493494747003
+        },
+        "sigma8": {
+          "MAP": 0.8318181818181819,
+          "ci68": [
+            0.8013266216491702,
+            0.8263155717337788
+          ],
+          "ci95": [
+            0.7963655800882553,
+            0.8312766132946937
+          ],
+          "mean": 0.8333032831476099,
+          "median": 0.8138210966914745,
+          "std": 0.014670031955414565
+        }
+      },
+      "total_variation": 0.9999999868378902
+    },
+    "z=1.5": {
+      "catalog": "data/mock_catalogs/phase3b_single_z/single_z_central_N1000_seed620501_z1.5_86e39b7029a2ce59.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.058823529411764705
+      },
+      "grid": "data/results/phase3b_single_z_grids/combined_2d_single_z_central_N1000_seed620501_z1.5_86e39b7029a2ce59_a1359e187e9d.npz",
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.18181818181818188
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 0.829651107322936,
+        "sigma8": 1.0767047804987981
+      },
+      "nsf_summary": {
+        "OmegaM": {
+          "MAP": 0.29090909090909095,
+          "ci68": [
+            0.2545454545454546,
+            0.32727272727272727
+          ],
+          "ci95": [
+            0.2181818181818182,
+            0.36363636363636365
+          ],
+          "mean": 0.29009472131004727,
+          "median": 0.29090909090909095,
+          "std": 0.03534996632234613
+        },
+        "sigma8": {
+          "MAP": 0.8681818181818182,
+          "ci68": [
+            0.7954545454545455,
+            0.9772727272727273
+          ],
+          "ci95": [
+            0.7227272727272728,
+            1.05
+          ],
+          "mean": 0.8824192536638337,
+          "median": 0.8681818181818182,
+          "std": 0.0852122057704638
+        }
+      },
+      "plot": "plots/figures/phase3b_single_z/single_z_z1p5_contours.png",
+      "posterior_jsd": 0.6630122494227051,
+      "sim_summary": {
+        "OmegaM": {
+          "MAP": 0.2363636363636364,
+          "ci68": [
+            0.23135219855932165,
+            0.34545454545454546
+          ],
+          "ci95": [
+            0.22023755580325946,
+            0.34545454545454546
+          ],
+          "mean": 0.25560078069784675,
+          "median": 0.2363636363636364,
+          "std": 0.0415764413591917
+        },
+        "sigma8": {
+          "MAP": 1.05,
+          "ci68": [
+            0.8318181818181819,
+            1.05
+          ],
+          "ci95": [
+            0.8318181818181819,
+            1.05
+          ],
+          "mean": 0.9793519593838431,
+          "median": 1.05,
+          "std": 0.09002718988124493
+        }
+      },
+      "total_variation": 0.9876041176399686
+    },
+    "z=2.5": {
+      "catalog": "data/mock_catalogs/phase3b_single_z/single_z_central_N1000_seed620502_z2.5_adf62d3d3ad66a8d.npz",
+      "credible_region_overlap": {
+        "credible_region_68": 0.0,
+        "credible_region_95": 0.0
+      },
+      "grid": "data/results/phase3b_single_z_grids/combined_2d_single_z_central_N1000_seed620502_z2.5_adf62d3d3ad66a8d_125d44ffe8b6.npz",
+      "mle_offset": {
+        "OmegaM": 0.054545454545454564,
+        "sigma8": -0.10909090909090913
+      },
+      "normalized_posterior_shift": {
+        "OmegaM": 69037.87474031154,
+        "sigma8": 30146.204974786197
+      },
+      "nsf_summary": {
+        "OmegaM": {
+          "MAP": 0.36363636363636365,
+          "ci68": [
+            0.2181818181818182,
+            0.36363636363636365
+          ],
+          "ci95": [
+            0.2,
+            0.38181818181818183
+          ],
+          "mean": 0.28413726737974276,
+          "median": 0.29090909090909095,
+          "std": 0.05629316347586144
+        },
+        "sigma8": {
+          "MAP": 0.7227272727272728,
+          "ci68": [
+            0.7227272727272728,
+            1.0136363636363637
+          ],
+          "ci95": [
+            0.7227272727272728,
+            1.05
+          ],
+          "mean": 0.8747596229988365,
+          "median": 0.8318181818181819,
+          "std": 0.12331041301777368
+        }
+      },
+      "plot": "plots/figures/phase3b_single_z/single_z_z2p5_contours.png",
+      "posterior_jsd": 0.6880281800448769,
+      "sim_summary": {
+        "OmegaM": {
+          "MAP": 0.3090909090909091,
+          "ci68": [
+            0.3090909090909091,
+            0.3090909090909091
+          ],
+          "ci95": [
+            0.3090909090909091,
+            0.3090909090909091
+          ],
+          "mean": 0.3090909090978177,
+          "median": 0.3090909090909091,
+          "std": 3.6144857894219633e-07
+        },
+        "sigma8": {
+          "MAP": 0.8318181818181819,
+          "ci68": [
+            0.8012727272611062,
+            0.8259999999978171
+          ],
+          "ci95": [
+            0.7963636363501415,
+            0.8309090909087818
+          ],
+          "mean": 0.8318181817905979,
+          "median": 0.8136363636294617,
+          "std": 1.4244393695376964e-06
+        }
+      },
+      "total_variation": 0.9986550285800063
+    }
+  }
+}
