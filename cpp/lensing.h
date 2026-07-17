@@ -166,6 +166,8 @@ public:
         double gamma1;
         double gamma2;
         double kappa_nosub = 0.0;   // same realization minus the subhalo clumps (paired baseline)
+        double kappa_weak = 0.0;    // the weak-background component alone (legacy Gaussian or
+                                    // bias_weak conditional draw); kappa - kappa_weak = explicit part
     };
     
     // probability distribution of lnmu, {lnmu, dP/dlnmu}

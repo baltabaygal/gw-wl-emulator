@@ -403,16 +403,19 @@ PYBIND11_MODULE(gwlensing, m) {
             py::array_t<double> gamma1(raw.size());
             py::array_t<double> gamma2(raw.size());
             py::array_t<double> kappa_nosub(raw.size());
+            py::array_t<double> kappa_weak(raw.size());
             auto k = kappa.mutable_unchecked<1>();
             auto g1 = gamma1.mutable_unchecked<1>();
             auto g2 = gamma2.mutable_unchecked<1>();
             auto kns = kappa_nosub.mutable_unchecked<1>();
+            auto kw = kappa_weak.mutable_unchecked<1>();
 
             for (ssize_t i = 0; i < static_cast<ssize_t>(raw.size()); ++i) {
                 k(i) = raw[i].kappa;
                 g1(i) = raw[i].gamma1;
                 g2(i) = raw[i].gamma2;
                 kns(i) = raw[i].kappa_nosub;
+                kw(i) = raw[i].kappa_weak;
             }
 
             py::dict out;
@@ -420,6 +423,7 @@ PYBIND11_MODULE(gwlensing, m) {
             out["gamma1"] = gamma1;
             out["gamma2"] = gamma2;
             out["kappa_nosub"] = kappa_nosub;
+            out["kappa_weak"] = kappa_weak;
             return out;
         },
         py::arg("z"),

@@ -706,6 +706,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         raw[j].gamma1 = 0.0;
         raw[j].gamma2 = 0.0;
         raw[j].kappa_nosub = raw[j].kappa;   // paired baseline starts from the weak part
+        raw[j].kappa_weak = raw[j].kappa;
     }
     
     vector<vector<vector<double> > > dNH = deltaNhfNFW(C, zs, kappathrH);
@@ -781,11 +782,13 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                 double kw = sumS + sqrt(std::max(sumV, 0.0))*pG(mt);
                 raw[j].kappa = kw;
                 raw[j].kappa_nosub = kw;
+                raw[j].kappa_weak = kw;
             }
         } else {
             for (int j = 0; j < cfg.Nreal; j++) {
                 raw[j].kappa = PkappaW(mt);
                 raw[j].kappa_nosub = raw[j].kappa;
+                raw[j].kappa_weak = raw[j].kappa;
             }
         }
     }
