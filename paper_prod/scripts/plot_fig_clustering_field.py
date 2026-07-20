@@ -132,7 +132,7 @@ def main():
     print("wrote plots/fig_clustering_field.{pdf,png}")
 
     # ---- console diagnostics for the memo
-    print(f"Nmax(zs=3, R=8441) = {f['Nmax']}, shells n = {n}, "
+    print(f"Nmax(zs=3, R={RS_DEFAULT:.0f}) = {f['Nmax']}, shells n = {n}, "
           f"L = {f['L']*KPC2MPC:.1f} Mpc")
     print(f"sigma(M_LAMBDA={M_LAMBDA:.0e}) = {sigM:.4f};  b(M_LAMBDA, z=0.5)"
           f" = {C.halobias(0.5, sigM):.3f}")
