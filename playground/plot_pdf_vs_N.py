@@ -26,14 +26,15 @@ mpl.rcParams["font.serif"] = ["Computer Modern Roman", "Times New Roman", "DejaV
 mpl.rcParams["mathtext.fontset"] = "cm"
 
 SEEDS = range(8)
-d0 = np.load(ROOT / "playground" / "pdf_vs_N_zs1_seed0.npz")
+TAG = "_ext"
+d0 = np.load(ROOT / "playground" / f"pdf_vs_N_zs1{TAG}_seed0.npz")
 NT = d0["N_targets"]
 KT = d0["kthr"]
 narm = len(NT)
 
 arms = []          # arm -> list of per-seed lnmu arrays
 for i in range(narm):
-    arms.append([np.load(ROOT / "playground" / f"pdf_vs_N_zs1_seed{s}.npz")[f"lnmu_{i}"]
+    arms.append([np.load(ROOT / "playground" / f"pdf_vs_N_zs1{TAG}_seed{s}.npz")[f"lnmu_{i}"]
                  for s in SEEDS])
 pool = [np.concatenate(a) for a in arms]
 ref = pool[0]
@@ -74,7 +75,7 @@ for i in range(narm):
           f"{c.std():8.5f} {sk:7.3f} {ku:7.3f} {q999:12.4f}")
 
 C_REF, C_ARM, C_FIT = "#0f4c81", ["#5b8fbe", "#d97706", "#b5443c"], "#888888"
-SHOW = [5, 6, 7]                               # <N> = 1, 0.3, 0.1 vs ref
+SHOW = [6, 8, 10]                              # <N> = 1, 0.1, 0.01 vs ref
 
 fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.0))
 fig.subplots_adjust(left=0.09, right=0.97, bottom=0.16, top=0.84, wspace=0.28)
@@ -85,10 +86,10 @@ be = np.linspace(np.quantile(ref, 5e-5), np.quantile(ref, 1 - 5e-5), 120)
 bc = 0.5 * (be[1:] + be[:-1])
 h = np.histogram(ref, be, density=True)[0]
 ax.fill_between(bc, h, color=C_REF, alpha=0.25, lw=0)
-ax.plot(bc, h, color=C_REF, lw=1.2, label=r"$\langle N\rangle = 300$ (ref)")
+ax.plot(bc, h, color=C_REF, lw=1.2, label=r"$\langle N\rangle = 1000$ (ref)")
 for c, i in zip(C_ARM, SHOW):
     h = np.histogram(pool[i], be, density=True)[0]
-    ax.plot(bc, h, color=c, lw=1.1, label=rf"$\langle N\rangle = {NT[i]:g}$")
+    ax.plot(bc, h, color=c, lw=1.1, label=rf"$\langle N\rangle = {NT[i]:.3g}$")
 ax.set_yscale("log")
 ax.set_ylim(3e-4, 30)
 ax.set_xlabel(r"$\ln\mu$")
@@ -99,7 +100,7 @@ ax.set_title("PDF (240k rays/arm)", fontsize=8)
 # ---- right: JSD vs <N>
 ax = axes[1]
 ax.plot(NT[1:], J[1:], "o-", ms=3.5, lw=1.2, color="#b5443c",
-        label=r"JSD vs $\langle N\rangle=300$ ref")
+        label=r"JSD vs $\langle N\rangle=1000$ ref")
 ax.plot(NT[1:], Jfloor[1:], "s", ms=2.8, color="#888888", alpha=0.8,
         label="per-arm null (seed halves)")
 ax.axhline(floor_ref, color="#888888", lw=0.9, ls="--",
@@ -110,7 +111,7 @@ ax.set_xlabel(r"$\langle N\rangle$ explicit halos per ray")
 ax.set_ylabel("JSD [nats]")
 ax.invert_xaxis()
 ax.legend(fontsize=6, loc="upper left", handlelength=1.8)
-ax.set_title(r"distance to the $\langle N\rangle=300$ reference", fontsize=8)
+ax.set_title(r"distance to the $\langle N\rangle=1000$ reference", fontsize=8)
 
 fig.suptitle(r"PDF invariance under the explicit/weak split "
              r"($z_s=1$, floor $\kappa_{\min}$ pinned, bias\_weak on)"

@@ -4,6 +4,13 @@ Fast ML emulator for the GW weak-lensing magnification PDF, built on the C++ Mon
 engine from Vaskonen (2026). See `README.MD` for the project overview and `memory/MEMORY.md`
 (auto-loaded) for cross-session context.
 
+**Paper (PRD draft, .tex on Overleaf — not in repo):** before touching paper text,
+figures, or answering draft comments, read `paper_prod/paper_memo.md` (2026-07-20) —
+maps every draft section/equation to its implementation (file:line), figure scripts,
+and the claim-constraining standing rules; `paper_prod/draft_comments_memo.md` holds
+the resolved \R{}/\Gala{} comments + known draft↔code mismatches (R_s/window, model-3
+description, stale figure paths). Keep both updated like this file.
+
 ## 0. This file is a LIVING document
 Loaded into every session as project instructions. It is **not fixed** — improve it as
 tools, flags, and workflows change; date the changes. Keep **only verified commands**

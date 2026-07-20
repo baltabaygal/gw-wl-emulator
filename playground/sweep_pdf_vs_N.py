@@ -29,15 +29,15 @@ SEEDBASE = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 NSAMP = int(sys.argv[2]) if len(sys.argv) > 2 else 30_000
 ZS = 1.0
 RPERP = 8441.0
-N_TARGETS = np.array([300.0, 100.0, 30.0, 10.0, 3.0, 1.0, 0.3, 0.1])
+N_TARGETS = 10.0 ** np.arange(3.0, -2.01, -0.5)   # 1000 .. 0.01, half decades
 
 # invert <N>(kappa_thr) from the precomputed table (monotone below the collapse)
 nx = np.loadtxt("playground/nexp_vs_kthr_zs1.txt")
 m = (nx[:, 1] > 1e-3) & (nx[:, 0] <= 10.0)
 lk, lN = np.log(nx[m, 0]), np.log(nx[m, 1])
 kthr = np.exp(np.interp(np.log(N_TARGETS), lN[::-1], lk[::-1]))
-seed0 = 20261100 + 100000 * SEEDBASE
-OUT = Path(f"playground/pdf_vs_N_zs1_seed{SEEDBASE}.npz")
+seed0 = 20261200 + 100000 * SEEDBASE
+OUT = Path(f"playground/pdf_vs_N_zs1_ext_seed{SEEDBASE}.npz")
 
 save = {"N_targets": N_TARGETS, "kthr": kthr, "zs": ZS, "nsamples": NSAMP,
         "rperp": RPERP}
