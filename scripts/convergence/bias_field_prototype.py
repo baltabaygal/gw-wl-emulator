@@ -426,11 +426,25 @@ class Cosmo:
 
 
 # ------------------------------------------------------- new-model field machinery
+def _Wiso2(x, window):
+    """W~(x)^2 for the isotropic bias windows, x = |k| R — verbatim port of the
+    C++ biasWindow2 (bias_window 1 = spherical top-hat, 2 = Gaussian)."""
+    x = np.asarray(x, float)
+    if window == 2:
+        return np.exp(-0.5 * x ** 2) ** 2
+    x2 = x * x
+    ser = 1.0 - x2 / 10.0 * (1.0 - x2 / 28.0)      # 1 - x^2/10 + x^4/280
+    xs = np.where(x < 1e-2, 1.0, x)
+    return np.where(x < 1e-2, ser,
+                    3.0 * (np.sin(xs) - xs * np.cos(xs)) / xs ** 3) ** 2
+
+
 class LOSField:
     """P_1D pencil projection + cylinder-variance table from the code's P(k)."""
 
-    def __init__(self, C: Cosmo):
+    def __init__(self, C: Cosmo, window: int = 0):
         self.C = C
+        self.window = window          # 0 disk on k_perp, 1 top-hat, 2 Gaussian on |k|
         # k grids (kpc^-1)
         self.kpar = np.exp(np.linspace(np.log(1e-8), np.log(3.0), 4096))
         kperp = np.exp(np.linspace(np.log(1e-8), np.log(30.0), 4096))
@@ -440,16 +454,21 @@ class LOSField:
         kk = np.sqrt(self.kpar[None, :] ** 2 + kperp[:, None] ** 2)  # (nkp,nk)
         P = C.Pk(kk)
         x = kperp[:, None] * np.ones_like(self.kpar)[None, :]
-        # Q(kpar, R) = (1/2pi) int kperp P Wdisc^2 dkperp   (trapz in ln kperp)
+        # Q(kpar, R) = (1/2pi) int kperp P W^2 dkperp   (trapz in ln kperp).
+        # Window 0 filters k_perp only; windows 1/2 filter the full modulus |k|
+        # (isotropic smoothing) — same structure as cpp BiasField1D::build.
         dlnkp = np.log(kperp[1] / kperp[0])
         base = kperp[:, None] ** 2 * P                # kperp^2 P dln kperp
         self.Q = np.empty((len(self.Rgrid), len(self.kpar)))
         for i, R in enumerate(self.Rgrid):
-            xr = kperp * R
-            Wd = np.where(xr < 1e-6, 1.0, 2.0 * j1(xr) / np.where(
-                xr < 1e-6, 1.0, xr))
-            self.Q[i] = np.trapezoid(base * Wd[:, None] ** 2, dx=dlnkp,
-                                     axis=0) / (2.0 * PI)
+            if window == 0:
+                xr = kperp * R
+                Wd = np.where(xr < 1e-6, 1.0, 2.0 * j1(xr) / np.where(
+                    xr < 1e-6, 1.0, xr))
+                W2 = Wd[:, None] ** 2
+            else:
+                W2 = _Wiso2(kk * R, window)
+            self.Q[i] = np.trapezoid(base * W2, dx=dlnkp, axis=0) / (2.0 * PI)
         self.P1D = self.Q[0]                          # R->0 pencil (0.5 kpc)
 
     def cell_sigma2(self, R, L, RL):

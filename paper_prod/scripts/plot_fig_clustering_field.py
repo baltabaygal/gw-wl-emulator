@@ -2,14 +2,16 @@
 """
 Paper figure (clustering subsection): the correlated 1D environment field.
 
-Panel (a): P_1D(k_par; R_perp) — the pencil-projected linear power through the
-transverse disk window (lensing.cpp BiasField1D, KP91 eq. 3.8) — for the KP91
-pencil limit R_perp -> 0, the production default R_perp = 8441 kpc =
-R_L(1e14 Msun), and 2x the default (sensitivity illustration). Curves for
-R_perp > 0 end at the mode cutoff k_max = 2 pi / R_perp used by the sampler.
+Panel (a): P_1D(k_par; R_s) — the pencil-projected linear power through the
+spherical top-hat window on the full modulus |k| (lensing.cpp BiasField1D,
+bias_window = 1) — for the KP91 pencil limit R_s -> 0, the production default
+R_s = 20 Mpc, and the signal-weighted scale R_s = 8.44 Mpc = R_L(1e14 Msun)
+for comparison. Curves for R_s > 0 end at the mode cutoff k_max = 2 pi / R_s
+used by the sampler (now essentially immaterial: the top-hat already suppresses
+the power there, unlike the disk window whose only LOS cutoff was numerical).
 
 Panel (b): three realizations of the count-modulation factor lambda(M, z) for
-M = 1e14 Msun along a z_s = 3 line of sight, drawn exactly as production does:
+M = 1e13 Msun along a z_s = 3 line of sight, drawn exactly as production does:
 per-shell segment averages of the field via the exact-covariance Cholesky
 (playground/bias_field/validate_field_covariance.py::cpp_field — the verbatim
 numpy replica of BiasField1D::build), then
@@ -30,29 +32,37 @@ sys.path.insert(0, str(REPO / "scripts" / "convergence"))
 sys.path.insert(0, str(REPO / "playground" / "bias_field"))
 
 from bias_field_prototype import Cosmo, PI            # validated port of cpp/cosmology
-from validate_field_covariance import cpp_field, Wdisk  # verbatim BiasField1D replica
+from validate_field_covariance import (cpp_field, Wdisk,   # verbatim BiasField1D replica
+                                       window2_iso)
 from paper_prod.plot_style import apply_style
 from plot_fig_subhalo_population import guard_broken_latex
 
 KPC2MPC = 1.0e-3
-RPERP_DEFAULT = 8441.0        # kpc; lensing.h bias_Rperp default = R_L(1e14 Msun)
+RS_DEFAULT = 20000.0          # kpc; production clustering scale R_s = 20 Mpc (2026-07-20)
+RS_SIGNAL = 8441.0            # kpc; signal-weighted scale R_L(1e14 Msun), for comparison
+WINDOW = 1                    # spherical top-hat (lensing.h bias_window = 1)
 ZS_FIELD = 3.0
 M_LAMBDA = 1.0e13
 SEEDS = (11, 21, 31)
 
 
-def P1D_curve(C, kpar, Rperp):
+def P1D_curve(C, kpar, Rperp, window=0):
     """P_1D(k_par) with the BiasField1D integrand/grids (nkperp=2048 log
-    trapezoid, disk window on k_perp only; Rperp = 0 -> KP91 pencil)."""
+    trapezoid; Rperp = 0 -> KP91 pencil).
+
+    window (= lensing.h bias_window): 0 disk on k_perp only, 1 spherical
+    top-hat, 2 Gaussian — the latter two on the full modulus |k|."""
     Rw = max(Rperp, 10.0)
     kperp = np.exp(np.linspace(np.log(1e-9), np.log(60.0 / Rw), 2048))
     dlnkp = np.log(kperp[1] / kperp[0])
     W2 = Wdisk(kperp * Rperp) ** 2 if Rperp > 0.0 else np.ones_like(kperp)
+    iso = window != 0 and Rperp > 0.0
     out = np.empty_like(kpar)
     for i0 in range(0, len(kpar), 64):
         i1 = min(i0 + 64, len(kpar))
         kk = np.sqrt(kpar[None, i0:i1] ** 2 + kperp[:, None] ** 2)
-        f = kperp[:, None] ** 2 * C.Pk(kk) * W2[:, None]
+        w2 = window2_iso(kk * Rperp, window) if iso else W2[:, None]
+        f = kperp[:, None] ** 2 * C.Pk(kk) * w2
         out[i0:i1] = np.trapezoid(f, dx=dlnkp, axis=0) / (2.0 * PI)
     return out
 
@@ -64,14 +74,13 @@ def main():
 
     C = Cosmo(Nz=100)
 
-    # ---------------- panel (a): P1D for three windows
+    # ---------------- panel (a): P1D, spherical top-hat, three scales
     kpar = np.exp(np.linspace(np.log(3e-6), np.log(6e-3), 240))   # kpc^-1
     curves = [
-        (0.0, "solid", "0.35", r"$R_\perp \to 0$ (pencil)"),
-        (RPERP_DEFAULT, "solid", "C0",
-         r"$R_\perp = 8.44\,{\rm Mpc} = R_L(10^{14}M_\odot)$"),
-        (2.0 * RPERP_DEFAULT, "dashed", "C1",
-         r"$R_\perp = 16.9\,{\rm Mpc}$"),
+        (0.0, "solid", "0.35", r"$R_s \to 0$ (pencil)"),
+        (RS_DEFAULT, "solid", "C0", r"$R_s = 20\,{\rm Mpc}$ (default)"),
+        (RS_SIGNAL, "dashed", "C1",
+         r"$R_s = 8.44\,{\rm Mpc} = R_L(10^{14}M_\odot)$"),
     ]
 
     fig, (axa, axb) = plt.subplots(2, 1, figsize=(3.37, 4.7))
@@ -81,7 +90,7 @@ def main():
     for Rp, ls, col, lab in curves:
         kmaxR = 2.0 * PI / Rp if Rp > 0 else np.inf     # sampler mode cutoff
         sel = kpar <= kmaxR
-        P = P1D_curve(C, kpar[sel], Rp)
+        P = P1D_curve(C, kpar[sel], Rp, window=WINDOW)
         axa.plot(kpar[sel] / KPC2MPC, P * KPC2MPC, ls=ls, color=col, label=lab)
         if np.isfinite(kmaxR):
             axa.plot(kmaxR / KPC2MPC, P[-1] * KPC2MPC, "o", ms=3, color=col)
@@ -91,8 +100,8 @@ def main():
     axa.set_ylabel(r"$P_{\rm 1D}(k_\parallel)\ [{\rm Mpc}]$")
     axa.legend(fontsize=6.5, frameon=False, loc="lower left")
 
-    # ---------------- panel (b): lambda(M=1e14, z) realizations, zs = 3
-    f = cpp_field(C, ZS_FIELD, RPERP_DEFAULT)
+    # ---------------- panel (b): lambda(M=1e13, z) realizations, zs = 3
+    f = cpp_field(C, ZS_FIELD, RS_DEFAULT, window=WINDOW)
     n = f["n"]
     zsh = C.zlist[1:n + 1]                               # shell upper edges
     sigM = float(np.interp(M_LAMBDA, C.sig_M, C.sig_s))

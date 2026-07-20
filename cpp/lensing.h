@@ -136,6 +136,26 @@ struct LensingConfig {
   // Fixed number, NOT recomputed per cosmology (predictability).
   double bias_Rperp = 8441.0;
 
+  // Smoothing window shape of the bias field (2026-07-20,
+  // docs/bias_window_design_plan.md); only used when bias_model = 1:
+  //   0 = transverse disk, W(x) = 2 J1(x)/x with x = k_perp bias_Rperp — the
+  //       window acts on k_perp ALONE, so LOS power is suppressed only by the
+  //       numerical mode cutoff k_max = 2 pi / bias_Rperp (legacy; bitwise
+  //       default).
+  //   1 = spherical top-hat, W(x) = 3 (sin x - x cos x) / x^3, and
+  //   2 = Gaussian,          W(x) = exp(-x^2/2),
+  //       both acting on the FULL modulus x = |k| bias_Rperp,
+  //       |k| = sqrt(k_par^2 + k_perp^2): isotropic smoothing, as the
+  //       peak-background split reading of b(M) wants, and (top-hat) the
+  //       window the paper's sigma(R) already refers to.
+  // NOTE (window 2): bias_Rperp is used AS GIVEN — no internal variance
+  // matching. To compare a Gaussian against a top-hat of radius R_TH, solve
+  // sigma^2_G(R_G) = sigma^2_TH(R_TH) offline and pass R_G explicitly
+  // (expect R_G ~ 0.4-0.5 R_TH).
+  // The mode convention (N_max = L/bias_Rperp floored at 4, L = 1.05 chi(z_s))
+  // is UNCHANGED for all windows. Nonzero requires bias_model = 1 (throws).
+  int bias_window = 0;
+
   // Weak (sub-threshold) arm of the correlated field (2026-07-16): when true,
   // the background kappa_W is drawn CONDITIONALLY on the same per-shell field
   // as the explicit counts (Cox-process split of Campbell's theorem):

@@ -55,6 +55,31 @@ def Wdisk(x):
                     / np.where(x < 1e-6, 1.0, x))
 
 
+def Wtophat(x):
+    """Spherical top-hat 3(sin x - x cos x)/x^3 — verbatim port of the C++
+    biasWindow2 (series 1 - x^2/10 + x^4/280 below x = 1e-2, where the closed
+    form loses ~3e-16/x^2 to cancellation)."""
+    x = np.asarray(x, float)
+    x2 = x * x
+    ser = 1.0 - x2 / 10.0 * (1.0 - x2 / 28.0)
+    xs = np.where(x < 1e-2, 1.0, x)            # keep the unused branch finite
+    return np.where(x < 1e-2, ser,
+                    3.0 * (np.sin(xs) - xs * np.cos(xs)) / xs ** 3)
+
+
+def Wgauss(x):
+    return np.exp(-0.5 * np.asarray(x, float) ** 2)
+
+
+def window2_iso(x, window):
+    """W~^2 for the ISOTROPIC windows (bias_window 1 = top-hat, 2 = Gaussian),
+    x = |k| R. Window 0 (disk) acts on k_perp alone and is handled separately."""
+    return (Wgauss(x) if window == 2 else Wtophat(x)) ** 2
+
+
+WINDOW_NAME = {0: "disk", 1: "tophat", 2: "gauss"}
+
+
 def shells(C, zs):
     """Shell edges exactly as BiasField1D::build: jz = 1.. while zlist[jz] < zs."""
     lo, hi = [], []
@@ -68,7 +93,7 @@ def shells(C, zs):
 
 
 # ------------------------------------------------- verbatim C++ replica
-def cpp_field(C, zs, Rperp):
+def cpp_field(C, zs, Rperp, window=0):
     """Replicates BiasField1D::build number-for-number (numpy-vectorized)."""
     c, Lh = shells(C, zs)
     n = len(c)
@@ -83,13 +108,14 @@ def cpp_field(C, zs, Rperp):
     Rw = max(Rperp, 10.0)
     kperp = np.exp(np.linspace(np.log(1e-9), np.log(60.0 / Rw), nkperp))
     dlnkp = np.log(kperp[1] / kperp[0])
-    W2 = Wdisk(kperp * Rperp) ** 2
+    W2 = Wdisk(kperp * Rperp) ** 2          # window 0 only (k_perp grid)
     lktab = np.linspace(np.log(0.5 * kmin), np.log(kmax), nktab)
     Ptab = np.empty(nktab)
     for t0 in range(0, nktab, 64):
         t1 = min(t0 + 64, nktab)
         kk = np.sqrt(np.exp(lktab[None, t0:t1]) ** 2 + kperp[:, None] ** 2)
-        f = kperp[:, None] ** 2 * C.Pk(kk) * W2[:, None]
+        w2 = W2[:, None] if window == 0 else window2_iso(kk * Rperp, window)
+        f = kperp[:, None] ** 2 * C.Pk(kk) * w2
         Ptab[t0:t1] = np.trapezoid(f, dx=dlnkp, axis=0) / (2.0 * PI)
     lPtab = np.log(np.maximum(Ptab, 1e-300))
     P1D = lambda k: np.exp(np.interp(np.log(np.clip(k, np.exp(lktab[0]),
@@ -116,7 +142,7 @@ def cpp_field(C, zs, Rperp):
 
 
 # ------------------------------------------------- notebook exact reference
-def notebook_cov(C, zs, Rperp, nkperp=4096, nkpar=1600):
+def notebook_cov(C, zs, Rperp, nkperp=4096, nkpar=1600, window=0):
     """Exact discrete-mode covariance built from the notebook's P1D class
     (independent integral: different grids, exact per-mode evaluation)."""
     c, Lh = shells(C, zs)
@@ -131,7 +157,8 @@ def notebook_cov(C, zs, Rperp, nkperp=4096, nkpar=1600):
     for t0 in range(0, nkpar, 128):
         t1 = min(t0 + 128, nkpar)
         kk = np.sqrt(ktab[None, t0:t1] ** 2 + kperp[:, None] ** 2)
-        Ptab[t0:t1] = np.trapezoid(kperp[:, None] ** 2 * C.Pk(kk) * W2[:, None],
+        w2 = W2[:, None] if window == 0 else window2_iso(kk * Rperp, window)
+        Ptab[t0:t1] = np.trapezoid(kperp[:, None] ** 2 * C.Pk(kk) * w2,
                                    dx=dlnkp, axis=0) / (2.0 * PI)
     lk, lP = np.log(ktab), np.log(np.maximum(Ptab, 1e-300))
     P1D = lambda k: np.exp(np.interp(np.log(np.clip(k, ktab[0], None)), lk, lP))
@@ -150,9 +177,9 @@ def notebook_cov(C, zs, Rperp, nkperp=4096, nkpar=1600):
     return Cov
 
 
-def compare(zs, Rperp, C):
-    f = cpp_field(C, zs, Rperp)
-    ref = notebook_cov(C, zs, Rperp)
+def compare(zs, Rperp, C, window=0):
+    f = cpp_field(C, zs, Rperp, window)
+    ref = notebook_cov(C, zs, Rperp, window=window)
     scale = np.max(np.diag(ref))
     dev_cov = np.max(np.abs(f["Cov"] - ref)) / scale
     dev_sig = np.max(np.abs(np.sqrt(f["sig2"]) / np.sqrt(np.diag(ref)) - 1.0))
@@ -167,7 +194,7 @@ def compare(zs, Rperp, C):
     i = int(np.argmax(f["sig2"]))
     bDg = 0.5 / np.sqrt(f["sig2"][i])
     lam = np.exp(bDg * d[:, i] - 0.5 * bDg ** 2 * f["sig2"][i])
-    print(f"zs={zs:4g} Rperp={Rperp:9.4g} kpc  Nmax={f['Nmax']:>8d} "
+    print(f"zs={zs:4g} win={WINDOW_NAME[window]:6s} Rperp={Rperp:9.4g} kpc  Nmax={f['Nmax']:>8d} "
           f"n={f['n']:3d}  |dCov|/diag={dev_cov:.2e}  dsig={dev_sig:.2e}  "
           f"|chol@cholT-Cov|={dev_ch:.2e}  <lam>={lam.mean():.4f}"
           f"  sig_max={np.sqrt(f['sig2'].max()):.4f}")
@@ -230,12 +257,12 @@ def weak_tables(C, f, mc, vc, ng=193, dsig=6.0):
     return SV, SV_exact
 
 
-def weak_check(zs, Rperp, C, rng):
+def weak_check(zs, Rperp, C, rng, window=0):
     kt = C.find_kappathr(zs, 100)
     sigW = float(C.sigmakappaW(zs, kt))
     mc, vc = weak_moments_cells(C, zs, kt)
     dv = abs(vc.sum() - sigW ** 2) / sigW ** 2      # reviewer gate: sum v = sigma_W^2
-    f = cpp_field(C, zs, Rperp)
+    f = cpp_field(C, zs, Rperp, window)
     SV, SVx = weak_tables(C, f, mc, vc)
     # interp accuracy at random delta in +-5 sigma_i (inside the clamp)
     n = f["n"]
@@ -258,11 +285,51 @@ def weak_check(zs, Rperp, C, rng):
     a = C.biaslist * C.Dg(C.zlist)[:, None]
     B = np.array([float(a[i + 1] @ mc[i + 1]) for i in range(n)])
     lin = float(B @ f["Cov"] @ B)
-    print(f"zs={zs:4g} Rperp={Rperp:9.4g} kpc  dSumV={dv:.2e}  interp errS={errS:.2e} "
+    print(f"zs={zs:4g} win={WINDOW_NAME[window]:6s} Rperp={Rperp:9.4g} kpc  dSumV={dv:.2e}  interp errS={errS:.2e} "
           f"errV={errV:.2e}  <S>={Ssum.mean():+.2e} (sd {Ssum.std():.4f})  "
           f"<V>/sigW^2={Vsum.mean()/sigW**2:.4f}  Var(S)/linBCB={Ssum.var()/lin:.3f}")
     return dv < 1e-9 and errS < 2e-2 and errV < 2e-2 and \
         abs(Ssum.mean()) < 5 * Ssum.std() / np.sqrt(len(d)) + 1e-9
+
+
+def grid_check(C, zs=1.0):
+    """k_perp quadrature convergence of the P_1D table, per window.
+
+    The (nkperp, kperp_hi) = (2048, 60/Rw) constants in BiasField1D::build were
+    tuned for the disk window; windows 1/2 put the window on |k| instead, so
+    re-verify by doubling BOTH (4096, 120/Rw) and comparing the P_1D table over
+    the tabulated k_par range. Gate: max relative difference < 1e-4.
+    """
+    ok = True
+    for window in (0, 1, 2):
+        for Rperp in (3000.0, 8441.0, 20000.0):
+            L = PAD * float(C.dc(zs))
+            Nmax = max(4, int(np.floor(L / Rperp)))
+            kpar = np.exp(np.linspace(np.log(0.5 * 2.0 * PI / L),
+                                      np.log(2.0 * PI * Nmax / L), 600))
+            def P1D(nkperp, hi_fac):
+                Rw = max(Rperp, 10.0)
+                kperp = np.exp(np.linspace(np.log(1e-9),
+                                           np.log(hi_fac / Rw), nkperp))
+                dlnkp = np.log(kperp[1] / kperp[0])
+                W2 = Wdisk(kperp * Rperp) ** 2
+                out = np.empty(len(kpar))
+                for t0 in range(0, len(kpar), 64):
+                    t1 = min(t0 + 64, len(kpar))
+                    kk = np.sqrt(kpar[None, t0:t1] ** 2 + kperp[:, None] ** 2)
+                    w2 = W2[:, None] if window == 0 else window2_iso(kk * Rperp, window)
+                    out[t0:t1] = np.trapezoid(kperp[:, None] ** 2 * C.Pk(kk) * w2,
+                                              dx=dlnkp, axis=0) / (2.0 * PI)
+                return out
+            base = P1D(2048, 60.0)
+            fine = P1D(4096, 120.0)
+            dev = float(np.max(np.abs(fine / base - 1.0)))
+            ok &= dev < 1e-4
+            print(f"zs={zs:g} win={WINDOW_NAME[window]:6s} Rperp={Rperp:8.4g} kpc  "
+                  f"max|P1D(4096,120/Rw)/P1D(2048,60/Rw) - 1| = {dev:.2e}"
+                  f"  [{'ok' if dev < 1e-4 else 'UNCONVERGED'}]")
+    print("GRID CHECK " + ("PASS" if ok else "FAIL"))
+    return ok
 
 
 def module_smoke():
@@ -327,19 +394,27 @@ def main():
     if "--module" in sys.argv:
         module_smoke()
         return
+    C0 = Cosmo(Nz=100)
+    if "--gridcheck" in sys.argv:
+        sys.exit(0 if grid_check(C0) else 1)
+    # --window=N restricts to one window (default: all three)
+    wins = [int(a.split("=")[1]) for a in sys.argv if a.startswith("--window=")] or [0, 1, 2]
     ok = True
     rng = np.random.default_rng(2026_07_16)
-    for zs in (1.0, 5.0):
-        C = Cosmo(Nz=100)
-        rho = C.rhoM0
-        for M in (1e5, 1e11, 1e14, 1e17, 1e20):
-            RL = (3.0 * M / (4.0 * PI * rho)) ** (1.0 / 3.0)
-            dev_cov, dev_sig, dlam = compare(zs, RL, C)
-            # acceptance: table-interpolation-level agreement + exact bookkeeping
-            ok &= dev_cov < 1e-3 and dev_sig < 1e-3 and dlam < 5e-3
-        print(f"-- weak arm (bias_weak) layer, zs={zs:g}:")
-        for M in (1e11, 1e14, 1e17):
-            ok &= weak_check(zs, (3.0 * M / (4.0 * PI * rho)) ** (1.0 / 3.0), C, rng)
+    for window in wins:
+        for zs in (1.0, 5.0):
+            C = Cosmo(Nz=100)
+            rho = C.rhoM0
+            for M in (1e5, 1e11, 1e14, 1e17, 1e20):
+                RL = (3.0 * M / (4.0 * PI * rho)) ** (1.0 / 3.0)
+                dev_cov, dev_sig, dlam = compare(zs, RL, C, window)
+                # acceptance: table-interpolation-level agreement + exact bookkeeping
+                ok &= dev_cov < 1e-3 and dev_sig < 1e-3 and dlam < 5e-3
+            print(f"-- weak arm (bias_weak) layer, zs={zs:g}, "
+                  f"win={WINDOW_NAME[window]}:")
+            for M in (1e11, 1e14, 1e17):
+                ok &= weak_check(zs, (3.0 * M / (4.0 * PI * rho)) ** (1.0 / 3.0),
+                                 C, rng, window)
     print("PASS" if ok else "FAIL: covariance/weak layer deviates beyond gates")
     sys.exit(0 if ok else 1)
 

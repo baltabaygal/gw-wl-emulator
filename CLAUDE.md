@@ -374,6 +374,39 @@ user explicitly asks, under their supervision.**
    `data/results/vark_nz/mechanism_note.md`, `data/results/{bias_field_prototype,
    rperp_pdf_scan,bias_field_weak_arm,mb_validity,shard_screen}/report.md`; M_b/M map,
    deep-tail and clustering-share narratives: `docs/claude_md_archive.md`.
+   **Window generalized to a selectable enum (2026-07-20, GATES PASSED — default
+   flip PENDING user/supervisor sign-off, bundle with the R_⊥ sign-off):**
+   `bias_window` 0 = transverse disk on k_⊥ (legacy, **bitwise default**) /
+   1 = spherical top-hat / 2 = Gaussian, the latter two on the FULL modulus
+   |k| = √(k∥²+k_⊥²) (`lensing.cpp::biasWindow2` + `BiasField1D::build`);
+   requires `bias_model=1` (throws); wired through `lnmu_wrapper` + **all five**
+   py entry points + config dict. Gates: pristine-HEAD-worktree build vs patched
+   = 32/32 arrays bitwise (default AND explicit `bias_window=0`); 11/11 cosmology
+   + 14/14 new `tests/test_bias_window.py`; k_⊥ grid converged for all windows at
+   the existing constants (≤4.3e-5, gate 1e-4); replica-vs-reference |ΔCov| ≤9e-6,
+   ⟨λ⟩ 0.998–1.001; **NEW production-C++-vs-replica probe** (`bias_window_field_probe.cpp`
+   + `check_cpp_vs_replica.py`) agrees to **7e-13** — this is the gate that catches
+   a window applied to k_⊥ instead of |k|, which every other gate passes.
+   Physics (240k/arm, `kappa_anchor=1`): at the production R_⊥=8.44 Mpc
+   **JSD(top-hat, disk) is AT THE SHARD FLOOR at z_s=0.5/1/5** (matched 120k-vs-120k);
+   the resolvable difference is Var_clip(lnμ) +3.1/+1.3/+0.8%. **Candidate default R
+   UNCHANGED at 8441 kpc** — the clustering-variance-weighted R_L scale is a
+   population property and is *identical* for all three windows (2026-07-16 numbers
+   reproduced exactly). Gaussian at the variance-matched **R_G = 3972.1 kpc
+   (0.4706·R_TH; `bias_Rperp` is used AS GIVEN, no internal rescaling)** is at floor
+   vs the top-hat ⇒ once R is fixed by σ(R), window shape is immaterial to P(lnμ).
+   Weak arm composes unchanged: split-invariance JSD 3.36e-4 (z1) / 5.56e-4 (z5) vs
+   a **new disk control** 3.40e-4 / 5.91e-4 — identical, so the Cox-split residual is
+   not window-induced. **Edge unmoved by the window** (q01 shifts ≤7e-4 at z_s≤1 vs
+   the weak arm's −1.4e-2) ⇒ no NEW emulator edge/flux refit beyond the weak arm's.
+   ⚠ Counterintuitive but real: the top-hat has ~8% LESS per-shell variance yet
+   ~6% MORE LOS-**coherent** power (Σ_ij Cov_ij) — κ integrates coherently, so
+   Var(lnμ) goes UP; do not reason from trace/σ²_shell alone. Exact identity the
+   disk cannot have: σ²_point(δ_1D)=σ²(R) to 1.0000 (0.9997 with the mode cutoff);
+   the cutoff removes 4.0% of the DISK field's σ but 0.03% of the top-hat's.
+   Full evidence: `data/results/bias_window/{report.md,tables.md}`,
+   `plots/bias_window_scan.png`; scripts `scripts/convergence/bias_window_{scan,
+   sigmaR,weighted_scale}.py`.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

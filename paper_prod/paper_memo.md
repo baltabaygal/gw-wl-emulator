@@ -35,9 +35,23 @@ rule as CLAUDE.md; date your edits).
 
 ### §II.A.1 Clustering (correlated 1D field, bias_model=1)
 
-- Eq. P_1D(k∥) [transverse DISK window 2J1(x)/x on k⊥, NOT isotropic 3D top-hat —
-  see draft_comments_memo R1]: `lensing.cpp::BiasField1D::build` (:469–524,
-  header comment :317–342); R⊥ default 8441 kpc = R_L(1e14): `lensing.h:137`.
+- Eq. P_1D(k∥): `lensing.cpp::BiasField1D::build` (header comment :317–342);
+  R⊥ default 8441 kpc = R_L(1e14): `lensing.h`.
+  **Window is now selectable (`bias_window`, 2026-07-20): 0 = transverse DISK
+  2J1(x)/x on k⊥ (still the BITWISE DEFAULT — what the current draft text
+  describes), 1 = spherical 3D top-hat, 2 = Gaussian, both on |k|**
+  (`lensing.cpp::biasWindow2`). Gates all passed; **the default flip 0→1 is
+  PENDING user/supervisor sign-off** — until it happens, keep the draft's
+  window wording as-is (draft_comments_memo R1 flagged the draft↔code mismatch;
+  flipping the default is what RESOLVES it, in the top-hat's favour).
+  Key numbers if/when the text changes: at R⊥ = 8.44 Mpc the top-hat and disk
+  PDFs differ only at the sampling floor (JSD at floor, z_s = 0.5/1/5;
+  Var_clip +1.3% at z_s = 1); the weighted signal scale — hence R⊥ = R_L(1e14) —
+  is window-INDEPENDENT; a Gaussian at the variance-matched R_G = 3972 kpc is
+  indistinguishable from the top-hat (one-line robustness statement); and the
+  top-hat satisfies σ²_point(δ_1D) = σ²(R) exactly (1.0000), the identity the
+  draft's σ(R) language already implies and the disk misses by 19%.
+  Evidence: `data/results/bias_window/report.md`.
 - Eq. δ_1D mode sum / σ_n²: realized as exact shell-covariance + Cholesky
   (equal in law): `BiasField1D::build` mode sum (:526–~600); L = 1.05χ(z_s)
   (:480), N_max = L/R⊥ (:481).

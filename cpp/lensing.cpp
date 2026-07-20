@@ -387,9 +387,31 @@ static void weakMomentsNFW(cosmology &C, double zs, double kappathr, double eps_
     }
 }
 
+// Smoothing window W~(x)^2 for the ISOTROPIC bias-field windows (bias_window
+// 1 = spherical top-hat, 2 = Gaussian), x = |k| R. Window 0 (transverse disk)
+// acts on k_perp alone and stays precomputed on the k_perp grid in build().
+static inline double biasWindow2(double x, int window) {
+    if (window == 2) {                                 // Gaussian, exp(-x^2/2)
+        double W = exp(-0.5*x*x);
+        return W*W;
+    }
+    // spherical top-hat, 3 (sin x - x cos x)/x^3; the closed form loses
+    // ~3e-16/x^2 to cancellation, so use W = 1 - x^2/10 + x^4/280 below 1e-2
+    // (next term x^6/15120 < 1e-16 there).
+    double W;
+    if (x < 1.0e-2) {
+        double x2 = x*x;
+        W = 1.0 - x2/10.0*(1.0 - x2/28.0);
+    } else {
+        W = 3.0*(sin(x) - x*cos(x))/(x*x*x);
+    }
+    return W*W;
+}
+
 struct BiasField1D {
     int n = 0;                        // number of z-shells (jz = 1 .. n, zlist[jz] < zs)
     double Rperp = 0.0, L = 0.0;
+    int window = 0;                   // cfg.bias_window (0 disk, 1 top-hat, 2 Gaussian)
     long Nmax = 0;                    // mode count L/Rperp (>= 4)
     std::vector<double> sig2;         // Cov_ii per shell (z=0 field, segment-averaged)
     std::vector<double> chol;         // lower-triangular Cholesky of Cov, row-major n*n
@@ -466,8 +488,12 @@ struct BiasField1D {
         has_weak = true;
     }
 
-    void build(cosmology &C, double zs, double Rp) {
+    // win defaults to the legacy disk window so the out-of-tree probes that
+    // include lensing.cpp (playground/*.cpp) keep compiling and keep their
+    // pre-2026-07-20 behavior; production always passes cfg.bias_window.
+    void build(cosmology &C, double zs, double Rp, int win = 0) {
         Rperp = Rp;
+        window = win;
         // ---- shells
         std::vector<double> clo, chi_;
         for (int jz = 1; jz < C.Nz && C.zlist[jz] < zs; jz++) {
@@ -485,7 +511,12 @@ struct BiasField1D {
         const double kmin = 2.0*PI/L;
         const double kmax = 2.0*PI*static_cast<double>(Nmax)/L;
 
-        // ---- P_1D table (log-log interpolated; disk window via GSL J1)
+        // ---- P_1D table (log-log interpolated; window 0 = disk via GSL J1 on
+        // k_perp, precomputed here; windows 1/2 act on |k| and are evaluated
+        // inside the k_par loop below). The k_perp grid is shared: the disk
+        // window is the slowest-decaying of the three (W~^2 ~ x^-3 vs x^-4
+        // top-hat and Gaussian), so its accepted range/resolution bounds them
+        // (verified, data/results/bias_window/report.md).
         const int nkperp = 2048, nktab = 600;
         const double Rw = std::max(Rperp, 10.0);          // window floor, as in the prototype
         const double kperp_lo = 1.0e-9, kperp_hi = 60.0/Rw;
@@ -502,11 +533,15 @@ struct BiasField1D {
         for (int t = 0; t < nktab; t++) {
             double lk = lk0 + (lk1 - lk0)*t/(nktab - 1);
             double kpar = exp(lk);
-            // trapezoid in ln kperp of kperp^2 P0 W^2 (notebook P1D, verbatim)
+            // trapezoid in ln kperp of kperp^2 P0 W^2 (notebook P1D, verbatim).
+            // Only the window weight differs between the three shapes: the disk
+            // reads the precomputed W2[i] (k_perp), the isotropic windows are
+            // evaluated at |k| = kk, which is why they cannot be tabulated.
             double s = 0.0, fprev = 0.0;
             for (int i = 0; i < nkperp; i++) {
                 double kk = sqrt(kpar*kpar + kperp[i]*kperp[i]);
-                double f = kperp[i]*kperp[i]*C.Pk0(kk)*W2[i];
+                double w2 = (window == 0) ? W2[i] : biasWindow2(kk*Rperp, window);
+                double f = kperp[i]*kperp[i]*C.Pk0(kk)*w2;
                 if (i > 0) s += 0.5*(f + fprev)*dlnkp;
                 fprev = f;
             }
@@ -650,6 +685,14 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     if (cfg.bias_model == 1 && cfg.bias_Rperp <= 0.0) {
         throw std::invalid_argument("bias_model = 1 requires bias_Rperp > 0 (comoving kpc)");
     }
+    if (cfg.bias_window < 0 || cfg.bias_window > 2) {
+        throw std::invalid_argument("bias_window must be 0 (transverse disk), 1 (spherical "
+                                    "top-hat) or 2 (Gaussian)");
+    }
+    if (cfg.bias_window != 0 && cfg.bias_model != 1) {
+        throw std::invalid_argument("bias_window != 0 requires bias_model = 1 (the window "
+                                    "shapes the correlated field's power spectrum)");
+    }
     if (cfg.bias_weak && cfg.bias_model != 1) {
         throw std::invalid_argument("bias_weak requires bias_model = 1 (the correlated field "
                                     "supplies the conditioning); it is a no-op when bias = 0");
@@ -745,7 +788,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     BiasField1D bfield;
     std::vector<float> bfvals;
     if (cfg.bias_model == 1 && cfg.bias != 0) {
-        bfield.build(C, zs, cfg.bias_Rperp);
+        bfield.build(C, zs, cfg.bias_Rperp, cfg.bias_window);
         if (bfield.n > 0) {
             const int nsh = bfield.n;
             bfvals.resize(static_cast<size_t>(cfg.Nreal)*nsh);

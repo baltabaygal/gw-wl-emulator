@@ -50,6 +50,8 @@ struct SamplingParams {
     int bias_model = 0;            // 0 legacy iid cell bias (default, bit-identical); 1 correlated 1D field
     double bias_Rperp = 8441.0;    // comoving kpc transverse window radius = R_L(1e14) (bias_model = 1 only)
     bool bias_weak = false;        // weak arm: kappa_W conditional on the field (requires bias_model = 1)
+    int bias_window = 0;           // field smoothing window: 0 transverse disk (default, bit-identical);
+                                   // 1 spherical top-hat, 2 Gaussian (both on |k|; require bias_model = 1)
 };
 
 struct LnmuSampleDiagnostics {
