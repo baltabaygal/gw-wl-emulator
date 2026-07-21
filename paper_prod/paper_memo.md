@@ -35,23 +35,43 @@ rule as CLAUDE.md; date your edits).
 
 ### §II.A.1 Clustering (correlated 1D field, bias_model=1)
 
-- Eq. P_1D(k∥): `lensing.cpp::BiasField1D::build` (header comment :317–342);
-  R⊥ default 8441 kpc = R_L(1e14): `lensing.h`.
-  **Window is now selectable (`bias_window`, 2026-07-20): 0 = transverse DISK
-  2J1(x)/x on k⊥ (still the BITWISE DEFAULT — what the current draft text
-  describes), 1 = spherical 3D top-hat, 2 = Gaussian, both on |k|**
-  (`lensing.cpp::biasWindow2`). Gates all passed; **the default flip 0→1 is
-  PENDING user/supervisor sign-off** — until it happens, keep the draft's
-  window wording as-is (draft_comments_memo R1 flagged the draft↔code mismatch;
-  flipping the default is what RESOLVES it, in the top-hat's favour).
-  Key numbers if/when the text changes: at R⊥ = 8.44 Mpc the top-hat and disk
-  PDFs differ only at the sampling floor (JSD at floor, z_s = 0.5/1/5;
-  Var_clip +1.3% at z_s = 1); the weighted signal scale — hence R⊥ = R_L(1e14) —
-  is window-INDEPENDENT; a Gaussian at the variance-matched R_G = 3972 kpc is
-  indistinguishable from the top-hat (one-line robustness statement); and the
-  top-hat satisfies σ²_point(δ_1D) = σ²(R) exactly (1.0000), the identity the
-  draft's σ(R) language already implies and the disk misses by 19%.
-  Evidence: `data/results/bias_window/report.md`.
+- Eq. P_1D(k∥): `lensing.cpp::BiasField1D::build` + `biasWindow2` (:390–550).
+  Window is a selectable enum `bias_window`: 0 = transverse disk 2J1(x)/x on k⊥
+  (bitwise default), 1 = spherical 3D top-hat 3(sinx−xcosx)/x³, 2 = Gaussian,
+  the latter two on |k|=√(k∥²+k⊥²).
+  **PAPER/PRODUCTION = top-hat (window 1), R_s = 20 Mpc** (user decision
+  2026-07-20). §II.A.1 uses the isotropic form
+  P_1D = (1/2π)∫_{k∥}^∞ dk k P(k) W̃²(R_s k), W̃ = 3(sinx−xcosx)/x³,
+  σ²_1D = σ²(R_s). Gaussian robustness at matched σ²: R_G = 9.45 Mpc.
+- ⚠ R_s = 20 Mpc, NOT R_L(1e14) = 8.44 Mpc (2026-07-20): R_L is a Lagrangian
+  radius, not a smoothing scale; 20 Mpc is larger/PBS-cleaner and matches
+  Ville's original draft. σ_TH 0.972 (8.44) → **0.530 (20 Mpc)**, clustering
+  var ~30%. Window-shape robustness (top-hat vs Gaussian) is R-independent
+  and stands. `bias_window_sigmaR.py --R 20000`; §5b of
+  `data/results/bias_window/report.md`.
+- **R_s dependence MEASURED at 20 Mpc (2026-07-20)** — this is what backs the
+  draft's "We show later how changing $R_s$ impacts our results", which until
+  now had NO result behind it (R_s appears at :72–76, :99, :105, caption, then
+  nowhere). Full config (with the §II.A.3 conditional weak arm), 240k/arm,
+  R_s = 5/10/20/40/80 Mpc: Var(lnμ)/no-clustering = 1.99/1.45/**1.15**/1.05/1.02
+  at z_s=0.5, 1.62/1.30/**1.11**/1.04/1.01 at z_s=1, 1.32/1.18/**1.08**/1.04/1.02
+  at z_s=5 (bold = production). ⚠ The falloff is only APPROXIMATELY σ²(R_s):
+  good to ~10% for z_s≲1 at R_s≲20 Mpc, shallower at R_s≥40 Mpc and at z_s=5
+  — do not write it as a σ²(R_s) law.
+  **PAPER FIGURE: `paper_prod/scripts/plot_fig_clustering_rs.py` →
+  `plots/fig_clustering_rs.{pdf,png}`** (single column, paper style, joint arms,
+  R_s=20 marked; z_s ramp validated: CVD ΔE 16.3, contrast ≥3:1). Study version
+  (2-panel, incl. JSD + counts-only): `plots/bias_window_rs_scan.png`; table
+  `data/results/bias_window/rs_dependence.md`. ⚠ Quote the JOINT numbers:
+  counts-only arms give only 1.07/1.04/1.02 at 20 Mpc and would misrepresent
+  clustering as nearly inert.
+- ⚠ Default STAGED (user 2026-07-20): shipped default stays `bias_model=0`
+  (legacy iid) + `bias_window=0` (disk). Production config
+  `bias_model=1, bias_window=1, bias_Rperp=20000` passed EXPLICITLY. Full flip
+  (incl. bias_model 0→1 = clustering on by default, and the 8.44→20 reversal)
+  bundled for Ville's sign-off. `docs/bias_window_design_plan.md`.
+- Paper/fig updated: `paper_prod/draft_revised_2026-07-20.tex` clustering block;
+  `plots/fig_clustering_field.{pdf,png}` (headline 20 Mpc + 8.44 comparison).
 - Eq. δ_1D mode sum / σ_n²: realized as exact shell-covariance + Cholesky
   (equal in law): `BiasField1D::build` mode sum (:526–~600); L = 1.05χ(z_s)
   (:480), N_max = L/R⊥ (:481).
@@ -130,7 +150,36 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   model 1 here — fix per draft_comments_memo item 4.
 - Paper figure (SHMF + radial, incl. python port of the f_s chain):
   `paper_prod/scripts/plot_fig_subhalo_population.py` →
-  `plots/fig_subhalo_population.pdf`.
+  `paper_prod/plots/figures/fig_subhalo_population.{pdf,png}` (promoted into the
+  paper figure dir 2026-07-20, facecolor=white dpi=300 like the siblings; NO
+  LONGER writes repo-root `plots/`). **Reworked 2026-07-20 into a comparison
+  figure, then simplified to a SINGLE 10¹³ M⊙ host at z=0.5** (per-model colors,
+  not per-host; axes x∈[1e-4,1], y∈[1e-2,1e3]). Panel (a) overlays two external
+  bound-mass references on the same host: Diffhalos (Zacharegkas+26
+  arXiv:2607.10419; exact numpy port of their CCSHMF sig-slope kernel, verified
+  vs the JAX package <1e-6; native masses are PEAK/unevolved — no evolved MF
+  exists in Diffhalos) **converted to bound at runtime by the EMERGENT stripping
+  factor s_eff = f_s,b / f_peak ≈ 0.113** (both integrated over [m_floor/M,1];
+  parameter-free — our f_s sets the conversion; a ψ→s·ψ shift since dN/dlnψ is
+  number-conserving; shown dashed to ψ≤0.5·s_eff where the differential-of-
+  sigmoid is still clean, ~5% rolloff wiggle beyond is invisible on the log
+  axis); and pyHalo bound masses (evolved; `data/pyhalo_vs_ours.npz`, now the
+  **2000-realization** matched run — host 1e13, z_l=0.5, z_s=2, m_infall up to
+  the host mass, R<38 kpc aperture, deprojected by our f_ap=0.0198; reaches
+  ψ≈0.34 with a smooth rolloff; per-host ratio to ours ≈0.5–0.7 at low ψ,
+  ~1.0–1.6 through the rolloff, consistent with
+  `docs/subhalo/pyhalo_pipeline_comparison.md` §4). Regenerate more realizations
+  with `.venv_pyhalo/bin/python tmp/pyhalo_vs_ours_plot.py --mhi 1e13 --nreal N
+  --suffix …` (~0.65 s/real) then copy the tmp npz onto `data/pyhalo_vs_ours.npz`.
+  Panel (b) is the radial BIAS function B(x) log-log (replacing the dN/dx
+  panel; old version in git): adopted fit + Green+21 + Bolshoi points (both
+  digitized in `scripts/subhalo_gate/fit_bias_profile.py`) + Springel+08
+  Aq-A-1 Einasto/NFW (α=0.678, r₋₂=0.81 r200, c_NFW=16.11, verified from
+  arXiv:0809.0898 §3.2+Tab.2) + Han+16 x^1.3 (Aq-A, their Fig. 1; model
+  γ=αβ~1). Caveats for the caption: diffhalos CCSHMF is z-independent
+  (JvdB16-tuned, hosts 1e11–1e15); pyHalo deprojection assumes our radial
+  profile (slight underestimate of their halo average); the (0.54, 5/2) x is
+  r/r200 vs r_vir calibration nit (draft_comments_memo R6) still applies.
 - Fig. `fig:subhalo-factor`: existing file is `plots/sigma_k_vs_subhalo_factor.png`
   (draft's filename doesn't exist); regenerate via
   `scripts/figures/plot_variance_vs_factor.py` lineage.

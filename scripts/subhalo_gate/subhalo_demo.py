@@ -108,8 +108,10 @@ def dN_dlnpsi(psi, gamma):
     return gamma*psi**ALPHA*np.exp(-BETA*psi**OMEGA)
 
 # ----------------------------------------------- concentration & NFW geometry
-def conc(M, z):                      # Duffy+2008 (200c)
-    return 5.71*(M/(2e12/h))**(-0.084)*(1+z)**(-0.47)
+def conc(M, z):                      # cons14 (Dutton-Maccio 2014, 200c) — matches C++ cosmology::cons14
+    a = 0.520 + (0.905-0.520)*np.exp(-0.617*z**1.21)
+    b = -0.101 + 0.026*z
+    return 10.0**(a + b*np.log10(M*h/1e12))
 def r200_kpc(M, z):
     return (3*M/(4*np.pi*200*E(z)**2*rho_crit0))**(1/3)
 

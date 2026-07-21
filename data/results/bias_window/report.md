@@ -341,6 +341,32 @@ introduced by `bias_window`.
 - z_s = 5 clustering at the production R is at the JSD floor for both windows, so
   the z_s = 5 window comparison has little dynamic range by construction.
 
+## 5b. User decision (2026-07-20, after this report)
+
+- **Window: spherical top-hat (`bias_window=1`) adopted** as the production
+  window. Gaussian (`bias_window=2`) kept as a shape-robustness option.
+- **R_s = 20 Mpc chosen as the production scale, NOT 8.44 Mpc.** Reasoning:
+  R_L(1e14)=8.44 Mpc is a *Lagrangian radius*, not a smoothing scale;
+  R_s = 20 Mpc is the (larger, PBS-cleaner) smoothing radius, and is the value
+  in Ville's original draft. **Consequence (this changes §4 magnitudes):**
+  top-hat point-field sigma 0.972 (8.44) -> **0.530 (20 Mpc)**, clustering
+  variance ~30% of the 8.44 value (`bias_window_sigmaR.py --R 20000`). The
+  §4.1/§4.4 fiducial magnitudes here (+3.1/1.3/0.8% Var_clip, JSD at floor) were
+  measured at 8.44 Mpc — at 20 Mpc the clustering effect is **smaller** and
+  becomes a conservative small correction. **A 20 Mpc MC re-run is needed before
+  quoting clustering magnitudes in the paper.** The window-shape robustness
+  conclusions (§4.3 top-hat vs Gaussian at matched variance) are R-independent
+  and stand. Matched Gaussian at R_s=20 Mpc: R_G = 9.45 Mpc (0.472 R_TH).
+- **Code default NOT flipped (staged, user choice):** shipped default stays
+  `bias_model=0` (legacy iid, bitwise-safe). The production config
+  `bias_model=1, bias_window=1, bias_Rperp=20000` is passed explicitly. Turning
+  the clustering field on by default (bias_model 0->1) + these window/R defaults
+  remains bundled for Ville's sign-off, which now also covers the 8.44->20 Mpc
+  reversal.
+- Paper + figure updated to top-hat / 20 Mpc: `paper_prod/draft_revised_2026-07-20.tex`
+  (clustering block), `plots/fig_clustering_field.{pdf,png}`
+  (`plot_fig_clustering_field.py`, headline 20 Mpc + 8.44 comparison).
+
 ## 6. Open decisions (user / supervisor — deliberately not resolved here)
 
 1. **Flip the default 0 -> 1?** Everything needed is in hand: gates pass, the

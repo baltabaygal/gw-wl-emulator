@@ -22,12 +22,21 @@ including clustering + cross terms to 4.7e-4 with common-mode field draws);
 its curves are stored in the npz (sigW/sigS/cov/sig_tot _analytic) but are NOT
 plotted: a raw-law curve over core-clipped measurements would mix estimators.
 
-Inputs (regenerate before use):
-  playground/partition_components_zs1_seed<0..7>.npz
-      <- playground/sweep_sigma_partition_components.py (8 parallel seeds)
+Inputs (regenerate before use), for the default ENSEMBLE = "crn":
+  playground/partition_components_zs1_seed<100..131>_crn.npz
+      <- sweep_sigma_partition_components.py ... main 1   (32 parallel seeds,
+         common random numbers along the kappa_thr grid)
+  playground/partition_components_zs1_deepcore_seed<100..131>_crn.npz
+      <- sweep_sigma_partition_components.py ... deepcore 1  (the three
+         in-domain deep points at 4x rays)
+  playground/partition_components_zs1_deep_seed<0..7>.npz
+      <- mode=deep; ONLY the sub-floor points (kappa_thr < kappa_min) are taken,
+         as npz documentation of the floor semantics — they are not plotted
   playground/sigma_partition_bias_vs_kthr_zs1.txt
       <- build/sigma_partition_bias_vs_kthr (analytic probe)
-Consolidates into data/sigma_partition_vs_kthr_bias_z1.npz (citable source),
+ENSEMBLE = "legacy" reproduces the original 8-seedbase independent-seed figure
+from partition_components_zs1_{seed,deep_seed}<0..7>.npz.
+Consolidates into data/sigma_partition_vs_kthr_bias_z1[_crn].npz (citable source),
 writes paper_prod/plots/figures/sigma_partition_vs_kthr_bias.{png,pdf} and a
 metadata JSON.
 """
@@ -56,13 +65,26 @@ mpl.rcParams["font.serif"] = ["Computer Modern Roman", "Times New Roman", "DejaV
 mpl.rcParams["mathtext.fontset"] = "cm"
 
 PG = ROOT / "playground"
-DATA = ROOT / "data" / "sigma_partition_vs_kthr_bias_z1.npz"
+_DATA = {"legacy": "sigma_partition_vs_kthr_bias_z1.npz",
+         "crn": "sigma_partition_vs_kthr_bias_z1_crn.npz"}
 OUT_DIR = ROOT / "paper_prod" / "plots" / "figures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 MD_DIR = ROOT / "paper_prod" / "metadata"
 MD_DIR.mkdir(parents=True, exist_ok=True)
 
 ESTIMATOR = "clip1"  # shared-mask core estimator plotted (kappa_tot <= 1)
+KMIN = 1.278e-7      # absolute background floor 1e-3 * kappa_thr(N=100, zs=1)
+
+# Which sweep ensemble to consolidate. "crn" = the 32-seedbase common-random-
+# numbers run (one seed per seedbase for the whole kappa_thr grid, so the
+# estimation errors are correlated ALONG the sweep) plus the deepcore
+# regeneration of the three in-domain deep points at 4x rays. Each point stays
+# individually unbiased; CRN only suppresses the point-to-point scatter, which
+# is the thing this figure is reading off. "legacy" = the original 8-seedbase
+# independent-seed run (seed0+i), kept so the published figure stays
+# reproducible. See sweep_sigma_partition_components.py.
+ENSEMBLE = "crn"
+DATA = ROOT / "data" / _DATA[ENSEMBLE]
 
 
 def git_commit_short():
@@ -73,8 +95,13 @@ def git_commit_short():
         return "unknown"
 
 
-def _load_group(pattern):
-    """Stack one mode's seed files -> (kthr, {est: (nseed, nkt, 7)}, nsamples_pt)."""
+def _load_group(pattern, kthr_max=None):
+    """Stack one mode's seed files -> (kthr, {est: (nseed, nkt, 7)}, nsamples_pt).
+
+    kthr_max, if given, keeps only points strictly below it — used to take the
+    sub-floor documentation points from mode=deep without duplicating the
+    in-domain ones that mode=deepcore regenerates at higher statistics.
+    """
     files = sorted(glob.glob(pattern))
     if not files:
         return None
@@ -82,32 +109,64 @@ def _load_group(pattern):
     kthr = per[0]["kthr"]
     ns_pt = (per[0]["nsamples_pt"] if "nsamples_pt" in per[0].files
              else np.full(kthr.size, int(per[0]["nsamples"])))
-    return kthr, {est: np.stack([p[est] for p in per]) for est in ("raw", "clip1", "q999")}, ns_pt
+    keep = np.ones(kthr.size, bool) if kthr_max is None else kthr < kthr_max
+    if not keep.any():
+        return None
+    return (kthr[keep],
+            {est: np.stack([p[est] for p in per])[:, keep, :]
+             for est in ("raw", "clip1", "q999")},
+            ns_pt[keep])
 
 
 def consolidate():
-    """Rebuild the npz from the sweep outputs (if they exist)."""
-    main = _load_group(str(PG / "partition_components_zs1_seed*.npz"))
-    deep = _load_group(str(PG / "partition_components_zs1_deep_seed*.npz"))
+    """Rebuild the npz from the sweep outputs (if they exist).
+
+    Groups may carry different seed counts (the CRN main/deepcore runs use 32
+    seedbases, the sub-floor deep points are inherited from the original
+    8-seedbase run), so the per-seed cube is NaN-padded to the widest group and
+    all reductions are nan-aware. Seed counts per point are recorded in
+    nseeds_pt; `nseeds` is the count backing the plotted domain.
+    """
+    suffix = "_crn" if ENSEMBLE == "crn" else ""
+    main = _load_group(str(PG / f"partition_components_zs1_seed*{suffix}.npz"))
+    if ENSEMBLE == "crn":
+        deepcore = _load_group(str(PG / "partition_components_zs1_deepcore_seed*_crn.npz"))
+        # sub-floor points only: npz documentation, not plotted, not regenerated
+        deep = _load_group(str(PG / "partition_components_zs1_deep_seed*.npz"), kthr_max=KMIN)
+        groups = [g for g in (main, deepcore, deep) if g is not None]
+    else:
+        deep = _load_group(str(PG / "partition_components_zs1_deep_seed*.npz"))
+        groups = [g for g in (main, deep) if g is not None]
     probe = PG / "sigma_partition_bias_vs_kthr_zs1.txt"
     if main is None or not probe.exists():
         return
-    groups = [g for g in (main, deep) if g is not None]
     kthr = np.concatenate([g[0] for g in groups])
     order = np.argsort(kthr)
     kthr = kthr[order]
     ns_pt = np.concatenate([g[2] for g in groups])[order]
-    save = {"kthr": kthr, "zs": 1.0, "rperp": 8441.0,
-            "nsamples_pt": ns_pt, "nseeds": main[1]["raw"].shape[0]}
+    nseed_max = max(g[1]["raw"].shape[0] for g in groups)
+    nseeds_pt = np.concatenate([
+        np.full(g[0].size, g[1]["raw"].shape[0]) for g in groups])[order]
+    save = {"kthr": kthr, "zs": 1.0, "rperp": 8441.0, "ensemble": ENSEMBLE,
+            "nsamples_pt": ns_pt, "nseeds_pt": nseeds_pt,
+            "nseeds": int(nseeds_pt[kthr >= KMIN].min())}
     for est in ("raw", "clip1", "q999"):
         # (nseed, nkt, 7): var_w var_s cov var_t mean_w mean_s n
-        arr = np.concatenate([g[1][est] for g in groups], axis=1)[:, order, :]
+        blocks = []
+        for g in groups:
+            a = g[1][est]
+            if a.shape[0] < nseed_max:
+                pad = np.full((nseed_max - a.shape[0],) + a.shape[1:], np.nan)
+                a = np.concatenate([a, pad], axis=0)
+            blocks.append(a)
+        arr = np.concatenate(blocks, axis=1)[:, order, :]
+        n_eff = np.sum(~np.isnan(arr[:, :, 3]), axis=0)
         save[f"{est}_per_seed"] = arr
-        save[f"var_w_{est}"] = arr[:, :, 0].mean(0)
-        save[f"var_s_{est}"] = arr[:, :, 1].mean(0)
-        save[f"cov_ws_{est}"] = arr[:, :, 2].mean(0)
-        save[f"var_t_{est}"] = arr[:, :, 3].mean(0)
-        save[f"var_t_{est}_sem"] = arr[:, :, 3].std(0, ddof=1) / np.sqrt(arr.shape[0])
+        save[f"var_w_{est}"] = np.nanmean(arr[:, :, 0], axis=0)
+        save[f"var_s_{est}"] = np.nanmean(arr[:, :, 1], axis=0)
+        save[f"cov_ws_{est}"] = np.nanmean(arr[:, :, 2], axis=0)
+        save[f"var_t_{est}"] = np.nanmean(arr[:, :, 3], axis=0)
+        save[f"var_t_{est}_sem"] = np.nanstd(arr[:, :, 3], axis=0, ddof=1) / np.sqrt(n_eff)
     (kt_a, sWsh, sWco, sWt, sSsh, sSco, sSt, cov_a, sT_a) = np.loadtxt(probe, unpack=True)
     save.update(kthr_analytic=kt_a,
                 sigW_shot_analytic=sWsh, sigW_corr_analytic=sWco, sigW_analytic=sWt,
@@ -142,7 +201,6 @@ def main():
     sig_w_shot = np.array([shot_map[round(4.0 * np.log10(k))] for k in kthr])
     sig_w_corr = np.sqrt(np.maximum(sig_w**2 - sig_w_shot**2, 0.0))
 
-    KMIN = 1.278e-7  # absolute background floor 1e-3 * kappa_thr(N=100, zs=1)
     core = kthr >= KMIN
     plateau = float(sig_t[core].mean())
     flat = (sig_t[core].max() - sig_t[core].min()) / plateau
@@ -196,13 +254,21 @@ def main():
         "git_commit": git_commit_short(),
         "source_data": str(DATA.relative_to(ROOT)),
         "estimator": ESTIMATOR,
+        "ensemble": ENSEMBLE,
+        "nseeds_plotted_domain": int(d["nseeds"]),
         "plateau_sigma": plateau,
         "flatness_relrange_sigma_total_core": float(flat),
         "below_floor_max_sigma_ratio": deep_ratio,
         "notes": "zs=1, halo-only + correlated bias field (bias_model=1, Rperp=8441 kpc) "
                  "with the conditional weak arm (bias_weak). weak/strong/total measured from "
                  "sample_lensing_raw_ml via the kappa_weak per-ray split, kappa_tot<=1 core "
-                 "mask, %d seeds, 4k-100k rays per threshold (adaptive below 1e-5); "
+                 "mask, %d seeds, 32k-120k rays per threshold (adaptive below 1e-5); "
+                 "the plotted ensemble uses common random numbers along the kappa_thr "
+                 "grid (one seed per seedbase for the whole sweep), which leaves every "
+                 "point individually unbiased but correlates the errors along the sweep "
+                 "and so suppresses point-to-point scatter (pilot: rms second-difference "
+                 "roughness 2.71%% -> 1.36%% at fixed cost); the plateau LEVEL is "
+                 "therefore backed by the seedbase count, not by nseeds*npoints. "
                  "Var_w+Var_s+2Cov=Var_tot exact on the shared mask. weak(shot) = analytic "
                  "Campbell sigma_W (floor-consistent, = production injection, clip-"
                  "insensitive); weak(corr.) = sqrt(Var_w - shot^2) on the core mask. "

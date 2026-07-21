@@ -12,6 +12,18 @@ its validation gates in this run: |dCov|/diag ≤ 4e-6, ⟨λ⟩=1 to 0.2%).
 
 ## R1. "Should we show some plot here, e.g. P_1D or realizations of λ?"
 
+> **UPDATE 2026-07-20 (SUPERSEDES the disk-window text below).** User adopted the
+> **spherical top-hat** window (`bias_window=1`) at **R_s = 20 Mpc**. So the
+> draft's original isotropic form is now CORRECT and was restored (not the disk
+> equation this memo first proposed): P_1D = (1/2π)∫_{k∥}^∞ dk k P(k) W̃²(R_s k),
+> W̃ = 3(sinx−xcosx)/x³, σ²_1D = σ²(R_s). R_s = 20 Mpc, NOT R_L(1e14)=8.44 Mpc
+> (R_L is a Lagrangian radius, not a smoothing scale). σ_TH 0.972→0.530 ⇒
+> clustering is a small correction; 8.44 kept as the signal-weighted comparison
+> curve. Gaussian robustness note: matched R_G = 9.4 Mpc. Applied in
+> `draft_revised_2026-07-20.tex`; figure regenerated (headline 20 Mpc). Points
+> 1–2 below (disk window, 8.44 Mpc) are OBSOLETE; points 3 (L=1.05χ) and 4
+> (shell-average σ) still apply. Ville sign-off pending (reverses 2026-07-16).
+
 Yes — both, one figure. Generated: `plots/fig_clustering_field.pdf`.
 Panel (a): P_1D(k∥) for the pencil limit R⊥→0 (KP91), the production default
 R⊥ = 8441 kpc = R_L(10^14 M⊙), and 2× the default; dots mark the sampler's mode

@@ -374,6 +374,35 @@ user explicitly asks, under their supervision.**
    `data/results/vark_nz/mechanism_note.md`, `data/results/{bias_field_prototype,
    rperp_pdf_scan,bias_field_weak_arm,mb_validity,shard_screen}/report.md`; M_b/M map,
    deep-tail and clustering-share narratives: `docs/claude_md_archive.md`.
+   **WINDOW/SCALE DECISION (user, 2026-07-20): production = spherical TOP-HAT
+   (`bias_window=1`) at R_s = 20 Mpc, NOT R_L(1e14)=8.44 Mpc.** R_L is a
+   Lagrangian radius, not a smoothing scale; 20 Mpc is larger/PBS-cleaner and is
+   Ville's original draft value. σ_TH(point) 0.972 (8.44) → **0.530 (20 Mpc)** ⇒
+   clustering variance ~30%. Matched Gaussian at R_s=20: R_G=9.45 Mpc.
+   **20 Mpc MC DONE 2026-07-20** (`data/results/bias_window/rs_dependence.md`,
+   `plots/bias_window_rs_scan.png`; arms r05..r80 counts-only / rw05..rw80 joint,
+   240k each, R_s = 5/10/20/40/80 Mpc × z_s = 0.5/1/5): at the production
+   R_s=20 Mpc the FULL config (bias_weak on) gives Var_clip(lnμ)/no-clustering =
+   **1.151 / 1.108 / 1.078** at z_s=0.5/1/5, JSD vs no-clustering
+   3.2e-3 / 1.9e-3 / 9.3e-4 against floors 1.3/1.6/2.9e-4 — i.e. **clustering is
+   NOT inert at 20 Mpc; it sits 3–24× above the sampling floor.** ⚠ Do not judge
+   this from counts-only arms: those give only 1.074/1.043/1.018, so **the
+   conditional sub-threshold arm (bias_weak) carries roughly half to two-thirds
+   of the clustering effect at this scale** — a counts-only reading falsely
+   suggests "inert" (this misled an earlier note here). Going 8.44→20 Mpc drops
+   the boost +51%→+15% (z_s=0.5), +34%→+11% (z_s=1), +22%→+8% (z_s=5).
+   ⚠ σ²(R_s) scaling is APPROXIMATE, not a law — normalized at R_s=20 the
+   measured boost runs 6.5/3.0/1/0.30/0.12 (z_s=0.5) and 5.8/2.7/1/0.41/0.11
+   (z_s=1) over R_s=5/10/20/40/80 Mpc vs σ²(R_s) 6.2/2.7/1/0.29/0.066: good to
+   ~10% for z_s≲1 at R_s≲20 Mpc, but SHALLOWER than σ² at R_s≥40 (where the
+   boost is only 1–5%, near clip noise) and shallower at all R_s for z_s=5
+   (4.2/2.4/1/0.51/0.27). Do not quote it as a clean σ²(R_s) law. **Default STAGED, not flipped:** shipped
+   default stays `bias_model=0`+`bias_window=0`; production config
+   `bias_model=1, bias_window=1, bias_Rperp=20000` passed EXPLICITLY; full flip
+   (incl. bias_model 0→1 + the 8.44→20 reversal) bundled for Ville's sign-off.
+   Paper+fig updated: `draft_revised_2026-07-20.tex`, `fig_clustering_field.*`
+   (headline 20 Mpc + 8.44 comparison). See §5b of the report + `bias_window_sigmaR.py`.
+
    **Window generalized to a selectable enum (2026-07-20, GATES PASSED — default
    flip PENDING user/supervisor sign-off, bundle with the R_⊥ sign-off):**
    `bias_window` 0 = transverse disk on k_⊥ (legacy, **bitwise default**) /

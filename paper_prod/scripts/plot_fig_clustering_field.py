@@ -19,7 +19,9 @@ lambda_i = exp(b Dg dbar_i - (b Dg)^2 sig2_i / 2)  (<lambda_i> = 1 per shell).
 
 Run (no C++ build needed; numpy-only):
   python3 paper_prod/scripts/plot_fig_clustering_field.py
-Outputs: plots/fig_clustering_field.{pdf,png}
+Outputs: paper_prod/plots/figures/fig_clustering_field.{pdf,png}
+(the .tex includegraphics path stays `plots/...` — that is the Overleaf-side
+folder these are copied into, as for the other paper figures)
 """
 import sys
 from pathlib import Path
@@ -37,13 +39,28 @@ from validate_field_covariance import (cpp_field, Wdisk,   # verbatim BiasField1
 from paper_prod.plot_style import apply_style
 from plot_fig_subhalo_population import guard_broken_latex
 
+OUT_DIR = REPO / "paper_prod" / "plots" / "figures"   # paper figure output root
+
 KPC2MPC = 1.0e-3
 RS_DEFAULT = 20000.0          # kpc; production clustering scale R_s = 20 Mpc (2026-07-20)
 RS_SIGNAL = 8441.0            # kpc; signal-weighted scale R_L(1e14 Msun), for comparison
 WINDOW = 1                    # spherical top-hat (lensing.h bias_window = 1)
 ZS_FIELD = 3.0
-M_LAMBDA = 1.0e13
-SEEDS = (11, 21, 31)
+# Panel (b): one field, three halo masses. Mass is ORDINAL, so the encoding is a
+# single-hue sequential ramp (light -> dark) rather than categorical hues: it
+# reads as "more bias" at a glance and, unlike three hues, survives B/W print.
+# Purple keeps it clear of panel (a), which owns blue/green/grey. Adjacent steps
+# of any one-hue ramp sit below the normal-vision separation floor, so each mass
+# also carries a distinct line style (the print-robust secondary encoding);
+# widths increase with mass so the darkest, widest-swinging curve reads on top.
+# Palette checked with the dataviz validator: contrast vs surface PASS (all
+# >= 3:1, needed for thin lines), CVD separation PASS (dE 13.9 deutan).
+M_LIST = (1.0e12, 1.0e13, 1.0e14)
+M_STYLE = {1.0e12: ("#A569BD", ":", 0.8),
+           1.0e13: ("#7D3C98", "--", 0.9),
+           1.0e14: ("#4A235A", "-", 1.1)}
+M_BAND = 1.0e14                     # mass whose +-1 sigma band is drawn (the widest)
+SEED_FIELD = 21                     # the single delta_1D realization on display
 
 
 def P1D_curve(C, kpar, Rperp, window=0):
@@ -83,9 +100,12 @@ def main():
          r"$R_s = 8.44\,{\rm Mpc} = R_L(10^{14}M_\odot)$"),
     ]
 
-    fig, (axa, axb) = plt.subplots(2, 1, figsize=(3.37, 4.7))
-    fig.subplots_adjust(left=0.16, right=0.965, bottom=0.09, top=0.975,
-                        hspace=0.33)
+    # height = 2 x single-panel (2.6") so each panel's axes box equals a
+    # standalone single-panel figure; side/top/bottom margins match
+    # SUBPLOTS_ADJUST["single"] (left=0.20, right=0.95, bottom/top -> 0.416"/0.208")
+    fig, (axa, axb) = plt.subplots(2, 1, figsize=(3.37, 5.2))
+    fig.subplots_adjust(left=0.20, right=0.95, bottom=0.08, top=0.96,
+                        hspace=0.316)
 
     for Rp, ls, col, lab in curves:
         kmaxR = 2.0 * PI / Rp if Rp > 0 else np.inf     # sampler mode cutoff
@@ -100,44 +120,75 @@ def main():
     axa.set_ylabel(r"$P_{\rm 1D}(k_\parallel)\ [{\rm Mpc}]$")
     axa.legend(fontsize=6.5, frameon=False, loc="lower left")
 
-    # ---------------- panel (b): lambda(M=1e13, z) realizations, zs = 3
+    # ---------------- panel (b): lambda(M,z) at three masses, ONE field
+    # realization, zs = 3. Every mass rides the SAME delta_1D, so the curves
+    # share their shape and differ only through btilde(M,z) = D(z) b(M,z) —
+    # i.e. the panel shows the mass dependence of the halo bias the subsection
+    # opens with. On the log axis this is exact:
+    # ln lambda = btilde delta_1D - btilde^2 sig^2/2, so raising M rescales one
+    # and the same field (up to the mean-one compensation).
     f = cpp_field(C, ZS_FIELD, RS_DEFAULT, window=WINDOW)
     n = f["n"]
     zsh = C.zlist[1:n + 1]                               # shell upper edges
-    sigM = float(np.interp(M_LAMBDA, C.sig_M, C.sig_s))
-    bDg = np.array([C.Dg(z) * C.halobias(z, sigM) for z in zsh])
-    comp = 0.5 * bDg ** 2 * f["sig2"]
+    sig_i = np.sqrt(f["sig2"])
+    rng = np.random.default_rng(SEED_FIELD)
+    dbar = f["chol"] @ rng.standard_normal(n)            # the single realization
 
-    for j, seed in enumerate(SEEDS):
-        rng = np.random.default_rng(seed)
-        dbar = f["chol"] @ rng.standard_normal(n)
-        lam = np.exp(bDg * dbar - comp)
-        axb.plot(zsh, lam, drawstyle="steps-mid", lw=0.9, color=f"C{j}")
-    # per-shell +-1 sigma band of the mean-one lognormal
-    lo = np.exp(-bDg * np.sqrt(f["sig2"]) - comp)
-    hi = np.exp(+bDg * np.sqrt(f["sig2"]) - comp)
-    axb.fill_between(zsh, lo, hi, step="mid", color="0.75", alpha=0.35, lw=0,
-                     label=r"$\pm1\sigma$ band")
+    def bDg_of_M(M):
+        sigM = float(np.interp(M, C.sig_M, C.sig_s))
+        return np.array([C.Dg(z) * C.halobias(z, sigM) for z in zsh]), sigM
+
+    # +-1 sigma band of the mean-one lognormal, drawn UNDER the curves for the
+    # widest mass shown so every curve sits inside a single labelled envelope
+    bDg_b, _ = bDg_of_M(M_BAND)
+    comp_b = 0.5 * bDg_b ** 2 * f["sig2"]
+    axb.fill_between(zsh, np.exp(-bDg_b * sig_i - comp_b),
+                     np.exp(+bDg_b * sig_i - comp_b), step="mid",
+                     color="0.75", alpha=0.35, lw=0,
+                     label=r"$\pm1\sigma$ ($10^{14}M_\odot$)")
+
+    for M in M_LIST:
+        bDg, sigM = bDg_of_M(M)
+        lam = np.exp(bDg * dbar - 0.5 * bDg ** 2 * f["sig2"])
+        col, ls, lw = M_STYLE[M]
+        axb.plot(zsh, lam, drawstyle="steps-mid", lw=lw, ls=ls, color=col,
+                 label=rf"$M = 10^{{{int(round(np.log10(M)))}}}\,M_\odot$")
+        print(f"  M={M:.0e}: sigma(M)={sigM:.4f}, b(z=0.5)="
+              f"{C.halobias(0.5, sigM):.3f}, b(z=2)={C.halobias(2.0, sigM):.3f}, "
+              f"max bDg*sig_i={(bDg*sig_i).max():.4f}, "
+              f"lambda in [{lam.min():.3f}, {lam.max():.3f}]")
+
     axb.axhline(1.0, color="0.35", lw=0.7, ls=":")
     axb.set_xscale("log")
+    # lambda is lognormal: on a log axis the mean-one band is symmetric about 1
+    # and the mass scaling reads as a pure amplitude change
+    axb.set_yscale("log")
     axb.set_xlim(C.zlist[1], ZS_FIELD)
+    # headroom above the tallest excursion so the legend never sits on the data
+    axb.set_ylim(0.18, 11.0)
+    axb.set_yticks([0.2, 0.5, 1.0, 2.0, 5.0])
+    axb.get_yaxis().set_major_formatter(
+        __import__("matplotlib").ticker.FuncFormatter(
+            lambda v, _: f"{v:g}"))
     axb.set_xlabel(r"$z$")
     axb.set_ylabel(r"$\lambda(M,z)$")
-    axb.legend(fontsize=6.5, frameon=False, loc="upper left")
-    axb.text(0.97, 0.93, r"$M = 10^{13}\,M_\odot,\ z_s = 3$",
-             transform=axb.transAxes, ha="right", va="top", fontsize=7)
+    axb.legend(fontsize=6.0, frameon=False, loc="upper left", ncol=2,
+               columnspacing=0.9, handlelength=1.6, borderaxespad=0.3)
+    axb.text(0.985, 0.955, r"$z_s = 3$", transform=axb.transAxes,
+             ha="right", va="top", fontsize=7)
 
-    for ext in ("pdf", "png"):
-        fig.savefig(REPO / "plots" / f"fig_clustering_field.{ext}", dpi=300)
-    print("wrote plots/fig_clustering_field.{pdf,png}")
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_png = OUT_DIR / "fig_clustering_field.png"
+    out_pdf = out_png.with_suffix(".pdf")
+    fig.savefig(out_png, dpi=300, facecolor="white")
+    fig.savefig(out_pdf, facecolor="white")
+    print(f"wrote {out_pdf.relative_to(REPO)}")
+    print(f"wrote {out_png.relative_to(REPO)}")
 
     # ---- console diagnostics for the memo
     print(f"Nmax(zs=3, R={RS_DEFAULT:.0f}) = {f['Nmax']}, shells n = {n}, "
           f"L = {f['L']*KPC2MPC:.1f} Mpc")
-    print(f"sigma(M_LAMBDA={M_LAMBDA:.0e}) = {sigM:.4f};  b(M_LAMBDA, z=0.5)"
-          f" = {C.halobias(0.5, sigM):.3f}")
-    print(f"max shell sigma_i = {np.sqrt(f['sig2'].max()):.4f}, "
-          f"max bDg sigma_i = {(bDg*np.sqrt(f['sig2'])).max():.4f}")
+    print(f"max shell sigma_i = {sig_i.max():.4f}  (field seed {SEED_FIELD})")
 
 
 if __name__ == "__main__":

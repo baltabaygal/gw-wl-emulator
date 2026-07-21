@@ -69,11 +69,11 @@ We include lensing contributions from field halos, subhalos, and filaments. The 
 
 Long-wavelength linear density perturbations modulate the spatial distribution of halos. The resulting change in the halo number density is governed by the halo bias $b(M,z)$, which increases with halo mass $M$ because massive halos originate from increasingly rare peaks of the primordial density field.
 
-We estimate the halo clustering using the one-dimensional density field $\delta_{\rm 1D}(z) \equiv \delta_{\rm 1D}(d_c(z))$, obtained by \B{averaging the three-dimensional density field over a transverse disk of comoving radius $R_\perp$ centered on the line of sight}. Its power spectrum is\footnote{This generalizes the pencil-beam construction of Ref.~\cite{1991ApJ...379..482K}, whose $P_{\rm 1D}(k_\parallel)=\int_{k_\parallel}^\infty \td k\,k\,P(k)/(2\pi)$ is recovered in the \B{$R_\perp\to0$} limit.}
+We estimate the halo clustering using the one-dimensional density field $\delta_{\rm 1D}(z) \equiv \delta_{\rm 1D}(d_c(z))$, obtained by smoothing the three-dimensional density field \B{isotropically with a spherical window of comoving radius $R_s$} before projecting onto the line of sight. Its power spectrum is\footnote{This generalizes the pencil-beam construction of Ref.~\cite{1991ApJ...379..482K}, whose $P_{\rm 1D}(k_\parallel)=\int_{k_\parallel}^\infty \td k\,k\,P(k)/(2\pi)$ is recovered in the $R_s\to0$ limit.}
 \be
-    \B{P_{\rm 1D}(k_\parallel) = \frac{1}{2\pi} \int_0^\infty \!\td k_\perp \, k_\perp \, P\big(\sqrt{k_\parallel^2+k_\perp^2}\,\big)\, \tilde{W}^2(R_\perp k_\perp) \,,}
+    P_{\rm 1D}(k_\parallel) = \frac{1}{2\pi} \int_{k_\parallel}^\infty \!\td k \, k \, P(k)\, \tilde{W}^2(R_s k) \,,
 \ee
-\B{where $\tilde{W}(x) = 2J_1(x)/x$ is the Fourier transform of the disk window. The transverse averaging suppresses the contribution of scales smaller than $R_\perp$ perpendicular to the line of sight; along the line of sight, modes with $k_\parallel > 2\pi/R_\perp$ are excluded from the discrete realization. We use $R_\perp = 8.4\,$Mpc, the Lagrangian radius of $M = 10^{14}\Msun$ halos, which is the clustering-variance-weighted signal scale of the model; we show later how changing $R_\perp$ impacts our results.}
+\B{where the integration variable is the modulus $k = |\vect{k}|$ and $\tilde{W}(x) = 3(\sin x - x\cos x)/x^3$ is the Fourier transform of the spherical top-hat.} The smoothing suppresses the contribution of scales smaller than $R_s$ both along and perpendicular to the line of sight. We use the real-space \B{spherical top-hat window function and fix $R_s = 20\,$Mpc}. We show later how changing $R_s$ impacts our results.
 
 On a periodic path of length \B{$L = 1.05\, d_c(z_s)$}, the 1D density field is given by
 \be
@@ -96,26 +96,27 @@ The second term in the exponent in $\lambda(M,z)$ with
 \be
     \sigma_{\rm 1D}^2 = \frac{1}{\pi} \int_0^\infty \td k_\parallel P_{\rm 1D}(k_\parallel) = \frac{4}{L^2} \sum_{n\geq 1} \sigma_n^2
 \ee
-ensures that the ensemble average is normalized to unity, $\langle \lambda(M,z)\rangle_{\rm ens} = 1$. \B{In the discrete realization, $\delta_{\rm 1D}$ is understood as the average of the field over the redshift shell of the lens and $\sigma_{\rm 1D}^2$ as the variance of that shell average, so that $\langle \lambda \rangle_{\rm ens} = 1$ holds exactly for every shell.} The power spectrum $P_{\rm 1D}(k_\parallel)$ is computed from the present-day linear matter power spectrum $P(k)$, and the redshift dependence of the clustering is carried entirely by $\tilde b(M,z) = D(z) b(M,z)$, which combines the halo bias $b(M,z)$ with the linear growth factor $D(z)$ of density perturbations. \B{For the halo bias we use the peak-background-split bias of the ellipsoidal collapse barrier~\cite{Sheth:1999mn},
+ensures that the ensemble average is normalized to unity, $\langle \lambda(M,z)\rangle_{\rm ens} = 1$. \B{For the isotropic window the point variance of $\delta_{\rm 1D}$ equals the variance $\sigma^2(R_s)$ of the matter field smoothed on the scale $R_s$, giving $\sigma_{\rm 1D}^2 = \sigma^2(R_s)$ the standard interpretation of a smoothed-field variance. In the discrete realization, $\delta_{\rm 1D}$ is understood as the average of the field over the redshift shell of the lens and $\sigma_{\rm 1D}^2$ as the variance of that shell average, so that $\langle \lambda \rangle_{\rm ens} = 1$ holds exactly for every shell.} The power spectrum $P_{\rm 1D}(k_\parallel)$ is computed from the present-day linear matter power spectrum $P(k)$, and the redshift dependence of the clustering is carried entirely by $\tilde b(M,z) = D(z) b(M,z)$, which combines the halo bias $b(M,z)$ with the linear growth factor $D(z)$ of density perturbations. \B{For the halo bias we use the peak-background-split bias of the ellipsoidal collapse barrier~\cite{Sheth:1999mn},
 \be
     b(M,z) = 1 + \frac{q\nu^2 - 1}{\delta_c} + \frac{2p}{\delta_c\left[1+(q\nu^2)^p\right]} \,,
 \ee
 with $(p,q) = (0.3,\,0.75)$ and $\nu = \delta_c(z)/\sigma(M)$.}
 
-\B{The power spectrum of $\delta_{\rm 1D}$ and example realizations of the count modulation $\lambda$ are shown in Fig.~\ref{fig:clustering_field}.}
+\B{The power spectrum of $\delta_{\rm 1D}$ and example realizations of the count modulation $\lambda$ are shown in Fig.~\ref{fig:clustering_field}. We have checked that replacing the top-hat with a Gaussian window of the variance-matched radius $R_G = 9.4\,$Mpc ($\sigma^2_G(R_G) = \sigma^2(R_s)$) leaves the magnification distribution unchanged, so the results depend on the smoothing variance but not on the window shape.}
 
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{plots/fig_clustering_field.pdf}
     \caption{\B{Top: power spectrum of the one-dimensional density field
-    $\delta_{\rm 1D}$ for the pencil-beam limit $R_\perp\to0$~\cite{1991ApJ...379..482K}
-    and for the transverse smoothing radius used in this work,
-    $R_\perp = 8.44\,{\rm Mpc}$, together with a two times larger window. The dots
-    mark the mode cutoff $k_{\rm max} = 2\pi/R_\perp$ of the discrete realization.
-    Bottom: three realizations of the count modulation $\lambda(M,z)$ for
-    $M = 10^{13}\Msun$ along a $z_s=3$ line of sight (piecewise constant over the
-    redshift shells of the simulation grid), with the per-shell $\pm1\sigma$ range
-    of the mean-one lognormal (gray band).}}
+    $\delta_{\rm 1D}$ obtained with the spherical top-hat window, for the
+    pencil-beam limit $R_s\to0$~\cite{1991ApJ...379..482K}, the smoothing radius
+    used in this work $R_s = 20\,{\rm Mpc}$, and the signal-weighted scale
+    $R_s = 8.44\,{\rm Mpc} = R_L(10^{14}\Msun)$ for comparison. The dots mark the
+    mode cutoff $k_{\rm max} = 2\pi/R_s$ of the discrete realization, which the
+    isotropic window renders immaterial. Bottom: three realizations of the count
+    modulation $\lambda(M,z)$ for $M = 10^{13}\Msun$ along a $z_s=3$ line of sight
+    (piecewise constant over the redshift shells of the simulation grid), with the
+    per-shell $\pm1\sigma$ range of the mean-one lognormal (gray band).}}
     \label{fig:clustering_field}
 \end{figure}
 
@@ -210,7 +211,7 @@ Each lensing halo of mass $M$ is split into a reduced smooth component and a pop
 \be \label{eq:reducedhost}
     \kappa_{\rm halo} = \kappa_{\rm NFW}\big[(1-f_{\rm s})M\big] + \sum_i \kappa_{\rm NFW}(m_i) \B{\,+\, \kappa_{\rm u}} \,,
 \ee
-with $\langle \sum_i m_i \rangle = f_{\rm s} M$, so that the total halo mass is conserved \B{in expectation; the Poisson fluctuations of the substructure about this mean are part of the halo-to-halo scatter the model is designed to capture. We reduce the smooth component by the deterministic bound fraction rather than by the realized $\sum_i m_i$ because only subhalos above a resolution floor are explicitly sampled (see below); the unresolved remainder enters through its mean and variance, and the decomposition is exact in both precisely for this split.} The reduction of the smooth component is essential, since we consider that the halo mass function counts the total (substructure-inclusive) mass, so the subhalos must be carved out of the halo rather than added on top of it.
+\B{where $\langle \sum_i m_i \rangle = f_{\rm s,res}\, M$ is the mass in the explicitly sampled subhalos above the resolution floor and $\kappa_{\rm u}$ carries the complementary unresolved fraction $(f_{\rm s} - f_{\rm s,res})M$ through its mean, so that the total halo mass $\langle (1-f_{\rm s})M + \sum_i m_i + M_{\rm u}\rangle = M$ is conserved in expectation, with $M_{\rm u} = (f_{\rm s} - f_{\rm s,res})M$ the unresolved mass encoded in $\kappa_{\rm u}$. The Poisson fluctuations of the substructure about this mean are part of the halo-to-halo scatter the model is designed to capture. We reduce the smooth component by the deterministic bound fraction rather than by the realized $\sum_i m_i$ because only subhalos above a resolution floor are explicitly sampled (see below); the unresolved remainder enters through its mean and variance, and this split reproduces the mean and variance of the full substructure field exactly, at any resolution floor (Fig.~\ref{fig:subhalo-factor}).} The reduction of the smooth component is essential, since we consider that the halo mass function counts the total (substructure-inclusive) mass, so the subhalos must be carved out of the halo rather than added on top of it.
 
 The subhalo masses $m$ are drawn from the evolved subhalo mass function that we evaluate following Ref.~\cite{Jiang:2014nsa}:
 \be \label{eq:shmf}
@@ -248,8 +249,15 @@ where $c_{200}$ is the host halo concentration \B{from Ref.~\cite{Dutton:2014xda
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{plots/sigma_k_vs_subhalo_factor.png}
-    \caption{subhalo convergence. this is placeholder plot. will be improved.}
+    \includegraphics[width=\columnwidth]{plots/sigma_partition_vs_subhalo_factor.png}
+    \caption{\B{Partition of the subhalo convergence scatter $\sigma_{\kappa,\rm sub}$
+    into the explicitly sampled (``strong'') and analytically modelled unresolved
+    (``weak'') contributions, as a function of the resolution parameter
+    $f_{\rm subhalo} = \kappa_{\rm thr}^{\rm clump}/\kappa_{\rm thr} \equiv \epsilon_{\rm sub}$,
+    which sets the mass floor above which subhalos are placed individually. As
+    $\epsilon_{\rm sub}$ moves the floor, scatter shifts between the two arms, but the
+    total (dashed) is invariant: the decomposition is exact in the mean and variance of
+    the convergence for any $\epsilon_{\rm sub}$.}}
     \label{fig:subhalo-factor}
 \end{figure}
 
@@ -351,12 +359,31 @@ This work was supported by the Estonian Research Council grants TARISTU24-TK3 an
 %   plots/sigma_partition_vs_kthr_bias.pdf  (repo path:
 %       paper_prod/plots/figures/sigma_partition_vs_kthr_bias.pdf -- replaces
 %       the legacy shot-only plots/sigma_partition_vs_kthr.pdf)
-%   plots/sigma_k_vs_subhalo_factor.png     (existing placeholder; draft's
-%       sigma_partition_vs_subhalo_factor.png does not exist)
+%   plots/sigma_partition_vs_subhalo_factor.png  (repo path:
+%       paper_prod/plots/figures/sigma_partition_vs_subhalo_factor.png -- replaces
+%       the placeholder plots/sigma_k_vs_subhalo_factor.png)
 %
-% Open decisions flagged in blue:
-%   - R_perp = 8.4 Mpc default: supervisor sign-off pending (2026-07-16
-%     decision; internally ~4-12 Mpc defensible).
+% Clustering window/scale (updated 2026-07-20, user decision):
+%   - Window = spherical 3D top-hat (bias_window=1), replacing the transverse
+%     disk. Isotropic smoothing, gives sigma^2_1D = sigma^2(R_s); mode cutoff
+%     N_max = L/R_s now immaterial (top-hat suppresses the power there).
+%   - R_s = 20 Mpc default (user, 2026-07-20), NOT R_L(1e14)=8.44 Mpc: R_L is a
+%     Lagrangian radius, not a smoothing scale. Consequence: top-hat point-field
+%     sigma 0.972 (8.44 Mpc) -> 0.530 (20 Mpc), i.e. clustering variance ~30%;
+%     clustering becomes a conservative small correction. Supervisor (Ville)
+%     sign-off pending -- reverses the 2026-07-16 default; 8.44 kept as the
+%     signal-weighted comparison in Fig. clustering.
+%   - Gaussian window (bias_window=2) is a shape-robustness option; matched
+%     radius R_G = 9.4 Mpc at R_s=20 Mpc.
+%   - CODE DEFAULT NOT FLIPPED: shipped default stays bias_model=0 (legacy);
+%     production config bias_model=1, bias_window=1, bias_Rperp=20000 is passed
+%     explicitly pending Ville's sign-off. See docs/bias_window_design_plan.md,
+%     data/results/bias_window/report.md.
+%   - PENDING PHYSICS: the report's fiducial magnitudes (+3.1/1.3/0.8% Var_clip,
+%     JSD-at-floor) were measured at R_s = 8.44 Mpc top-hat; at 20 Mpc the effect
+%     is smaller. Re-run the MC at 20 Mpc before quoting clustering magnitudes.
+%
+% Other open decisions flagged in blue:
 %   - Filament clustering bias: halo bias kept for now; PBS filament-barrier
 %     alternative (10-20% lower) to be decided later.
 %   - Radial-profile fit variant: Green+21 transition fit (0.54, 5/2) adopted;

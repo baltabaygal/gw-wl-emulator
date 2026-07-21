@@ -20,7 +20,7 @@ Per kappa_thr, three estimators are recorded (same rays, shared masks):
 
 Writes playground/partition_components_zs<zs>[_deep]_seed<seedbase>.npz.
 Run (repo root, test env):
-  python playground/sweep_sigma_partition_components.py [zs=1] [nsamples=100000] [seedbase=0] [mode=main]
+  python playground/sweep_sigma_partition_components.py [zs=1] [nsamples=100000] [seedbase=0] [mode=main] [crn=0]
 mode=main: 33-point grid 1e-5..1e3, fixed nsamples.
 mode=deep: 6 half-decade points 1e-8..10^-5.5 with per-point adaptive nsamples
            (<N> ~ 1/kappa_thr makes 1e-8 cost ~0.2 s/ray); extends the main grid
@@ -42,6 +42,7 @@ ZS = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0
 NSAMP = int(sys.argv[2]) if len(sys.argv) > 2 else 100_000
 SEEDBASE = int(sys.argv[3]) if len(sys.argv) > 3 else 0
 MODE = sys.argv[4] if len(sys.argv) > 4 else "main"
+CRN = bool(int(sys.argv[5])) if len(sys.argv) > 5 else False
 RPERP = 8441.0
 
 if MODE == "main":
@@ -54,6 +55,19 @@ elif MODE == "deep":
     nsamp_pt = np.array([4000, 5000, 6000, 8000, 10000, 30000])
     seed0 = 20260800 + 100000 * SEEDBASE + 100   # offset: never overlaps main's i=0..32
     OUT = Path(f"playground/partition_components_zs{ZS:g}_deep_seed{SEEDBASE}.npz")
+elif MODE == "deepcore":
+    # The three deep points that are INSIDE the model domain (kappa_thr >=
+    # kappa_min = 1.28e-7) and therefore actually plotted, at 4x the rays of
+    # mode=deep. These carried the worst SEM on the figure (0.6-1.4% vs ~0.3%
+    # on the main grid) purely because mode=deep sizes its samples for the
+    # sub-floor points, which cost ~0.2 s/ray and are npz-only documentation.
+    # In-domain they are cheap (~97 s/seed at the old sizes), so 4x is nearly
+    # free. Sub-floor points are NOT regenerated here - take them from the
+    # existing mode=deep files.
+    kthr = 10.0 ** np.array([-6.5, -6.0, -5.5])
+    nsamp_pt = np.array([32000, 40000, 120000])
+    seed0 = 20260800 + 100000 * SEEDBASE + 300   # never overlaps main (i<=32) or deep (+100)
+    OUT = Path(f"playground/partition_components_zs{ZS:g}_deepcore_seed{SEEDBASE}.npz")
 elif MODE == "floortest":
     # Floor-constraint validation: lower the ABSOLUTE background floor to
     # kappa_min = 1e-3*KTHR_FLAT = 1e-11 (kappathr_flat only feeds the floor when
@@ -72,6 +86,20 @@ else:
     raise SystemExit(f"unknown mode {MODE!r}")
 KTHR_FLAT = 1.0e-8 if MODE == "floortest" else -1.0
 
+if CRN:
+    # Common random numbers: one seed for the WHOLE kappa_thr grid instead of
+    # seed0+i, so every point shares the same field/encounter random stream and
+    # the estimation errors become positively correlated ALONG the sweep. Each
+    # point stays individually unbiased; what shrinks is the point-to-point
+    # scatter, which is what the sweep is actually measuring (flatness of
+    # sigma_total). Measured on a 4-seed x 20k pilot: rms second-difference
+    # roughness 2.71% -> 1.36% at identical cost (= a free 4x in samples).
+    # CAVEAT: the ensemble now carries only <nseed> independent field
+    # realizations rather than nseed*nkt, so the absolute PLATEAU level needs
+    # the seed count for its error bar (>=32 seedbases) even though the shape
+    # is well determined. Off by default: the default path is unchanged.
+    OUT = OUT.with_name(OUT.stem + "_crn.npz")
+
 
 def stats(kw, ks, mask):
     """(var_w, var_s, cov, var_t, mean_w, mean_s, n) on the masked rays."""
@@ -87,7 +115,7 @@ for i, kt in enumerate(kthr):
     t0 = time.time()
     r = gwlensing.sample_lensing_raw_ml(
         z=ZS, h=0.674, OmegaM=0.315, sigma8=0.811,
-        nsamples=int(nsamp_pt[i]), seed=seed0 + i,
+        nsamples=int(nsamp_pt[i]), seed=seed0 if CRN else seed0 + i,
         filaments=False, bias=True, ell=False, subhalo=False,
         bias_model=1, bias_Rperp=RPERP, bias_weak=True,
         custom_kappathr=float(kt), kappathr_flat=KTHR_FLAT)
@@ -105,7 +133,8 @@ for i, kt in enumerate(kthr):
           f"sig_t={np.sqrt(st[3]):.6f} (n={st[6]})  [{time.time()-t0:.0f}s]", flush=True)
 
 save = {"kthr": kthr, "zs": ZS, "nsamples": NSAMP, "nsamples_pt": nsamp_pt,
-        "rperp": RPERP, "kappathr_flat": KTHR_FLAT, "qtot": np.array(qtot)}
+        "rperp": RPERP, "kappathr_flat": KTHR_FLAT, "qtot": np.array(qtot),
+        "crn": CRN}
 for k, v in rows.items():
     save[k] = np.array(v)  # (nkt, 7): var_w var_s cov var_t mean_w mean_s n
 np.savez(OUT, **save)

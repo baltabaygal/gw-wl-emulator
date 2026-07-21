@@ -49,6 +49,8 @@ LOGM_LIST = list(range(7, 21))                # R_L(1e7 .. 1e20), one per decade
 RPERP_DEFAULT = 8441.0                        # lensing.h default = R_L(1e14)
 RG_MATCHED = 3972.1                           # sigma^2_G(R_G) = sigma^2_TH(8441);
                                               # scripts/convergence/bias_window_sigmaR.py
+RS_PROD = 20000.0                             # kpc; production R_s = 20 Mpc (user, 2026-07-20)
+RS_GRID = [5000.0, 10000.0, 20000.0, 40000.0, 80000.0]   # R_s dependence grid
 NSHARD = 16                                   # shards 0-7 = half A, 8-15 = half B
 NPERSHARD = 15_000                            # 240k per arm
 SEED0 = 951_000_000
@@ -86,6 +88,17 @@ def arms(zs):
             ("dwN300", dict(bias_model=1, bias_window=0, bias_Rperp=RPERP_DEFAULT,
                             bias_weak=True, Nhalos=300)),
         ]
+    # R_s dependence at the 2026-07-20 production scale (top-hat, R_s = 20 Mpc):
+    # a clean factor-2 grid bracketing the default, counts-only (r*) and joint
+    # (rw*, bias_weak = the paper's conditional sub-threshold arm). Appended
+    # last so every earlier arm keeps its index — and therefore its shard seed.
+    for R in RS_GRID:
+        tag = f"{int(R / 1000):02d}"
+        out.append((f"r{tag}", dict(bias_model=1, bias_window=1, bias_Rperp=R)))
+    for R in RS_GRID:
+        tag = f"{int(R / 1000):02d}"
+        out.append((f"rw{tag}", dict(bias_model=1, bias_window=1, bias_Rperp=R,
+                                     bias_weak=True)))
     return out
 
 
@@ -222,16 +235,22 @@ def stage_report(args):
     np.savez(OUT / "summary.npz", **summary)
     print(f"wrote {OUT / 'summary.npz'}")
     _write_tables(summary)
+    _write_rs_table(summary)
     _plot(summary)
+    _plot_rs(summary)
 
 
 def _R_of_arm(a):
     if a.startswith("t1e"):
         return RL_of_M(10.0 ** int(a[3:]))
-    if a in ("d1e14", "t1e14", "tw1e14", "dw1e14", "twN300"):
+    if a in ("d1e14", "t1e14", "tw1e14", "dw1e14", "twN300", "dwN300"):
         return RPERP_DEFAULT
     if a == "g_match":
         return RG_MATCHED
+    if a.startswith("rw"):
+        return float(a[2:]) * 1000.0
+    if a.startswith("r"):
+        return float(a[1:]) * 1000.0
     return np.nan
 
 
@@ -284,6 +303,80 @@ def _write_tables(summary):
                          f"{g(f'z{zs:g}_{a}_floor'):.1e} / {g(f'z{zs:g}_{b}_floor'):.1e} |")
     (OUT / "tables.md").write_text("\n".join(lines) + "\n")
     print(f"wrote {OUT / 'tables.md'}")
+
+
+def _write_rs_table(summary):
+    """R_s dependence at the production window (top-hat), for the draft's
+    'we show later how changing R_s impacts our results'."""
+    g = lambda k: float(summary[k]) if k in summary else np.nan
+    lines = ["# R_s dependence, spherical top-hat (auto-generated)\n",
+             f"{NSHARD*NPERSHARD//1000}k realizations/arm, kappa_anchor=1, "
+             "fixed-<N>=100, subhalo off. `r` = counts-only clustering, "
+             "`rw` = joint (with the conditional sub-threshold arm, bias_weak). "
+             "Ratios are against the `nobias` arm (clustering off) at the same "
+             f"z_s. Production R_s = {RS_PROD*1e-3:.0f} Mpc.\n"]
+    for zs in ZS_LIST:
+        nb_v = g(f"z{zs:g}_nobias_var_clip")
+        nb_s = g(f"z{zs:g}_nobias_sigma")
+        if not np.isfinite(nb_v):
+            continue
+        lines += [f"\n## z_s = {zs:g}   (nobias: sigma = {nb_s:.4f}, "
+                  f"Var_clip = {nb_v:.4e})\n",
+                  "| R_s [Mpc] | sigma counts-only | sigma joint | "
+                  "Var_clip/nobias, counts-only | Var_clip/nobias, joint | "
+                  "JSD vs nobias, joint | floor |",
+                  "|--:|--:|--:|--:|--:|--:|--:|"]
+        for R in RS_GRID:
+            t = f"{int(R/1000):02d}"
+            kc, kw = f"z{zs:g}_r{t}", f"z{zs:g}_rw{t}"
+            mark = "  **" if abs(R - RS_PROD) < 1.0 else ""
+            end = "**" if mark else ""
+            lines.append(
+                f"| {mark}{R*1e-3:.0f}{end} | {g(kc+'_sigma'):.4f} | "
+                f"{g(kw+'_sigma'):.4f} | {g(kc+'_var_clip')/nb_v:.3f} | "
+                f"{g(kw+'_var_clip')/nb_v:.3f} | {g(kw+'_jsd_nobias'):.2e} | "
+                f"{g(kw+'_floor'):.1e} |")
+    (OUT / "rs_dependence.md").write_text("\n".join(lines) + "\n")
+    print(f"wrote {OUT / 'rs_dependence.md'}")
+
+
+def _plot_rs(summary):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    PLOTS.mkdir(parents=True, exist_ok=True)
+    R = np.array(RS_GRID) * 1e-3
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2))
+    for zs, c in zip(ZS_LIST, ("C0", "C1", "C2")):
+        key = lambda a, f: summary.get(f"z{zs:g}_{a}_{f}", np.nan)
+        tags = [f"{int(r/1000):02d}" for r in RS_GRID]
+        nb = float(key("nobias", "var_clip"))
+        vw = np.array([float(key(f"rw{t}", "var_clip")) for t in tags]) / nb
+        vc = np.array([float(key(f"r{t}", "var_clip")) for t in tags]) / nb
+        jw = np.array([float(key(f"rw{t}", "jsd_nobias")) for t in tags])
+        fl = np.array([float(key(f"rw{t}", "floor")) for t in tags])
+        axes[0].semilogx(R, vw, "o-", color=c, label=f"$z_s={zs:g}$ (joint)")
+        axes[0].semilogx(R, vc, "s--", color=c, alpha=0.55, ms=4,
+                         label=f"$z_s={zs:g}$ (counts only)")
+        axes[1].loglog(R, jw, "o-", color=c, label=f"$z_s={zs:g}$")
+        axes[1].loglog(R, fl, ":", color=c, lw=1)
+    for ax in axes:
+        ax.axvline(RS_PROD * 1e-3, color="0.5", lw=1.2, ls="--", zorder=0)
+        ax.set_xlabel(r"$R_s$ [Mpc]")
+    axes[0].axhline(1.0, color="0.4", lw=0.8, ls=":")
+    axes[0].set_ylabel(r"Var$_{\rm clip}(\ln\mu)$ / no-clustering")
+    axes[0].set_title("Clustering contribution to the PDF width")
+    # curves converge to 1 at large R_s, so the upper right is the free corner
+    axes[0].legend(fontsize=7.5, frameon=False, ncol=2, loc="upper right")
+    axes[1].set_ylabel(r"JSD$(P(\ln\mu),\,$no-clustering$)$")
+    axes[1].set_title("Distinguishability (dotted = shard-half floor)")
+    axes[1].legend(fontsize=8, frameon=False)
+    fig.suptitle(r"Spherical top-hat: dependence on the smoothing scale $R_s$ "
+                 r"(dashed line = production $R_s = 20$ Mpc)", y=1.02)
+    fig.tight_layout()
+    fig.savefig(PLOTS / "bias_window_rs_scan.png", dpi=140, bbox_inches="tight")
+    print(f"wrote {PLOTS / 'bias_window_rs_scan.png'}")
 
 
 def _plot(summary):
