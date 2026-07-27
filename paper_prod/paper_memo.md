@@ -40,7 +40,9 @@ rule as CLAUDE.md; date your edits).
   (bitwise default), 1 = spherical 3D top-hat 3(sinx−xcosx)/x³, 2 = Gaussian,
   the latter two on |k|=√(k∥²+k⊥²).
   **PAPER/PRODUCTION = top-hat (window 1), R_s = 20 Mpc** (user decision
-  2026-07-20). §II.A.1 uses the isotropic form
+  2026-07-20; **SETTLED — Gala confirmed the decision 2026-07-23**, no longer
+  "pending sign-off" for the paper value; the code-default flip is a separate
+  repo matter still tracked in CLAUDE.md). §II.A.1 uses the isotropic form
   P_1D = (1/2π)∫_{k∥}^∞ dk k P(k) W̃²(R_s k), W̃ = 3(sinx−xcosx)/x³,
   σ²_1D = σ²(R_s). Gaussian robustness at matched σ²: R_G = 9.45 Mpc.
 - ⚠ R_s = 20 Mpc, NOT R_L(1e14) = 8.44 Mpc (2026-07-20): R_L is a Lagrangian
@@ -95,8 +97,11 @@ rule as CLAUDE.md; date your edits).
 - Filaments: mass function `cosmology.cpp::pFCfil` (:299, p=0, q=0.7 — Yan & Fan
   2011 barrier) + `dndlnMfil` (:328); cylinder kernels `kappaCYL2/gammaCYL2`
   (:220/:226), counts `deltaNhfCYL` (:266); geometry r_F, L_F ∝ M^{1/3}, 14.4ρ_c
-  and sampling: `lensing.cpp` (:822–826, :986–1021). Filaments share the halo λ
-  (same bias) — PBS filament-bias recommendation: draft_comments_memo R2.
+  and sampling: `lensing.cpp` (:822–826, :986–1021). Filament-specific PBS bias
+  `b_F(M,z)` RESOLVED 2026-07-23: `cosmology::filbias` + `lensing.h::fil_bias`
+  (default false, staged like `bias_weak`/`bias_window`; production config sets
+  it true) — `docs/filament_bias_note.md`; draft text updated, decision-pending
+  note removed.
 
 ### §II.A.3 Sub-threshold contribution (κ_W)
 
@@ -148,6 +153,27 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   derivation `docs/subhalo/wsub_gaussian_term_derivation.md`; acceptance
   `data/results/subhalo_factor_jsd/report.md`. ⚠ draft currently describes
   model 1 here — fix per draft_comments_memo item 4.
+  **Mass-conserving carve (scheme A) — draft AND code now agree (2026-07-22):**
+  Eq.(reducedhost) reads `κ_NFW[M − Σ_i m_i − M_u]` (explicit form, f̂_s dropped;
+  exact per-realization total-mass conservation, supervisor's requirement) + the
+  Campbell μ_u/σ_u² integrals as Eq.(kappau_moments); the three "exact mean+variance
+  for any floor/ε_sub" claims softened to "mean exact, variance sub-percent."
+  **C++ IMPLEMENTED** behind `subhalo_carve` (default on), gated to model 3 + the
+  brute reference: flag in `lensing.h` (:83–92) + `lnmu_wrapper.{h,cpp}` +
+  `python_bindings.cpp` (5 entry points + config dict); reorder + carved host mass
+  in `lensing.cpp::add_host` (early branch :886–960); realized Σm_i via
+  `subhalo.cpp::addClumps` `mass_out` out-param; `M_u(r)` via new
+  `subhalo.cpp::unresolvedMass`; guard counter `LensingProfile.subhalo_carve_negatives`.
+  Conditioning C/D NOT implemented (inert/harmful). Full design + sandbox
+  verification: `docs/subhalo/mass_conserving_carve_note.md` §9; harness
+  `tmp/carve_verify.cpp`; pytest `tests/test_subhalo_carve.py`. Single-host POC
+  (`playground/analytic/{mass_budget_carve_demo,carve_single_host_kappa_pdf,carve_var_seeds}.py`):
+  old model 3 sat +1.48%±0.15% above carved brute in Var(κ); carve closes it to
+  +0.40%; A≈C≈D. **Still pending on the user's Mac:** `make build` + `pytest
+  tests/test_subhalo_carve.py`, `subhalo_factor_jsd` acceptance rerun +
+  Fig.(subhalo-factor) recheck, ML-data regen + emulator edge/flux re-check. Figs:
+  `plots/subhalo_mass_budget.png`, `plots/subhalo_carve_var_gap.png`,
+  `plots/single_host_kappa_pdf.png`.
 - Paper figure (SHMF + radial, incl. python port of the f_s chain):
   `paper_prod/scripts/plot_fig_subhalo_population.py` →
   `paper_prod/plots/figures/fig_subhalo_population.{pdf,png}` (promoted into the
@@ -171,18 +197,34 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   `docs/subhalo/pyhalo_pipeline_comparison.md` §4). Regenerate more realizations
   with `.venv_pyhalo/bin/python tmp/pyhalo_vs_ours_plot.py --mhi 1e13 --nreal N
   --suffix …` (~0.65 s/real) then copy the tmp npz onto `data/pyhalo_vs_ours.npz`.
-  Panel (b) is the radial BIAS function B(x) log-log (replacing the dN/dx
-  panel; old version in git): adopted fit + Green+21 + Bolshoi points (both
-  digitized in `scripts/subhalo_gate/fit_bias_profile.py`) + Springel+08
-  Aq-A-1 Einasto/NFW (α=0.678, r₋₂=0.81 r200, c_NFW=16.11, verified from
-  arXiv:0809.0898 §3.2+Tab.2) + Han+16 x^1.3 (Aq-A, their Fig. 1; model
-  γ=αβ~1). Caveats for the caption: diffhalos CCSHMF is z-independent
-  (JvdB16-tuned, hosts 1e11–1e15); pyHalo deprojection assumes our radial
-  profile (slight underestimate of their halo average); the (0.54, 5/2) x is
-  r/r200 vs r_vir calibration nit (draft_comments_memo R6) still applies.
-- Fig. `fig:subhalo-factor`: existing file is `plots/sigma_k_vs_subhalo_factor.png`
-  (draft's filename doesn't exist); regenerate via
-  `scripts/figures/plot_variance_vs_factor.py` lineage.
+  Panel (b) is the radial BIAS function B(x)=n_sub/n_host log-log (subhalo
+  number density over host NFW; replacing the dN/dx panel; old version in git).
+  **Digitization minimized to ONE dataset 2026-07-21** (searched SatGen
+  sheridan branch/DASH — model code only, no data tables; Green+21 curve = model
+  output, Bolshoi points exist only in Green+21 Fig. 7): the digitized Green+21
+  "withering+disruption" curve was DROPPED (the adopted fit already stands in
+  for it — cite Green:2021 in the caption for the fit target); Bolshoi points
+  (Klypin:2010qw) KEPT as the sole digitized set, taken from Fig. 7 of Green:2021
+  (`scripts/subhalo_gate/fit_bias_profile.py`; GREEN_LOGX/B arrays removed from
+  the plot script). Analytic curves (NOT digitized, from published params):
+  adopted fit [1+(x/0.54)^{-5/2}]^{-1/2}; Springel+08 Aq-A-1 Einasto/NFW
+  (α=0.678, r₋₂=0.81 r200, c_NFW=16.11, verified from arXiv:0809.0898
+  §3.2+Tab.2, add bib); Han+16 x^1.3 (Aq-A, their Fig. 1; model γ=αβ~1, add
+  bib). Caveats for the caption: diffhalos CCSHMF is z-independent (JvdB16-tuned,
+  hosts 1e11–1e15); pyHalo deprojection assumes our radial profile (slight
+  underestimate of their halo average); the (0.54, 5/2) x is r/r200 vs r_vir
+  calibration nit (draft_comments_memo R6) still applies.
+- Figs. `fig:subhalo-factor-mean` / `fig:subhalo-factor-scatter` (formerly the single
+  two-panel `fig:subhalo-factor`, split 2026-07-23 into two single-panel figures per
+  user request):
+  `paper_prod/scripts/plot_fig_subhalo_sigma_decomposition.py` →
+  `paper_prod/plots/figures/fig_subhalo_sigma_decomposition_{mean,scatter}.{pdf,png}`.
+  Host/subhalo convergence + scatter decomposition for a single M=1e13 Msun host
+  (z_l=0.5, z_s=1) under subhalo_model=4 (brute to psi_min=m_floor/M, carved host);
+  REPLACES the obsolete eps_sub partition figure `sigma_partition_vs_subhalo_factor.png`
+  (dropped 2026-07-23 with the kappa_u/unresolved apparatus). Uses
+  `paper_prod/plot_style.py` (`apply_style`, `FIGURE_SIZES["single"]`,
+  `format_log_axis_decimal` for the 0.1/1/10 log-tick convention).
 - Design/derivation docs: `docs/subhalo/subhalo_combining.md`,
   `docs/subhalo/variance_derivation.md`; papers in `papers/context/`
   (JvdB14, vdB05, Han+16, BMO09, Green+21).
@@ -196,14 +238,33 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   `get_simulator_config`).
 - Tail/edge/flux facts for the text: `docs/edge_tail_flux_note.md` (μ⁻² tail,
   empty-beam edge, flux calibration target).
+- Figs. `fig:magpdf_zs` / `fig:magpdf_ingredients` (added 2026-07-24, Sec. II.B):
+  dP/dμ vs μ for z_s=0.5/1/2/5/10 (full config), and dP/dμ at z_s=5 for
+  baseline/+subhalos/+clustering. Generator
+  `paper_prod/scripts/plot_fig_magnification_pdf.py` →
+  `paper_prod/plots/figures/fig_magnification_pdf_{zs,ingredients}.{pdf,png}`;
+  run guide `paper_prod/scripts/README_magnification_pdf.md`. **Heavy MC run by
+  the USER** (needs the model-4 Mac build + test env; smoothness via --nreal or
+  seed shards + --combine). Configs: full = bias_model=1/window=1/Rperp=20000/
+  bias_weak/fil_bias + subhalo_model=4; baseline = bias_model=0, no subhalos;
+  kappa_anchor=1 (robust). Caches histograms to plots/data/magpdf_<tag>.npz for
+  instant --replot. Plotted window mu≤1.8 only (far tail uncertified).
 
 ## §III Machine learning
 
-- Θ = {h, z_eq, Ω_M, Ω_B, A_s, n_s} + z_s: single source of truth
-  `ml/params.py` (FIDUCIAL, PRIOR_6D, WIDE_6D, CONTEXT_KEYS); A_s-mode mapping
-  `cosmology.h::initialize_normalization` (Bunn–White; σ8 smooth-k gotcha:
-  derived σ8 = 0.860 at Planck A_s — expected).
-- Data: `ml/generate_dataset.py` (LHS 6d wide box, HDF5 schema 2.0),
+- Θ = {h, z_eq, Ω_M, Ω_B, **σ8**, n_s} + z_s: single source of truth
+  `ml/params.py` (FIDUCIAL, PRIOR_6D, WIDE_6D, CONTEXT_KEYS). **Amplitude
+  switched A_s → σ8 on 2026-07-27** to match Vaskonen's paper (θ = {Ω_M, h, σ8},
+  priors σ8 ∈ [0.4,1.4]) and his code; A_s-mode retained as an unused escape
+  hatch (`cosmology.h::initialize_normalization`, Bunn–White). If the tikz Θ
+  diagram or §III text still shows A_s, update it.
+  ⚠ **σ8 window caveat — do NOT write "top-hat" in the paper yet.** The engine
+  normalizes with the smooth-k window `Ws`, so σ8 = 0.811 here is a smooth-k σ8;
+  the top-hat value is 0.7786. Vaskonen's §2 claims a real-space top-hat, which
+  his code does not do. Switching the normalization to top-hat (option b) is
+  agreed in principle but pending Ville's sign-off — until then, state the
+  window convention explicitly or say nothing about it. See CLAUDE.md §1+6d.
+- Data: `python/generate_dataset.py` (LHS 6d wide box, HDF5 schema 2.1, σ8-mode),
   `ml/data.py` (schema autodetect). ⚠ pre-2026-07-12 subhalo-ON data used
   factor 1e-5; 2026-07-09/10 data used flat-1e-3 κ_thr — regenerate/flag.
 - Production model (NSF): **`gw-wl-emulator-ar` worktree**, branch

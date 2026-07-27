@@ -49,12 +49,17 @@ def apply_style():
             pass
             
     # Apply LaTeX or MathText config
+    mpl.rcParams["font.family"] = "serif"
+    mpl.rcParams["font.serif"] = ["CMU Serif", "Computer Modern Roman", "cmr10", "DejaVu Serif", "Times New Roman"]
+    mpl.rcParams["font.sans-serif"] = ["DejaVu Sans", "Arial"]
+    mpl.rcParams["mathtext.fontset"] = "cm"
+    mpl.rcParams["axes.unicode_minus"] = False
+
     if has_latex:
         mpl.rcParams["text.usetex"] = True
         mpl.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}\usepackage{amssymb}\usepackage{amsfonts}"
     else:
         mpl.rcParams["text.usetex"] = False
-        mpl.rcParams["mathtext.fontset"] = "cm"
 
     # Ensure Type-42 (TrueType) fonts are embedded in PDFs (better for arXiv)
     mpl.rcParams["pdf.fonttype"] = 42
@@ -102,7 +107,12 @@ _mticker.LogFormatterExponent = _PaperLogFormatter
 _mticker.LogFormatterMathtext = _PaperLogFormatter
 
 def format_log_axis_decimal(ax, axis='x'):
-    """Set tick labels on log axis to show decimal 0.1/1/10 for common ticks.
+    """Paper log-axis tick convention: decades n in {-1,0,1} print as the
+    plain decimal (0.1, 1, 10); every other decade keeps $10^{n}$ mathtext.
+    Not applied automatically by apply_style() -- call this per axis in a
+    script wherever its tick range includes 0.1/1/10 and decimal labels read
+    better there than $10^{\pm1}$/$10^0$ (e.g. the sigma_partition_vs_* and
+    fig_subhalo_sigma_decomposition figures).
 
     axis: 'x' or 'y' or 'both'
     """

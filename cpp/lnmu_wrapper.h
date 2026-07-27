@@ -43,6 +43,12 @@ struct SamplingParams {
     int subhalo_model = 3;   // reduced-host + Wsub (default since 2026-07-09)
     bool subhalo_brute = false;
     double subhalo_factor = 1.0e-2;  // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12)
+    bool subhalo_carve = true;       // mass-conserving realized-clump host carve (scheme A, 2026-07-22); false = legacy (1-f_s,b)M
+    // model 5 only (2026-07-27): per-clump convergence threshold kappa_thr,sub.
+    // > 0 absolute; <= 0 uses subhalo_kappathr_factor * host kappa_thr.
+    double subhalo_kappathr = -1.0;
+    double subhalo_kappathr_factor = 0.1;
+    double psi_min_fixed = -1.0;    // diagnostic: > 0 fixes psi_min (overrides m_floor/M); e.g. 1e-4 = psi_res
     double kappathr_flat = -1.0;   // <= 0 = legacy <N>=Nhalos rule (default, reverted 2026-07-10); > 0 = flat explicit-halo threshold
     int kappa_anchor = 0;          // mean-kappa anchor: 0 legacy batch mean (default, bit-identical),
     double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
@@ -52,6 +58,7 @@ struct SamplingParams {
     bool bias_weak = false;        // weak arm: kappa_W conditional on the field (requires bias_model = 1)
     int bias_window = 0;           // field smoothing window: 0 transverse disk (default, bit-identical);
                                    // 1 spherical top-hat, 2 Gaussian (both on |k|; require bias_model = 1)
+    bool fil_bias = false;         // filaments use filbias (PBS of pFCfil, q=0.7) not halobias; requires bias_model = 1
 };
 
 struct LnmuSampleDiagnostics {

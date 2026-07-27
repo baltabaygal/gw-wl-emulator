@@ -11,8 +11,45 @@ double Sigmacf(cosmology &C, double zs, double zl);   // defined in lensing.cpp
 
 namespace {
 
+// Anti-biased radial bias  B(x) = [1 + (x/x0)^(-p)]^(-1/2), calibrated in units
+// of the virial radius (x = r/r_vir).  x0 is converted to r_200 units per host
+// via etaVirTo200() below; the exponent is unit-independent.
+// x0 = 0.86 is a refit (exponent fixed at 5/2) to the Bolshoi radial-bias points
+// of Klypin+11 (digitized from Fig. 7 of Green+21); the earlier 0.54 was fit to
+// the Green+21 model curve and under-depleted the centre (see paper figure).
+constexpr double BIAS_X0_RVIR = 0.86;   // transition scale in r_vir units
+constexpr double BIAS_EXP     = 2.5;    // p = 5/2
+
 inline double linfast(double y1, double y2, double x1, double x2, double x) {
     return y1 + (x - x1) / (x2 - x1) * (y2 - y1);
+}
+
+// r_vir / r_200 for an NFW halo of concentration c200 at redshift z.
+// Green+21 / Bolshoi calibrate the radial bias in units of the Bryan-Norman
+// virial radius r_vir; the code samples in x = r/r_200. Both radii share the
+// same NFW scale r_s, so r_vir/r_200 = c_vir/c_200, and c_vir solves
+//   Delta_200 c200^3 / m(c200) = Delta_vir c_vir^3 / m(c_vir)   (= 3 rho_s/rho_c)
+// with m(y) = ln(1+y) - y/(1+y) and Delta_vir the Bryan-Norman (1998) overdensity
+// relative to rho_crit(z). Delta_vir < 200 for LCDM => c_vir > c200 => eta > 1.
+inline double nfwMu(double y) { return std::log(1.0 + y) - y / (1.0 + y); }
+
+inline double etaVirTo200(cosmology &C, double c200, double z) {
+    const double d = C.OmegaMz(z) - 1.0;               // Bryan-Norman argument
+    const double Dvir = 18.0 * PI * PI + 82.0 * d - 39.0 * d * d;  // rel rho_crit
+    const double target = 200.0 * c200 * c200 * c200 / nfwMu(c200) / Dvir; // = cvir^3/m(cvir)
+    // f(c) = c^3/m(c) is monotone increasing; cvir in (c200, 3 c200]
+    double lo = c200, hi = 3.0 * c200;
+    for (int it = 0; it < 80; ++it) {
+        double mid = 0.5 * (lo + hi);
+        if (mid * mid * mid / nfwMu(mid) < target) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi) / c200;                      // c_vir / c200 = r_vir / r200
+}
+
+// Transition scale of the anti-biased radial bias B(x), expressed in x = r/r_200.
+// The Green+21 fit value 0.54 is in r_vir units; converting: x0(r_200) = 0.54 * eta.
+inline double biasScaleR200(cosmology &C, double c200, double z) {
+    return BIAS_X0_RVIR * etaVirTo200(C, c200, z);
 }
 
 inline void interpolateNFWMass(cosmology &C, int jz, double m, double log_m, double log_Mmin, double inv_dlogM, double &rs, double &rhos) {
@@ -42,6 +79,7 @@ struct ClumpAccum {
     double kappa = 0.0;
     double gamma1 = 0.0;
     double gamma2 = 0.0;
+    double mass = 0.0;   // realized resolved-clump mass (mass-conserving carve, scheme A)
 };
 
 inline double safeNFWGammaCore(double x, const std::array<double, 2> &Fg) {
@@ -102,6 +140,7 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
         acc.kappa += kappa_c;
         acc.gamma1 += cos_phid * gamma_c;
         acc.gamma2 += sin_phid * gamma_c;
+        acc.mass += m;
     }
     return acc;
 }
@@ -109,7 +148,191 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
 } // namespace
 
 // Build all (z,M)-grid subhalo tables. Cheap; called once per run.
-void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappathr_host) {
+// ---------------------------------------------------------------------------------
+// Model 5 (2026-07-27): restricted-intensity brute sampling. See subhalo.h for the
+// exactness argument; data/results/subkappathr_population/report.md for the sizing.
+// ---------------------------------------------------------------------------------
+
+double Subhalo::sigma2Dclump(int jz, int jM, double s) const {
+    const vector<double> &p2 = p2p[jz][jM];
+    if (p2.empty()) return 0.0;
+    const double r200 = r200h[jz][jM];
+    const double Rh = s / r200;
+    if (Rh >= 1.0) return 0.0;
+    const int NR = static_cast<int>(p2.size());
+    double t = Rh * NR - 0.5;
+    int i = static_cast<int>(std::floor(t));
+    double p;
+    if (i < 0) p = p2[0] * (Rh * NR / 0.5);          // p2 ~ Rhat near 0
+    else if (i >= NR - 1) p = p2[NR - 1];
+    else p = p2[i] + (t - i) * (p2[i + 1] - p2[i]);
+    return p / (2.0 * PI * std::max(Rh, 1e-12) * r200 * r200);
+}
+
+double Subhalo::clumpReach(cosmology &C, int jz, double m) const {
+    const vector<double> &rt = r_thr[jz];
+    if (rt.empty()) return 0.0;
+    double t = (std::log(m) - log_Mmin) * inv_dlogM;
+    if (t <= 0.0) return rt[0];
+    if (t >= C.NM - 1) return rt[C.NM - 1];
+    int i = static_cast<int>(t);
+    return rt[i] + (t - i) * (rt[i + 1] - rt[i]);
+}
+
+void Subhalo::buildRestrictedBin(cosmology &C, int jz, int jM) {
+    const double M = C.Mlist[jM];
+    const double g = gnorm[jz][jM];
+    if (g <= 0.0) return;
+    const double r200 = r200h[jz][jM];
+    const double c = chost[jz][jM];
+    if (r200 <= 0.0) return;
+
+    const double psi_min = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);
+    if (psi_min >= psi_max) return;
+
+    // projected anti-biased clump surface density, identical construction to
+    // buildWsubBin's sig2d (kept separate so model 5 does not depend on model 3).
+    const int NR = NRp, NUa = 96;
+    const double x0 = biasScaleR200(C, c, C.zlist[jz]);
+    vector<double> p2(NR, 0.0);
+    auto p3 = [&](double x) {
+        if (x <= 0.0 || x > 1.0) return 0.0;
+        double B = 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0);
+        return x * x / pow(1.0 + c * x, 2.0) * B;
+    };
+    double p2norm = 0.0;
+    for (int i = 0; i < NR; i++) {
+        double Rh = (i + 0.5) / NR;
+        double umax = sqrt(std::max(1.0 - Rh * Rh, 0.0));
+        double du = umax / (NUa - 1), acc2 = 0.0;
+        for (int k = 0; k < NUa; k++) {
+            double u = k * du;
+            double w = (k == 0 || k == NUa - 1) ? 0.5 : 1.0;
+            acc2 += w * p3(sqrt(Rh * Rh + u * u)) * Rh / (Rh * Rh + u * u);
+        }
+        p2[i] = acc2 * du;
+        p2norm += p2[i] / NR;
+    }
+    if (p2norm <= 0.0) return;
+    for (int i = 0; i < NR; i++) p2[i] /= p2norm;     // int_0^1 p2 dRhat = 1
+    p2p[jz][jM] = p2;
+
+    // envelope: max of Sigma_n over the plane. The R->0 limit is finite (p2 ~ Rhat),
+    // so scan the cell centres and include that limit explicitly.
+    double smax = p2[0] * NR / (0.5 * 2.0 * PI * r200 * r200);   // Rhat -> 0
+    for (int i = 0; i < NR; i++) {
+        double Rh = (i + 0.5) / NR;
+        smax = std::max(smax, p2[i] / (2.0 * PI * Rh * r200 * r200));
+    }
+    if (!(smax > 0.0)) return;
+    sig2dmax[jz][jM] = smax;
+
+    // proposal intensity on a log-psi grid. lambda(psi) = g psi^alpha min(1, pi D^2 Smax);
+    // the SHMF exponential cutoff is applied by thinning in the loop, exactly as model 4.
+    // y-INDEPENDENT because the envelope is global, so this precomputes once per bin.
+    const double lp0 = std::log(psi_min);
+    const double dlp = (std::log(psi_max) - lp0) / (Nq - 1);
+    lpq[jz][jM] = {lp0, dlp};
+    vector<double> cum(Nq, 0.0);
+    double acc = 0.0, prev = 0.0;
+    for (int q = 0; q < Nq; q++) {
+        double psi = std::exp(lp0 + q * dlp);
+        double D = clumpReach(C, jz, psi * M);
+        double pcap = std::min(1.0, PI * D * D * smax);
+        double lam = g * pow(psi, alpha) * pcap;
+        if (q > 0) acc += 0.5 * (lam + prev) * dlp;    // trapezoid in dlnpsi
+        prev = lam;
+        cum[q] = acc;
+    }
+    propCum[jz][jM] = cum;
+}
+
+int Subhalo::addClumpsRestricted(cosmology &C, int jz, int jM, double M, double Sigmac,
+                                 double r, double phi, rgen &mt,
+                                 double &kappa, double &gamma1, double &gamma2,
+                                 double *mass_out) {
+    const vector<double> &cum = propCum[jz][jM];
+    if (cum.empty()) return 0;
+    const double Ntot = cum.back();
+    if (!(Ntot > 0.0)) return 0;
+
+    std::poisson_distribution<int> pois(Ntot);
+    int Nprop = pois(mt);
+    if (Nprop <= 0) return 0;
+
+    const double lp0 = lpq[jz][jM][0], dlp = lpq[jz][jM][1];
+    const double smax = sig2dmax[jz][jM];
+    const double r200 = r200h[jz][jM];
+    const vector<double> &xcdf = invRad[jz][jM];
+    const double rcos = r * cos(phi), rsin = r * sin(phi);
+
+    int Nrendered = 0;
+    for (int k = 0; k < Nprop; k++) {
+        // 1. clump mass: inverse-CDF on the precomputed proposal intensity
+        double u = randomreal(0.0, 1.0, mt) * Ntot;
+        int q = static_cast<int>(std::lower_bound(cum.begin(), cum.end(), u) - cum.begin());
+        if (q <= 0) q = 1;
+        if (q >= Nq) q = Nq - 1;
+        double f = (cum[q] > cum[q - 1]) ? (u - cum[q - 1]) / (cum[q] - cum[q - 1]) : 0.0;
+        double psi = std::exp(lp0 + (q - 1 + f) * dlp);
+        if (psi >= psi_max) continue;
+
+        // 2. SHMF exponential cutoff (Poisson thinning, exactly as model 4)
+        if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
+
+        const double m = psi * M;
+        const double D = clumpReach(C, jz, m);
+        if (!(D > 0.0)) continue;
+
+        // 3. position + retention, by branch
+        double d, dx, dy;
+        if (PI * D * D * smax < 1.0) {
+            // small-target branch: uniform in the retention disc, thinned by Sigma_n/Smax
+            double ud = randomreal(0.0, 1.0, mt);
+            d = D * sqrt(ud);
+            double th = randomreal(0.0, 2.0 * PI, mt);
+            dx = d * cos(th);
+            dy = d * sin(th);
+            // clump lens-plane radius from the host centre
+            double Rx = rcos - dx, Ry = rsin - dy;
+            double Rc = sqrt(Rx * Rx + Ry * Ry);
+            if (randomreal(0.0, 1.0, mt) * smax > sigma2Dclump(jz, jM, Rc)) continue;
+        } else {
+            // big-reach branch: full radial profile as model 4, explicit d <= D test
+            double ur = randomreal(0.0, 1.0, mt);
+            double tt = ur * (Nu - 1);
+            int i = (int)tt; if (i >= Nu - 1) i = Nu - 2;
+            double x = xcdf[i] + (tt - i) * (xcdf[i + 1] - xcdf[i]);
+            double r3d = x * r200;
+            double cth = randomreal(-1.0, 1.0, mt);
+            double psaz = randomreal(0.0, 2.0 * PI, mt);
+            double R2d = r3d * sqrt(1.0 - cth * cth);
+            dx = rcos - R2d * cos(psaz);
+            dy = rsin - R2d * sin(psaz);
+            d = sqrt(dx * dx + dy * dy);
+            if (d > D) continue;
+        }
+
+        // 4. render: circular NFW clump kappa/gamma at the ray separation
+        if (mass_out) *mass_out += m;                  // RETAINED clump mass only
+        double inv_d = (d > 1e-30) ? 1.0 / d : 0.0;
+        double cos_phid = dx * inv_d, sin_phid = dy * inv_d;
+        double rs_c, rhos_c;
+        interpolateNFWMass(C, jz, m, std::log(m), log_Mmin, inv_dlogM, rs_c, rhos_c);
+        double kappa0_c = kappa0NFW(rs_c, rhos_c, Sigmac);
+        double x_c = std::max(d / rs_c, 1.0e-12);
+        auto Fg = FgNFW(x_c);
+        kappa += 2.0 * kappa0_c * Fg[0];
+        double gamma_c = 2.0 * kappa0_c * safeNFWGammaCore(x_c, Fg);
+        gamma1 += cos_phid * gamma_c;
+        gamma2 += sin_phid * gamma_c;
+        Nrendered++;
+    }
+    return Nrendered;
+}
+
+void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappathr_host,
+                         bool build_restricted) {
     int Nz = C.Nz, NM = C.NM;
     log_Mmin = std::log(C.Mlist[0]);
     double log_Mmax = std::log(C.Mlist[NM - 1]);
@@ -126,6 +349,11 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappat
     sW.assign(Nz, vector<vector<double>>(NM));
     lyW.assign(Nz, vector<std::array<double,2>>(NM, {0.0, 1.0}));
     fsb.assign(Nz, vector<double>(NM, 0.0));
+    p2p.assign(Nz, vector<vector<double>>(NM));
+    propCum.assign(Nz, vector<vector<double>>(NM));
+    sig2dmax.assign(Nz, vector<double>(NM, 0.0));
+    lpq.assign(Nz, vector<std::array<double,2>>(NM, {0.0, 1.0}));
+    restricted_built = false;
 
     // clump-reach table: r_thr[jz][jm] = distance at which a clump of mass Mlist[jm]
     // reaches kappa_thr (monotonic in mass).  m_res(r) = inverse of this, looked up
@@ -200,17 +428,19 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappat
             chost[jz][jM] = c; r200h[jz][jM] = NFWf[0] * c;
 
             // inverse radial CDF x(u) for the anti-biased profile
-            //   dN/dshell ~ x^2/(1+c x)^2 * B(x),  B(x)=1/sqrt((x/0.54)^-2.5 + 1)
+            //   dN/dshell ~ x^2/(1+c x)^2 * B(x),  B(x)=1/sqrt((x/x0)^-p + 1),
+            //   x = r/r_200; x0 converted from the r_vir-calibrated 0.54 per host.
+            const double x0 = biasScaleR200(C, c, z);
             const int Nx = 4000; vector<double> xs(Nx), cdf(Nx);
             double acc = 0.0;
             for (int i = 0; i < Nx; i++) {
                 xs[i] = static_cast<double>(i) / (Nx - 1);
                 double x = xs[i];
-                double B = (x > 0.0) ? 1.0 / sqrt(pow(x / 0.54, -2.5) + 1.0) : 0.0;
+                double B = (x > 0.0) ? 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0) : 0.0;
                 double w = x * x / pow(1.0 + c * x, 2.0) * B;
                 if (i > 0) {
                     double xp = xs[i - 1];
-                    double Bp = (xp > 0.0) ? 1.0 / sqrt(pow(xp / 0.54, -2.5) + 1.0) : 0.0;
+                    double Bp = (xp > 0.0) ? 1.0 / sqrt(pow(xp / x0, -BIAS_EXP) + 1.0) : 0.0;
                     double wp = xp * xp / pow(1.0 + c * xp, 2.0) * Bp;
                     acc += 0.5 * (w + wp) * (x - xp);
                 }
@@ -229,9 +459,15 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappat
             if (kappathr_host > 0.0) {
                 buildWsubBin(C, zs, jz, jM, kappathr_host);
             }
+            if (build_restricted) {
+                // model 5: needs r200h/chost/gnorm/invRad for this bin, all set above,
+                // and r_thr[jz] (built at kappa_thr,sub) from the top of precompute.
+                buildRestrictedBin(C, jz, jM);
+            }
         }
     }
     built = true;
+    restricted_built = build_restricted;
 }
 
 // Wsub tables for one (jz, jM) bin: Campbell mean/std of the UNRESOLVED clumps
@@ -252,7 +488,7 @@ void Subhalo::buildWsubBin(cosmology &C, double zs, int jz, int jM, double kappa
     const double r200 = r200h[jz][jM];
     const double c = chost[jz][jM];
 
-    const double psi_min = m_floor / M;            // same lower bound as brute sampling
+    const double psi_min = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);  // same lower bound as brute sampling
     if (psi_min >= psi_max) return;
 
     // full bound fraction over [psi_min, psi_max] (exp-cutoff SHMF, host reduction)
@@ -263,11 +499,13 @@ void Subhalo::buildWsubBin(cosmology &C, double zs, int jz, int jM, double kappa
     fsb[jz][jM] = std::max(0.0, std::min(0.95, fs_b));
 
     // projected anti-biased surface density sigma2D(R), cell-centered uniform Rhat grid
+    // (x = r/r_200; x0 converted from the r_vir-calibrated 0.54 per host)
     const int NR = 128, NUa = 96;
+    const double x0 = biasScaleR200(C, c, zl);
     vector<double> p2(NR, 0.0);
     auto p3 = [&](double x) {
         if (x <= 0.0 || x > 1.0) return 0.0;
-        double B = 1.0 / sqrt(pow(x / 0.54, -2.5) + 1.0);
+        double B = 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0);
         return x * x / pow(1.0 + c * x, 2.0) * B;
     };
     double p2norm = 0.0;
@@ -401,6 +639,38 @@ void Subhalo::wsubTerm(int jz, int jM, double r, double &mu, double &sigma) cons
     sigma = s_[i] + f * (s_[i + 1] - s_[i]);
 }
 
+// Mean unresolved bound mass at ray distance r (mass-conserving carve, scheme A):
+//   M_u(r) = (f_s,b - f_s,res(r)) M,
+// the complement of the resolved band addClumps samples above the dynamic floor
+// psi_lo(r). psi_lo(r) is the SAME r_thr-keyed floor as addClumps / the model-1 host,
+// and f_s,res(r) uses the SAME incomplete-Gamma as the model-1 host reduction, so the
+// carved host M - Sum_i m_i - M_u(r) reproduces the mean host mass (1-f_s,b)M while
+// conserving the total halo mass M in every realization. Model-3 only (brute carves
+// with M_u = 0, all clumps explicit). Returns 0 for inactive bins or fully-resolved rays.
+double Subhalo::unresolvedMass(cosmology &C, int jz, int jM, double r, double M) const {
+    double g = gnorm[jz][jM];
+    if (g <= 0.0) return 0.0;
+    double f_b = fsb[jz][jM];                       // full bound fraction over [m_floor/M, psi_max]
+    if (f_b <= 0.0) return 0.0;
+    // dynamic floor psi_lo(r): smallest clump resolved at this host-center distance;
+    // everything in [psi_min, psi_lo) is unresolved. Matches addClumps exactly.
+    const vector<double> &rth = r_thr[jz];
+    int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), r) - rth.begin());
+    double psi_lo = (jlo >= C.NM) ? psi_max : std::max(C.Mlist[jlo], C.Mmin) / M;
+    psi_lo = std::min(psi_lo, psi_max);
+    const double psi_min = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);
+    if (psi_lo <= psi_min) return 0.0;              // everything resolved -> nothing unresolved
+    // resolved bound fraction above psi_lo (exp-cutoff SHMF); identical to the model-1
+    // f_s_res so M_u is exactly the complementary (unresolved) mass.
+    const double s_m = (1.0 + alpha) / omega;
+    double f_s_res = g / (omega * pow(beta, s_m)) *
+        (gsl_sf_gamma_inc(s_m, beta * pow(psi_lo, omega)) -
+         gsl_sf_gamma_inc(s_m, beta * pow(psi_max, omega)));
+    f_s_res = std::max(0.0, std::min(0.95, f_s_res));
+    double f_unr = f_b - f_s_res;
+    return (f_unr > 0.0) ? f_unr * M : 0.0;
+}
+
 // Add one host's discrete subhalos to (kappa, gamma1, gamma2).
 // Only clumps above the dynamic floor are resolved. The floor is the inverse of the
 // monotone clump-reach r_thr(m), keyed to the host-center distance r; lensing.cpp uses
@@ -411,13 +681,16 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
                         double r, double phi, rgen &mt,
                         double &kappa, double &gamma1, double &gamma2,
                         int subhalo_model, bool subhalo_brute,
-                        int threads, int parallel_threshold) {
+                        int threads, int parallel_threshold,
+                        double *mass_out) {
     double g = gnorm[jz][jM];
     if (g <= 0.0) return 0;
 
     double psi_lo = 0.0;
-    if (subhalo_brute) {
-        psi_lo = m_floor / M;
+    // model 4 resolves every subhalo down to the absolute floor, exactly like brute mode
+    // (no dynamic r_thr floor); m_floor/M = M_min/M is the supervisor's psi_min choice.
+    if (subhalo_brute || subhalo_model == 4) {
+        psi_lo = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);
     } else {
         // dynamic floor: smallest clump whose reach r_thr(m) >= r, keyed to the HOST-CENTER
         // distance (MUST match lensing.cpp's f_s_res). This under-resolves clumps that land
@@ -484,6 +757,7 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
             kappa += acc.kappa;
             gamma1 += acc.gamma1;
             gamma2 += acc.gamma2;
+            if (mass_out) *mass_out += acc.mass;
         }
         return Nc;
     }
@@ -496,6 +770,7 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
         if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
         double m = psi * M;
         double log_m = std::log(m);
+        if (mass_out) *mass_out += m;   // realized resolved-clump mass carved from the host
 
         // clump 3D host-centric radius from the anti-biased profile, projected to 2D
         double ur = randomreal(0.0, 1.0, mt);

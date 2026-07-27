@@ -248,6 +248,10 @@ public:
     // halo bias b(M,z)
     double halobias(double z, double sigma);
 
+    // filament bias b_fil(M,z): peak-background split of the filament
+    // first-crossing barrier pFCfil (flat barrier, p = 0, q = 0.7)
+    double filbias(double z, double sigma);
+
     // growth-free linear matter power spectrum P(k) [kpc^3] in the code's
     // convention: Delta^2(k) = (ck/H0)^(3+ns) (deltaH8 TM(k))^2 with NO Dg
     // factor — the same normalization as the sigmalist tables, so consumers

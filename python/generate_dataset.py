@@ -11,7 +11,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import gwlensing as gw
-from ml.params import PRIOR_6D, WIDE_6D, PARAM_KEYS_6D, lnAs10_from_As, As_from_lnAs10
+from ml.params import PRIOR_6D, WIDE_6D, PARAM_KEYS_6D
 
 try:
     from pyDOE3 import lhs
@@ -42,7 +42,7 @@ def get_git_branch():
         return "unknown"
 
 def simulate_config_worker(args_tuple):
-    z, h, om, As, ob, ns, zeq, nsamples_per_point, seed, i = args_tuple
+    z, h, om, sigma8, ob, ns, zeq, nsamples_per_point, seed, i = args_tuple
     import sys
     import os
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
@@ -50,10 +50,12 @@ def simulate_config_worker(args_tuple):
     import numpy as np
 
     sim_seed = None if seed is None else seed + i
-    # As-mode: sigma8 positional is ignored when As > 0
+    # sigma8-mode: As is left at its default (-1.0), so the amplitude is set by
+    # the sigma8 positional via deltaH8 = sigma8/sigmaC(M8, 1). This is the
+    # upstream Vaskonen convention (halos main_lensing.cpp).
     result = gw.sample_lnmu_ml_with_diagnostics(
-        z, h, om, 0.811, nsamples_per_point, sim_seed, False,
-        As=As, OmegaB=ob, ns=ns, zeq=zeq
+        z, h, om, sigma8, nsamples_per_point, sim_seed, False,
+        OmegaB=ob, ns=ns, zeq=zeq
     )
     return i, list(result["lnmu"]), dict(result["invalid_stats"])
 
@@ -61,18 +63,17 @@ def simulate_config_worker(args_tuple):
 def partition_samples(params_dict, num_points, seed=None):
     """
     Partitions generated parameters into train, val, and test.
-    - In-Distribution (ID): OmegaM and lnAs10 = ln(1e10 As) inside the PRIOR_6D box
+    - In-Distribution (ID): OmegaM and sigma8 inside the PRIOR_6D box
     - True Out-of-Distribution (OoD): both beyond the box on the same side
     - Boundary/intermediate points are filtered out.
-    (Amplitude analogue of the legacy OmegaM/sigma8 partition; As ~ sigma8^2.)
     """
     omega_m = params_dict['OmegaM']
-    lnas = lnAs10_from_As(params_dict['As'])
+    s8 = params_dict['sigma8']
     om_lo, om_hi = PRIOR_6D['Om']
-    a_lo, a_hi = PRIOR_6D['lnAs10']
+    a_lo, a_hi = PRIOR_6D['sigma8']
 
-    id_mask = (omega_m >= om_lo) & (omega_m <= om_hi) & (lnas >= a_lo) & (lnas <= a_hi)
-    ood_mask = ((omega_m > om_hi) & (lnas > a_hi)) | ((omega_m < om_lo) & (lnas < a_lo))
+    id_mask = (omega_m >= om_lo) & (omega_m <= om_hi) & (s8 >= a_lo) & (s8 <= a_hi)
+    ood_mask = ((omega_m > om_hi) & (s8 > a_hi)) | ((omega_m < om_lo) & (s8 < a_lo))
 
     train_mask = np.zeros(num_points, dtype=bool)
     val_mask = np.zeros(num_points, dtype=bool)
@@ -203,14 +204,15 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_samples.create_dataset("z", data=params['z'], compression="gzip")
         for k in PARAM_KEYS_6D:
             g_samples.create_dataset(k, data=params[k], compression="gzip")
-        # derived sigma8 per config (diagnostic; the amplitude input is As)
-        sigma8_derived = np.array([
+        # derived A_s per config (diagnostic; the amplitude input is sigma8).
+        # sigma8 itself is already stored via PARAM_KEYS_6D above.
+        As_derived = np.array([
             gw.get_simulator_config(h=params['h'][i], OmegaM=params['OmegaM'][i],
-                                    As=params['As'][i], OmegaB=params['OmegaB'][i],
-                                    zeq=params['zeq'][i], ns=params['ns'][i])["sigma8_derived"]
+                                    sigma8=params['sigma8'][i], OmegaB=params['OmegaB'][i],
+                                    zeq=params['zeq'][i], ns=params['ns'][i])["As_derived"]
             for i in range(num_points)
         ])
-        g_samples.create_dataset("sigma8_derived", data=sigma8_derived, compression="gzip")
+        g_samples.create_dataset("As_derived", data=As_derived, compression="gzip")
 
         # Write split type dataset
         dt = h5py.special_dtype(vlen=str)
@@ -224,7 +226,7 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
 
         # Prepare parallel simulation tasks
         tasks = [
-            (params['z'][i], params['h'][i], params['OmegaM'][i], params['As'][i],
+            (params['z'][i], params['h'][i], params['OmegaM'][i], params['sigma8'][i],
              params['OmegaB'][i], params['ns'][i], params['zeq'][i],
              nsamples_per_point, seed, i)
             for i in range(num_points)
@@ -328,9 +330,11 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_meta.attrs["git_branch"] = get_git_branch()
         g_meta.attrs["generation_timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
         g_meta.attrs["nsamples_per_point"] = nsamples_per_point
-        g_meta.attrs["dataset_schema_version"] = "2.0"   # 1+6d: (z; h, Om, As, Ob, ns, zeq)
-        g_meta.attrs["dataset_version"] = "2.0"
-        g_meta.attrs["amplitude_mode"] = "As"
+        # 2.1 = 1+6d sigma8-mode (z; h, Om, sigma8, Ob, ns, zeq). 2.0 was the
+        # A_s-mode variant, retired 2026-07-27 in favour of Vaskonen's convention.
+        g_meta.attrs["dataset_schema_version"] = "2.1"
+        g_meta.attrs["dataset_version"] = "2.1"
+        g_meta.attrs["amplitude_mode"] = "sigma8"
 
         sim_config = gw.get_simulator_config()
         g_meta.attrs["filaments"] = sim_config["filaments"]
@@ -371,19 +375,18 @@ def main():
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    # LHS over the wide 6d box (Om, lnAs10 extend past the ID box for OoD corners).
-    # As is sampled log-uniformly via lnAs10 and stored in physical units.
+    # LHS over the wide 6d box (Om, sigma8 extend past the ID box for OoD corners).
     bounds = {
         'h': WIDE_6D['h'],
         'OmegaM': WIDE_6D['Om'],
-        'lnAs10': WIDE_6D['lnAs10'],
+        'sigma8': WIDE_6D['sigma8'],
         'OmegaB': WIDE_6D['Ob'],
         'ns': WIDE_6D['ns'],
         'zeq': WIDE_6D['zeq'],
         'z': (args.z_min, args.z_max)
     }
 
-    keys = ['h', 'OmegaM', 'lnAs10', 'OmegaB', 'ns', 'zeq', 'z']
+    keys = ['h', 'OmegaM', 'sigma8', 'OmegaB', 'ns', 'zeq', 'z']
 
     # Generate all LHS points
     # Need to generate enough points so splits get populated (scale by 4 due to filtering)
@@ -406,8 +409,6 @@ def main():
         else:
             params[k] = low + lhs_samples[:, i] * (high - low)
 
-    params['As'] = As_from_lnAs10(params.pop('lnAs10'))
-    bounds['As'] = tuple(As_from_lnAs10(np.array(bounds.pop('lnAs10'))))
 
     train_mask, val_mask, test_mask, split_types = partition_samples(params, total_points, args.seed)
 

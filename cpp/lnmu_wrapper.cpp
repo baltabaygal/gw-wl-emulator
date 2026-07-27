@@ -87,6 +87,10 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.subhalo_model = sp.subhalo_model;
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
+    cfg.subhalo_carve = sp.subhalo_carve;
+    cfg.subhalo_kappathr = sp.subhalo_kappathr;
+    cfg.subhalo_kappathr_factor = sp.subhalo_kappathr_factor;
+    cfg.psi_min_fixed = sp.psi_min_fixed;
     cfg.kappathr_flat = sp.kappathr_flat;
     cfg.kappa_anchor = sp.kappa_anchor;
     cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
@@ -94,6 +98,7 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.bias_model = sp.bias_model;
     cfg.bias_Rperp = sp.bias_Rperp;
     cfg.bias_weak = sp.bias_weak;
+    cfg.fil_bias = sp.fil_bias;
     cfg.bias_window = sp.bias_window;
 
     // Get raw realizations (κ, γ1, γ2 per realization)
@@ -282,6 +287,10 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.subhalo_model = sp.subhalo_model;
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
+    cfg.subhalo_carve = sp.subhalo_carve;
+    cfg.subhalo_kappathr = sp.subhalo_kappathr;
+    cfg.subhalo_kappathr_factor = sp.subhalo_kappathr_factor;
+    cfg.psi_min_fixed = sp.psi_min_fixed;
     cfg.kappathr_flat = sp.kappathr_flat;
     cfg.kappa_anchor = sp.kappa_anchor;
     cfg.kappa_anchor_cut = sp.kappa_anchor_cut;
@@ -289,6 +298,7 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.bias_model = sp.bias_model;
     cfg.bias_Rperp = sp.bias_Rperp;
     cfg.bias_weak = sp.bias_weak;
+    cfg.fil_bias = sp.fil_bias;
     cfg.bias_window = sp.bias_window;
 
     LnmuSampleDiagnostics out;

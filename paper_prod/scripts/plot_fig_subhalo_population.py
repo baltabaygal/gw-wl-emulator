@@ -24,32 +24,43 @@ substructure floor). Overlaid comparisons:
     position-conditioned stripping makes this a slight underestimate of
     their halo-average bound MF).
 
-Panel (b): the radial bias function B(x) = n_sub/n_host (normalized to 1 at
-x = r/r200 = 1) on log-log axes, in the style of plots/bias_fit_comparison.png:
-  - adopted transition fit B(x) = [1+(x/0.54)^{-5/2}]^{-1/2} (fit to Green+21)
-  - Green, van den Bosch & Jiang 2021 withering+disruption curve (digitized,
-    from scripts/subhalo_gate/fit_bias_profile.py)
-  - Bolshoi Fig. 7 points (Klypin+11, same digitization)
+Panel (b): the radial bias function B(x) = n_sub/n_host (subhalo NUMBER density
+over the host NFW mass density, normalized to 1 at x = r/r200 = 1) on log-log
+axes. Digitization is now minimized to a SINGLE dataset (Bolshoi); every other
+curve is analytic (computed from published parameters):
+  - adopted transition fit B(x) = [1+(x/0.86)^{-5/2}]^{-1/2} (this work; refit to
+    the Bolshoi points below with the exponent fixed at 5/2. The earlier 0.54 was
+    fit to the Green, van den Bosch & Jiang 2021 withering+disruption model curve
+    and under-depleted the centre; that curve itself is no longer drawn)
+  - Bolshoi points (Klypin+11) -- the ONE digitized dataset here, taken from
+    Fig. 7 of GVdBJ21 (data originally from the Bolshoi simulation, Klypin+11);
+    digitization provenance in scripts/subhalo_gate/fit_bias_profile.py
   - Springel+08 Aq-A-1: Einasto subhalo number density (alpha = 0.678,
     r_-2 = 0.81 r200, their sec. 3.2) over the host NFW at their c_NFW = 16.11
+    -- analytic, from their published parameters (NOT digitized)
   - Han+16 power-law bias (R/R200)^1.3 (Aquarius A fit; their model gamma =
-    alpha*beta ~ 1)
+    alpha*beta ~ 1) -- analytic (NOT digitized)
 
 Incomplete Gamma(s, x) is computed by two independent numpy methods (log-t
 trapezoid + Nist series/continued fraction) and cross-checked at runtime.
 
 Run: python3 paper_prod/scripts/plot_fig_subhalo_population.py
 Inputs: data/pyhalo_vs_ours.npz (copied from tmp/, made by
-        tmp/pyhalo_vs_ours_plot.py in .venv_pyhalo)
+    tmp/pyhalo_vs_ours_plot.py in .venv_pyhalo)
 Outputs: paper_prod/plots/figures/fig_subhalo_population.{pdf,png}
 (the .tex includegraphics path stays `plots/...` — that is the Overleaf-side
 folder these are copied into, as for the other paper figures)
+
+Caption note: the manuscript caption should state that tildes denote quantities
+normalized to unity at $x=1$ (i.e. "tilde refers to the quantities normalized to
+unity at $x=1$"). The y-axis label of the lower panel is set accordingly.
 """
 import math
 import sys
 from pathlib import Path
 
 import numpy as np
+from matplotlib.ticker import FuncFormatter, LogLocator, ScalarFormatter, LogFormatterMathtext
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -123,28 +134,29 @@ def diffhalos_dndlnpsi(lgM, psi):
     return -(10.0 ** f) * fp
 
 
-# ------------------------------- panel (b) digitized curves + literature fits
-# Bolshoi Fig. 7 points + Green+21 withering+disruption curve, digitized in
-# scripts/subhalo_gate/fit_bias_profile.py (provenance: draft_comments_memo R6)
+# --------------------------- panel (b) Bolshoi points (the one digitized set)
+# Digitized from Fig. 7 of Green, van den Bosch & Jiang 2021 (data originally
+# from the Bolshoi simulation, Klypin+11); see
+# scripts/subhalo_gate/fit_bias_profile.py (provenance: draft_comments_memo R6).
+# The Green+21 model curve is no longer drawn -- the adopted fit stands in for it.
 BOLSHOI_LOGX = np.array([-1.5, -1.4, -1.3, -1.25, -1.15, -1.1, -1.0, -0.9,
                          -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0])
 BOLSHOI_LOGB = np.array([-1.52, -1.50, -1.33, -1.28, -1.30, -1.25, -1.10,
                          -0.97, -0.85, -0.73, -0.58, -0.48, -0.38, -0.25,
                          -0.15, -0.06, 0.0])
-GREEN_LOGX = np.array([-1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7,
-                       -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0])
-GREEN_LOGB = np.array([-1.55, -1.43, -1.29, -1.15, -1.01, -0.88, -0.75,
-                       -0.62, -0.50, -0.39, -0.29, -0.21, -0.13, -0.07,
-                       -0.03, 0.0])
 
-SP08_ALPHA, SP08_X2, SP08_CNFW = 0.678, 0.81, 16.11   # Springel+08 sec 3.2 + Tab 2
-HAN16_GAMMA = 1.3                                     # Han+16 Fig. 1 (Aq-A)
+# Springel et al. 2008 (Aquarius A-1): Einasto params from Sec. 3.2, Tab.2
+# arXiv:0809.0898
+SP08_ALPHA, SP08_X2, SP08_CNFW = 0.678, 0.81, 16.11   # Springel+08
+# Han et al. 2016: radial bias power-law fit (Aq-A)
+# arXiv:1509.02175
+HAN16_GAMMA = 1.3                                     # Han+16
 
 
 def bias_adopted(x):
     """Adopted transition fit (subhalo.cpp), normalized to B(1)=1."""
-    raw = 1.0 / np.sqrt((x / 0.54) ** -2.5 + 1.0)
-    return raw / (1.0 / np.sqrt((1.0 / 0.54) ** -2.5 + 1.0))
+    raw = 1.0 / np.sqrt((x / 0.86) ** -2.5 + 1.0)
+    return raw / (1.0 / np.sqrt((1.0 / 0.86) ** -2.5 + 1.0))
 
 
 def bias_springel08(x):
@@ -255,8 +267,7 @@ def main():
         fs, gam, zf, Ntau = fs_gamma(C, Z_L, M)
         pf = M_FLOOR / M
         dNdlnpsi = gam * psi ** ALPHA * np.exp(-BETA * psi ** OMEGA)
-        lab = (rf"This work (JvdB14, bound), "
-               rf"$f_{{\rm s}} = {fs:.2f}$")
+        lab = "JvdB14"
         axa.plot(psi, dNdlnpsi, color=COL_OURS, label=lab)
 
         # our bound subhalo mass fraction over [pf, 1] (JvdB14 eq. 23 integral)
@@ -303,15 +314,15 @@ def main():
     from matplotlib.lines import Line2D
     proxies = [
         Line2D([], [], color=COL_DH, ls="dashed", lw=1.0,
-               label=rf"Diffhalos (peak$\to$bound, $s_{{\rm eff}}={s_eff:.2f}$)"),
+               label="Diffhalos"),
         Line2D([], [], color=COL_PYH, marker="s", ms=2.4, mfc="none", mew=0.7,
-               ls="none", label=r"pyHalo (bound)"),
+               ls="none", label="pyHalo"),
     ]
-    leg1 = axa.legend(fontsize=5.8, frameon=False, loc="lower left",
-                      title=rf"$M = 10^{{13}}\,M_\odot$, $z = {Z_L:g}$",
-                      title_fontsize=5.8)
-    axa.add_artist(leg1)
-    axa.legend(handles=proxies, fontsize=5.8, frameon=False,
+    # Combine all handles (the main curve + the proxies) into a single legend
+    h_main, l_main = axa.get_legend_handles_labels()
+    handles = h_main + proxies
+    labels = l_main + [p.get_label() for p in proxies]
+    axa.legend(handles=handles, labels=labels, fontsize=5.8, frameon=False,
                loc="upper right")
     axa.set_xscale("log")
     axa.set_yscale("log")
@@ -320,24 +331,50 @@ def main():
     axa.set_xlabel(r"$\psi = m/M$")
     axa.set_ylabel(r"${\rm d}N/{\rm d}\ln\psi$")
 
+    # Use LogLocator with mathtext formatter so labels appear as 10^{n}
+    axa.xaxis.set_major_locator(LogLocator(base=10.0))
+    axa.yaxis.set_major_locator(LogLocator(base=10.0))
+    def custom_log_formatter(x, pos):
+        if x <= 0:
+            return ""
+        exp = int(round(math.log10(x)))
+        if exp in (-1, 0, 1):
+            val = 10 ** exp
+            return f"{val:g}"
+        return rf"$10^{{{exp}}}$"
+    axa.xaxis.set_major_formatter(FuncFormatter(custom_log_formatter))
+    axa.yaxis.set_major_formatter(FuncFormatter(custom_log_formatter))
+
+    # Put the host mass and lens redshift in the lower-left of the upper panel
+    # nudge up slightly and match legend font size
+    axa.text(0.02, 0.045, rf"$M=10^{{13}}\,M_\odot$, $z={Z_L:g}$",
+             transform=axa.transAxes, fontsize=5.8, va="bottom", ha="left")
+
     # ---------------- panel (b): radial bias function, log-log
     x = np.logspace(-1.6, 0.0, 400)
+    # label kept short; the "fit to Green+21" provenance goes in the caption
+    # (that is where the \cite{Green:2021} lives) -- the full string overflows
+    # the single-column panel width
     axb.plot(x, bias_adopted(x), color="C0", lw=1.4,
-             label=r"$[1+(x/0.54)^{-5/2}]^{-1/2}$ (this work)")
-    axb.plot(10.0 ** GREEN_LOGX, 10.0 ** GREEN_LOGB, color="C2", lw=1.0,
-             label="Green+21 (withering$+$disruption)")
+             label=r"$[1+(x/0.86)^{-5/2}]^{-1/2}$ (this work)")
     axb.plot(10.0 ** BOLSHOI_LOGX, 10.0 ** BOLSHOI_LOGB, "s", ms=2.2,
              color="k", ls="none", label="Bolshoi (Klypin+11)")
     axb.plot(x, bias_springel08(x), color="C4", ls="dashdot", lw=1.0,
-             label=r"Springel+08 (Aq-A-1, Einasto/NFW)")
+             label="Springel+08")
     axb.plot(x, x ** HAN16_GAMMA, color="C3", ls="dotted", lw=1.2,
-             label=rf"Han+16: $x^{{{HAN16_GAMMA:g}}}$ (Aq-A)")
+             label="Han+16")
     axb.set_xscale("log")
     axb.set_yscale("log")
     axb.set_xlim(10 ** -1.6, 1.0)
     axb.set_ylim(10 ** -2.3, 1.6)
-    axb.set_xlabel(r"$x = r/r_{200}$")
-    axb.set_ylabel(r"$B(x) = n_{\rm sub}/n_{\rm host}$")
+    axb.set_xlabel(r"$x = r/r_{\rm vir}$")
+    # changed per request: tilde notation and differential in x^3
+    axb.set_ylabel(r"$\tilde{\rho}_{\rm host}^{-1}\;\mathrm{d}\tilde{N}_{\rm sub}/\mathrm{d}x^{3}$")
+    # note: manuscript caption should say tildes denote normalization to unity at x=1
+    axb.xaxis.set_major_locator(LogLocator(base=10.0))
+    axb.yaxis.set_major_locator(LogLocator(base=10.0))
+    axb.xaxis.set_major_formatter(FuncFormatter(custom_log_formatter))
+    axb.yaxis.set_major_formatter(FuncFormatter(custom_log_formatter))
     axb.legend(fontsize=5.8, frameon=False, loc="upper left")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

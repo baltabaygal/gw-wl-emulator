@@ -1,0 +1,23 @@
+# engine checkpoint probe (fiducial, sigma8-mode)
+sigma8_derived 0.811000
+deltaH8 4.749295e-05
+sigma8_TOPHAT_engine 0.778562
+sigma_1e12_engineWs 2.246299
+sigma_1e12_TOPHAT_engine 2.144049
+Dg_0 1.000000
+Dg_0.5 0.770119
+Dg_1 0.607491
+Dg_2 0.417459
+deltac_0 1.686470
+HMF_grid z 0.010000 M 8.902151e+11 dndlnM_Mpc3 1.951187e-03
+HMF_grid z 0.497984 M 9.111628e+12 dndlnM_Mpc3 2.064092e-04
+HMF_grid z 1.000667 M 9.326033e+13 dndlnM_Mpc3 4.811894e-06
+NFW_grid zl 0.497984 M 8.902151e+11
+NFW_c200 6.835771
+NFW_rs_kpc 24.736150
+NFW_rhos_MsunKpc3 3.945365e+06
+Sigmac_MsunMpc2 2.019985e+15
+kappa_s 0.048314
+profile x 0.100 kappa 1.96017552e-01 gamma 4.69017934e-02
+profile x 1.000 kappa 3.22091934e-02 gamma 2.70916974e-02
+profile x 10.000 kappa 8.31774342e-04 gamma 2.56418588e-03

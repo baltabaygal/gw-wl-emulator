@@ -30,6 +30,10 @@ struct LensingProfile {
   std::vector<uint64_t> host_events;
   std::vector<uint64_t> subhalo_calls;
   std::vector<uint64_t> subhalo_clumps;
+  // carve guard: # encounters where M - Sum m_i - M_u fell below Mmin and the host mass
+  // was floored (mass-conserving carve, scheme A). Expected ~0 (needs a ~9-sigma SHMF
+  // excursion); a nonzero value flags a resolution/floor pathology.
+  uint64_t subhalo_carve_negatives = 0;
 
   void reset(int NM) {
     total_seconds = 0.0;
@@ -42,6 +46,7 @@ struct LensingProfile {
     host_events.assign(NM, 0);
     subhalo_calls.assign(NM, 0);
     subhalo_clumps.assign(NM, 0);
+    subhalo_carve_negatives = 0;
   }
 };
 
@@ -78,9 +83,53 @@ struct LensingConfig {
   int subhalo_model = 3;       // 0 = gslope removal (legacy), 1 = reduced-host resolved-only,
                                // 2 = diagnostic bare clumps, 3 = reduced-host + Wsub term
                                // (mu_unres(y) + Gaussian; exact mean/variance at any factor;
-                               // DEFAULT since 2026-07-09, see docs/subhalo/wsub_gaussian_term_derivation.md)
+                               // DEFAULT since 2026-07-09, see docs/subhalo/wsub_gaussian_term_derivation.md),
+                               // 4 = brute-to-floor + carve: every subhalo sampled down to the
+                               //     absolute floor psi_min = m_floor/M, host carved to M - Sum_i m_i,
+                               //     NO unresolved term (no M_u/kappa_u/Wsub, no dynamic floor, no
+                               //     subhalo_factor). Supervisor's simplified production model
+                               //     (2026-07-23); == model 1 + subhalo_brute + subhalo_carve as one
+                               //     named model. Requires subhalo_carve = true (throws otherwise);
+                               //     ignores subhalo_brute/subhalo_factor. Marginal cost ~45 ms/ray
+                               //     vs ~0.2 for model 3 (~1e6 clumps rendered per ray at z_s=1);
+                               //     floor 1e7/M validated converged. STAGED: not yet the shipped
+                               //     default (pending supervisor sign-off + emulator retrain).
+                               //     docs/subhalo/mass_conserving_carve_note.md §10.
+                               // 5 = model 4 + per-clump convergence threshold kappa_thr,sub:
+                               //     SAME population as model 4 (every subhalo still exists down to
+                               //     psi_min = m_floor/M, no unresolved/Gaussian stand-in), but only
+                               //     clumps whose kappa AT THE RAY clears subhalo_kappathr are
+                               //     rendered, drawn from the RESTRICTED Poisson intensity so the
+                               //     rejects are never instantiated. Same resolution rule the HOST
+                               //     halos already obey (r_thr / kappa_thr), applied to subhalos.
+                               //     Requires subhalo_carve = true. ~1e4x fewer clumps for a 0.1%
+                               //     loss in sigma_kappa at the default threshold, which puts it at
+                               //     the subhalo-off cost floor. STAGED, needs a P(lnmu) JSD gate.
+                               //     data/results/subkappathr_population/report.md
   bool subhalo_brute = false;  // true = brute-force resolve down to m_floor (no dynamic floor)
+  // model 5 only: per-clump convergence threshold kappa_thr,sub. > 0 sets it absolutely;
+  // <= 0 (default) uses subhalo_kappathr_factor * kappathr_host, i.e. it tracks the host
+  // counting threshold as z_s changes. The population-weighted sweep gives, at factor 0.1,
+  // clump reductions of 1.9e4/1.3e4/4.1e3 for sigma losses 0.08/0.11/0.21% at z_s=0.5/1/5;
+  // factor 1.0 (the fully self-consistent "same rule as hosts") costs 0.24/0.41/1.29%.
+  double subhalo_kappathr = -1.0;
+  double subhalo_kappathr_factor = 0.1;
   double subhalo_factor = 1.0e-2; // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12); ~10x cheaper than the old 1e-5, indistinguishable vs brute at z_s=1,5
+  // Mass-conserving host carve (scheme A, 2026-07-22, docs/subhalo/mass_conserving_carve_note.md):
+  // true (default) reduces a subhalo-bearing host by the REALIZED resolved clump mass
+  // Sum_i m_i plus the mean unresolved mass M_u(r), so the total halo mass is M exactly
+  // in every realization (not merely in the mean). Applies to subhalo_model 3 and the
+  // brute reference (model 1/2 + subhalo_brute; M_u = 0 there). false reproduces the
+  // pre-2026-07-22 deterministic (1 - f_s,b)M reduction, kept as the bitwise determinism
+  // reference and for A/B. The RNG stream is identical either way (the host build draws
+  // no random numbers; the carve only reorders the host build after the clump draw).
+  bool subhalo_carve = true;
+  // Diagnostic override (2026-07-23): > 0 fixes psi_min everywhere the subhalo module would
+  // otherwise use m_floor/M (buildWsubBin, unresolvedMass, addClumps' subhalo_brute path).
+  // E.g. psi_min_fixed = 1e-4 = psi_res tests "no extrapolation below the SHMF's own
+  // calibration point", host-mass-independent by construction. <= 0 (default) keeps the
+  // existing m_floor/M behavior, bitwise unchanged. See docs/subhalo/mass_conserving_carve_note.md.
+  double psi_min_fixed = -1.0;
 
   // future nuisance params (Phase 2)
   // double c_norm = 1.0;
@@ -171,6 +220,20 @@ struct LensingConfig {
   // the counts-only field model, stream-for-stream. NFW halos only (same
   // scope as the legacy weak Gaussian) — filaments carry no weak arm.
   bool bias_weak = false;
+
+  // Filament clustering bias (2026-07-23, docs/filament_bias_note.md). When true,
+  // the filament population is modulated by the filament bias b_fil(M,z) =
+  // cosmology::filbias (PBS of the pFCfil barrier, q = 0.7) instead of sharing the
+  // halo bias b(M,z) with the NFW population. Same one-dimensional field delta_1D
+  // and the same lognormal count modulation lambda = exp(bDg dbar - bDg^2 sig2/2);
+  // only the per-cell amplitude bDg switches from Dg*halobias to Dg*filbias for the
+  // filament counts. filbias < halobias at every mass (lower, flatter barrier), so
+  // filaments cluster more weakly. Requires the correlated field (bias_model = 1);
+  // in the legacy iid layer (bias_model = 0) this flag is a no-op and filaments keep
+  // the halo modulation. Default OFF: bias_model = 1 alone reproduces the pre-change
+  // behavior (filaments ride the halo bias), stream-for-stream. Orientation of the
+  // filaments is unchanged (isotropic) — this flag is a number-density bias only.
+  bool fil_bias = false;
 };
 
 

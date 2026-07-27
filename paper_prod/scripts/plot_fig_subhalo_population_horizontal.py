@@ -27,7 +27,7 @@ from paper_prod.plot_style import apply_style
 from plot_fig_subhalo_population import (
     ALPHA, BETA, OMEGA, M_FLOOR, S_M, WF, AF, Z_L, M_HOSTS, M_PYHALO,
     COL_OURS, COL_DH, COL_PYH,
-    BOLSHOI_LOGX, BOLSHOI_LOGB, GREEN_LOGX, GREEN_LOGB, HAN16_GAMMA,
+    BOLSHOI_LOGX, BOLSHOI_LOGB, HAN16_GAMMA,
     diffhalos_dndlnpsi, bias_adopted, bias_springel08, gamma_inc,
     fs_gamma, guard_broken_latex,
 )
@@ -113,10 +113,11 @@ def main():
 
     # ---------------- panel (b): radial bias function, log-log
     x = np.logspace(-1.6, 0.0, 400)
+    # digitization minimized to the single Bolshoi dataset; the Green+21 model
+    # curve is dropped (the adopted fit stands in for it) and its "fit to
+    # Green+21" provenance goes in the caption. See the vertical script.
     axb.plot(x, bias_adopted(x), color="C0", lw=1.4,
              label=r"$[1+(x/0.54)^{-5/2}]^{-1/2}$ (this work)")
-    axb.plot(10.0 ** GREEN_LOGX, 10.0 ** GREEN_LOGB, color="C2", lw=1.0,
-             label="Green+21 (withering$+$disruption)")
     axb.plot(10.0 ** BOLSHOI_LOGX, 10.0 ** BOLSHOI_LOGB, "s", ms=2.2,
              color="k", ls="none", label="Bolshoi (Klypin+11)")
     axb.plot(x, bias_springel08(x), color="C4", ls="dashdot", lw=1.0,

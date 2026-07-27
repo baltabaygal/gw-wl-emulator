@@ -464,8 +464,24 @@ double cosmology::halobias(double z, double sigma) {
     double p = 0.3;
     double q = 0.75;
     double qnu2 = q*pow(deltac(z)/sigma,2.0);
-    
+
     return 1.0 + (qnu2-1.0)/deltac0 + 2.0*p/(deltac0*(1.0+pow(qnu2, p)));
+}
+
+// filament bias b_fil(M,z): peak-background split of the filament first-crossing
+// barrier pFCfil (flat barrier, p = 0, q = 0.7). The p = 0 limit drops the
+// 2p/[...] term of the Sheth-Mo-Tormen halo form, leaving the flat-barrier bias
+//   b_fil = 1 + (q nu^2 - 1)/deltac0,   nu = deltac(z)/sigma(M),  q = 0.7.
+// Filaments collapse from a lower, nearly scale-independent barrier, so they are
+// less strongly biased than halos of the same mass (b_fil < halobias for all M).
+// q here MUST track pFCfil's q so the bias is the PBS of the code's own filament
+// mass function.
+double cosmology::filbias(double z, double sigma) {
+
+    double q = 0.7;                        // matches pFCfil (cosmology.cpp::pFCfil)
+    double qnu2 = q*pow(deltac(z)/sigma,2.0);
+
+    return 1.0 + (qnu2-1.0)/deltac0;
 }
 
 // halo bias, {jz,jM} -> b

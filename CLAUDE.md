@@ -4,12 +4,23 @@ Fast ML emulator for the GW weak-lensing magnification PDF, built on the C++ Mon
 engine from Vaskonen (2026). See `README.MD` for the project overview and `memory/MEMORY.md`
 (auto-loaded) for cross-session context.
 
-**Paper (PRD draft, .tex on Overleaf — not in repo):** before touching paper text,
-figures, or answering draft comments, read `paper_prod/paper_memo.md` (2026-07-20) —
-maps every draft section/equation to its implementation (file:line), figure scripts,
-and the claim-constraining standing rules; `paper_prod/draft_comments_memo.md` holds
-the resolved \R{}/\Gala{} comments + known draft↔code mismatches (R_s/window, model-3
+**Paper (PRD draft, .tex on Overleaf):** before touching paper text, figures, or
+answering draft comments, read `paper_prod/paper_memo.md` (2026-07-20) — maps every
+draft section/equation to its implementation (file:line), figure scripts, and the
+claim-constraining standing rules; `paper_prod/draft_comments_memo.md` holds the
+resolved \R{}/\Gala{} comments + known draft↔code mismatches (R_s/window, model-3
 description, stale figure paths). Keep both updated like this file.
+
+**Two .tex files, different edit rights (2026-07-23):**
+- `paper_prod/production.tex` — pasted straight from Overleaf. **User-only: Claude may
+  read it (to compare/recommend/report) but must NEVER edit it.** The user reviews
+  Claude's draft edits, then merges what they like into this file themselves, on their
+  own schedule.
+- `paper_prod/draft_revised_2026-07-20.tex` — Claude's working copy. Make requested text/
+  figure changes here.
+Default behavior: read both when asked to compare, edit only the draft, and never write
+to `production.tex` even if a diff would be trivial to apply — surface the recommendation
+instead and let the user apply it to production.tex themselves.
 
 ## 0. This file is a LIVING document
 Loaded into every session as project instructions. It is **not fixed** — improve it as
@@ -56,6 +67,100 @@ from ace_lensing import predict_pdf, predict_sigma, predict_mean
 part — additive change, bitwise-clean), `compute_lnmu_stats`,
 `get_simulator_config`. Cosmology args: `Om`, `sigma8`, `h` (defaults Om=0.315, σ8=0.811);
 `Mmin` is exposed; `zs` is the source redshift; `Nhalos=100` sets the strong/weak κ split.
+**`subhalo_carve` (2026-07-22, default `true`; all samplers + config dict):**
+mass-conserving realized-clump host carve (scheme A) — a subhalo-bearing host is
+built at `M − Σ_i m_i − M_u(r)` (reduced by the REALIZED resolved-clump mass + mean
+unresolved mass) so the total halo mass is `M` exactly every realization, instead of
+the deterministic `(1−f_s,b)M`. Gated to `subhalo_model=3` + the brute reference
+(model 1/2 + `subhalo_brute`); `false` reproduces the pre-2026-07-22 reduction
+(A/B + bitwise reference). RNG-stream-preserving (host build draws no randoms), so
+carve-off is bitwise-identical to the old model 3. Guard clamps `M_host<Mmin` and
+counts in `LensingProfile.subhalo_carve_negatives`. Design/verification:
+`docs/subhalo/mass_conserving_carve_note.md` §9; `tests/test_subhalo_carve.py`.
+**⚠ Mac rebuild + acceptance still pending** (see that note §7).
+**`subhalo_model=4` — supervisor's simplified production model (2026-07-23, STAGED
+in C++, default still 3):** drop the whole unresolved apparatus — every subhalo
+sampled individually down to `psi_min = m_floor/M` (= `M_min/M`, floor `1e7`), host
+carved to `M − Σ_i m_i`, **no `M_u`, no `κ_u`/Wsub, no dynamic floor, no
+`subhalo_factor`**. Equivalent to `model 1 + subhalo_brute + subhalo_carve` as one
+named model (requires `subhalo_carve=true`, throws otherwise; ignores
+`subhalo_brute`/`subhalo_factor`). Edits: `lensing.cpp` guard + carve gate,
+`subhalo.cpp::addClumps` brute-floor for model 4, `lensing.h` doc; **no default/binding
+changes (STAGED — bindings already accept `subhalo_model=4` as an int).** **Mac
+`make build` + gates PASSED 2026-07-23:** 29/29 — 11 `test_cosmology_params.py` incl.
+`test_backward_compat_bitwise` (default path bitwise-clean post-rebuild), 10
+`test_subhalo_carve.py` (the previously-pending Mac carve acceptance), 8 new
+`tests/test_subhalo_model4.py` (defining invariant: model 4 ≡ `model1+brute+carve`
+bit-for-bit; carve-off throws; brute/factor knobs dead; floor moves substructure;
+default still 3). Pre-rebuild `.so` backed up in the session scratchpad.
+**Cost + floor validated 2026-07-23** (`scratchpad/floor_sweep.py`,
+memory `subhalo_brute_production_floor`); **cost figure CORRECTED 2026-07-24 — the old
+"~1.3–3.4× model-3" was an N=300 artifact where the ~4.5 s fixed precompute swamps the
+per-ray work.** Marginal PER-RAY cost (two-point fit, N=400 vs 4000, z_s=1, `sample_lnmu`):
+model 4 brute ≈ 45–90 ms/ray vs thresholded model 3 ≈ 0.19–0.20 ms/ray = **model 4 is
+~300–500× more expensive per ray** (default factor 1e-2 thr=1.3e-6, or factor 1 =
+host-thr 1.3e-4 — both ≈0.2 ms/ray; subhalo-off ≈0.06–0.24 ms/ray, run-to-run jitter
+±2× on the sub-ms terms, but the brute ratio is robust). The N=300 benchmark reproduces
+3.6×, N=3000 gives 47×, asymptotic per-ray is few-hundred×. So the brute cut is NOT
+cheap at production N — its whole cost is rendering the ~3.4e4 sub-threshold clumps that
+move σ_κ by 0.2% (see `docs/subhalo/subhalo_kappa_threshold_note.tex` +
+`playground/analytic/sigma_vs_subkappathr.py`). Floor `1e7/M` converged (flat 1e7→1e8;
+bites only ≥1e9). Draft rewritten
+(`draft_revised_2026-07-20.tex` §Subhalos: Eq.reducedhost simplified, `kappau_moments`
++ `ε_sub` para removed) + **Fig 4 replaced** (`fig:subhalo-factor` → host/subhalo
+convergence+scatter decomposition, `paper_prod/scripts/plot_fig_subhalo_sigma_decomposition.py`
+→ `fig_subhalo_sigma_decomposition.{png,pdf}`; single-host Campbell). **Fig 4
+cross-checked vs production C++ 2026-07-23:** `playground/subhalo_single_host_probe.cpp`
+(compile cmd in its header; runs production `addClumps` model-4 + carve on the grid host
+nearest M=1e13, z_l=0.5) → `tmp/subhalo_single_host_probe*.csv`; comparer
+`scratchpad/compare_fig4_probe.py`. ⟨N⟩ exact (3659.8 vs 3659.9), host mean <0.3%,
+sub-dominates-σ + negative host–sub cov confirmed at 25/25 r-points; σ_sub pointwise
+is heavy-tail MC-noisy (~±30% at 20k reals — deep 100k rerun for certification).
+**Flip to default + retire model-3 code + emulator
+retrain = pending Ville sign-off** (bundle with the bias_model/bias_window/R_⊥ flips).
+**⚠ Prefer `subhalo_model=5` over 4 for any new production run — same physics, 217×
+cheaper (see next entry). Model 4 is now the REFERENCE, not the candidate default.**
+
+**`subhalo_model=5` — model 4 + per-clump κ threshold (2026-07-27, STAGED, gated):**
+solves model 4's cost. **Same population** — every subhalo still exists down to
+`psi_min = m_floor/M`, no unresolved/Gaussian stand-in, carve intrinsic (throws without
+it; also throws on `subhalo_brute`) — but only clumps whose **κ at the ray** exceeds
+`kappa_thr,sub` are RENDERED. This is the same rule the HOST halos already obey
+(`r_thr`/κ_thr), applied self-consistently to subhalos, so it is NOT the model-3
+weak/unresolved split the supervisor rejected: nothing is replaced by a statistical
+stand-in, dropped clumps just keep their mass in the smooth host via the carve.
+Knobs `subhalo_kappathr` (absolute) / `subhalo_kappathr_factor` (× host κ_thr,
+**default 0.1**), wired through wrapper + all 5 py entry points + config dict.
+**Draw-and-reject saves NOTHING** (the test needs m and d, so all ~1e6 clumps would
+still be instantiated) — `Subhalo::addClumpsRestricted` samples the RESTRICTED
+intensity: retention disc `d ≤ D(m)` with `D` = the `r_thr` reach table (built at
+κ_thr,sub for model 5, NOT `subhalo_factor·κ_thr`), Poisson-thinned against a
+**global** envelope `Smax = max_R Σ_n`; two exact branches (small-target = uniform in
+disc × Σ_n/Smax; big-reach = full profile × `d≤D` test). Envelope costs extra
+proposals, never accuracy; being global makes the proposal intensity **y-independent**
+⇒ precomputes per (z,M) bin (`buildRestrictedBin`, `precompute(..., build_restricted)`).
+**Cost (marginal ms/ray, z_s=1):** model 4 = 45.22, **model 5 f=0.1 = 0.208**,
+f=1.0 = 0.119, model 3 = 0.19–0.20, subhalo-off = 0.108 ⇒ **217× cheaper than model 4
+and already at model-3 cost.** Cost model verified independently: 45.11 ms / 1.11e6
+clumps = 40.6 ns/clump, where the clump count comes from analytic Campbell + engine HMF
+and the time from the actual C++.
+**Gate vs model 4** (`scripts/convergence/subhalo_model5_gate.py`, 8 subprocess shards ×
+1500 rays, `kappa_anchor=1`, f=0.1): JSD = 1.18/2.16/2.80e-3 at z_s=0.5/1/5 vs
+same-model seed-split floors 3.9/4.2/5.7e-3 ⇒ **AT FLOOR at all three**; clipped means
+agree to ~1e-4. ⚠ **Do not oversell this gate** — the predicted difference (0.08–0.21%
+of the substructure part of σ_κ ≈ 0.03% of total) is far below what 12k rays resolve, so
+"at floor" is the EXPECTED result and only excludes gross error; the analytic sweep is
+what bounds the real error. ⚠ Clipped-σ ratios scatter few-% (0.948–1.026) because the
+fixed ±1 clip is ~30σ at z_s=0.5 and trims nothing — use the body JSD, not clipped σ,
+at low z_s. Sizing + population weighting (host weights dumped from the production
+engine via `playground/host_weight_probe.cpp`, reproduces `NhfNFW` exactly):
+**`data/results/subkappathr_population/report.md`**, driver
+`playground/analytic/sweep_subkappathr_population.py`, single-host theory
+`docs/subhalo/subhalo_kappa_threshold_note.tex`. Population-weighted clump reduction at
+f=0.1 = 1.9e4/1.3e4/4.1e3× for σ losses 0.084/0.111/0.210% (z_s=0.5/1/5); f=1.0 costs
+0.24/0.41/1.29%, which is why **0.1 is the recommended default** — the cost battle is
+already won at 0.1, so the extra decade buys nothing measurable. Clump cost concentrates
+in cluster hosts (median 2.4e14 M⊙ at z_s=1, 90% below 1e15).
 **Grid kwargs (2026-07-11, for the Mmin/Nz convergence studies):** all samplers +
 `compute_lnmu_stats` take trailing `NM=100, Nz=100` (mass/z grid sizes); the helpers
 `get_kappa_threshold`/`get_expected_halo_count`/`get_sigma_background` take trailing
@@ -66,8 +171,33 @@ paths); Mac `make build` + all 11 `tests/test_cosmology_params.py` (incl.
 `test_backward_compat_bitwise`) passed 2026-07-12. `compute_lnmu_stats` still does
 NOT expose `Mmin`.
 
-### 1+6d parameterization (2026-07-07) — Θ = {h, z_eq, Ω_M, Ω_B, A_s, n_s}
-All entry points take trailing kwargs `As=-1.0, OmegaB=0.0493, zeq=3402.0, ns=0.965`.
+### 1+6d parameterization — Θ = {h, z_eq, Ω_M, Ω_B, **σ₈**, n_s} (amplitude switched A_s→σ₈ 2026-07-27)
+**AMPLITUDE PARAMETER IS σ₈, not A_s (user decision 2026-07-27).** Matches Vaskonen
+(2026) in both the paper (MCMC parameters {Ω_M, h, σ₈}; priors σ₈∈[0.4,1.4],
+h∈[0.59,0.76], Ω_M∈[0.15,0.47]) and upstream `halos` (`main_lensing.cpp:29`
+`C.sigma8 = 0.811`, `par = {OmegaM, sigma8, h, 1.0}`). **No C++ change was needed** —
+σ₈-normalization is already the default path (`As=-1.0`). The A_s-mode below is
+retained as an unused escape hatch. NOTE the `As>0` branch in *halos* is OUR commit
+`8ba6968` on the local branch, NOT Ville's — upstream is σ₈-only.
+
+⚠ **OPEN — must discuss with Ville and then move to option (b) (he is on holiday as
+of 2026-07-27).** The engine normalizes through `sigmaC`, which uses the smooth-k
+window `Ws(x)=1/(1+(0.43x)^6)`, NOT a real-space top-hat: at the fiducial the
+top-hat σ₈ is **0.7786** vs the code's 0.811 (+4.2% in σ, ~8.5% in P(k);
+`tmp/engine_checkpoints.txt`). **Vaskonen's paper §2 explicitly states a real-space
+top-hat** ("We compute the latter using the real space top-hat window function …
+σ8 = σ_M(R = 8h Mpc)"), so his own text and code disagree. Half of this is
+deliberate and right — a smooth-k filter is the standard excursion-set choice for
+σ_M(M), since a top-hat gives no Markovian random walk — the questionable part is
+only that the *normalization* inverts the same `Ws` at M8.
+- **Option (a) = CURRENT**: keep his code convention. Zero code change, bitwise-safe.
+- **Option (b) = AGREED TARGET, needs his sign-off**: keep `Ws` for σ_M(M) but anchor
+  the normalization to a top-hat σ₈ at 8 Mpc/h. Not cosmetic — raises `deltaH8` 4.2%,
+  P(k) ~8.5%, exponentiated by the HMF at cluster masses, and it redefines the number
+  in his abstract. Bundle with the bias/subhalo default-flip sign-off.
+
+A_s-mode (legacy escape hatch): all entry points take trailing kwargs
+`As=-1.0, OmegaB=0.0493, zeq=3402.0, ns=0.965`.
 **A_s-mode:** `As > 0` normalizes P(k) directly via the analytic Bunn–White mapping
 (`deltaH8 = (2/5)·gfid·√As·(c·k_p/H0)^((1−ns)/2)/Ω_M`, k_p = 0.05 Mpc⁻¹, gfid = the
 CPT growth constant in `Dg`; see `cosmology.h::initialize_normalization`) and the
@@ -80,11 +210,23 @@ so at Planck A_s=2.101e-9 the derived σ₈ is 0.860 (not 0.811) — expected, n
 `OmegaR = Ω_M/(1+z_eq)` (freeing z_eq = freeing radiation). σ₈↔A_s round trip is
 exact to 1 ULP.
 
-**ML plumbing (ready, not retrained):** `ml/params.py` = single source of truth
-(FIDUCIAL, PRIOR_6D, WIDE_6D, `CONTEXT_KEYS = (z, h, Om, lnAs10, Ob, ns, zeq_k)`,
-lnAs10 = ln(1e10·A_s), zeq_k = zeq/1000). `generate_dataset.py` samples the 6d wide
-box (LHS, As-mode, HDF5 schema 2.0 + per-config `sigma8_derived`); `ml/data.py`
-auto-detects schema → X is (N,7) or legacy (N,4). In the **-ar worktree**: train_ar/
+**ML plumbing (σ₈ re-parameterization done 2026-07-27, main repo only; not retrained):**
+`ml/params.py` = single source of truth (FIDUCIAL, PRIOR_6D, WIDE_6D,
+`CONTEXT_KEYS = (z, h, Om, sigma8, Ob, ns, zeq_k)`, zeq_k = zeq/1000). σ₈ sits at
+context index 3, so the 6d layout's first four columns now coincide with the legacy
+1+3d one. Prior boxes returned to the legacy/Vaskonen values: ID σ₈ (0.65,1.05),
+WIDE (0.40,1.40). `python/generate_dataset.py` samples the 6d wide box (LHS,
+σ₈-mode, **HDF5 schema 2.1**, `amplitude_mode="sigma8"`, stores per-config
+`As_derived` as the diagnostic); `ml/data.py` auto-detects 2.1 / 2.0 / legacy → X is
+(N,7) or legacy (N,4). Schema discriminator is **`OmegaB` presence, not σ₈** (legacy
+1+3d files carry σ₈ too). Old schema-2.0 A_s files still load: their stored
+`sigma8_derived` is fed in as the amplitude column, lossless to 1 ULP.
+⚠ **The 6d fiducial POINT MOVED**: the old A_s-mode fiducial was Planck
+A_s=2.101e-9 → σ₈_derived **0.860**; the new fiducial is σ₈=0.811 (→ A_s_derived
+1.8695e-9), i.e. −11% in P(k) amplitude. Any pre-2026-07-27 6d reference/control
+(`param_space_ref`, `groundtruth.npz`) is at the OLD amplitude — regenerate, do not
+compare across the switch. **-ar worktree NOT yet converted** (7 files still on
+lnAs10 — see below). In the **-ar worktree**: train_ar/
 train_smooth infer context dim from data (old checkpoints default 4);
 `ml/autoresearch/features.py` = shared edge/tail feature maps (legacy 10/14 exact,
 6d 16/20); smooth_model dispatches on len(theta) — 6d needs refit `*_6d.json` caches
@@ -230,8 +372,11 @@ user explicitly asks, under their supervision.**
 10. **Wsub unresolved-subhalo term — `subhalo_model=3` is the default; `subhalo_factor`
    default = 1e-2 (flipped 2026-07-12, user decision; passes PDF-level brute acceptance,
    ~10× cheaper than 1e-5, near subhalo-off cost):** per-host split κ_halo = reduced host
-   (FULL f_s,b) + resolved clumps + μ_unres(y) + N(0, σ²_unres(y)); exact in mean/variance
-   at any factor; `subhalo_brute` + model 3 throws. **Reproduction: subhalo-ON runs made
+   + resolved clumps + μ_unres(y) + N(0, σ²_unres(y)); exact in mean/variance
+   at any factor; `subhalo_brute` + model 3 throws. **Host reduction updated 2026-07-22
+   by the mass-conserving carve `subhalo_carve` (default on): the host is now reduced by
+   the REALIZED `Σm_i + M_u(r)` (total mass = M every realization), not the deterministic
+   FULL `f_s,b` mean — see the API section + `docs/subhalo/mass_conserving_carve_note.md`.** **Reproduction: subhalo-ON runs made
    before 2026-07-12 used factor 1e-5 — pass it explicitly.** ML training data regen still
    pending. Known factor-INDEPENDENT residual: all split arms sit ~2.3% below brute q99(μ)
    at z=5 (global JSD unaffected). Compare clipped cores/ensembles only — one κ~9 ray =
@@ -441,6 +586,9 @@ user explicitly asks, under their supervision.**
 - Plots → `plots/`; throwaway/scratch → `tmp/`.
 - Substructure reference papers are in `papers/misc/` (JvdB14, vdB05, Han+16, BMO09, SatGen,
   CUSP). Lift fitting-function numbers from the PDFs, not from memory.
+- **Paper figure log-axis ticks:** decades -1/0/1 print as `0.1`/`1`/`10`; every other decade
+  stays `$10^{n}$`. Not automatic — call `format_log_axis_decimal(ax, axis=...)` from
+  `paper_prod/plot_style.py` per axis where the tick range includes 0.1/1/10.
 
 ## Multi-CLI delegation (offload token-heavy work; Claude orchestrates)
 Claude keeps judgment, physics, edits, and **all git/gh/push**. Delegates never commit.

@@ -108,6 +108,11 @@ for the HMF itself the ellipsoidal-collapse cite is Sheth, Mo & Tormen 2001,
 
 ## R2. "Describe field halos here … section about filaments. What clustering bias for filaments? See 1101.3847."
 
+**RESOLVED 2026-07-23:** implemented, per the recommendation below. Code:
+`cosmology::filbias` + `lensing.h::fil_bias` (`docs/filament_bias_note.md`).
+Draft's "decision pending" note removed; §II.A.2 filament paragraph now states
+the PBS filament bias, matching the drop-in text at the bottom of this section.
+
 **1101.3847 = Yan & Fan 2011, ApJ 730, 33** (Inspire texkey `Yan:2011ux`),
 "Statistical Properties of Supercluster-Like Filaments from Cosmological
 Simulations": filaments = linking-density 1+δ=16 groups, whose mass function
@@ -427,6 +432,34 @@ $\mathcal{O}(10^5\text{--}10^6)$" is the safer phrasing than O(10^6).
     deliberate, documented choice (kept 2026-07-02; ~0.5% on ⟨γ²⟩,
     `lensing.cpp:898-901`); consider one endnote sentence.
 
+## 2026-07-23 — production↔draft triage (user rulings)
+
+Comparison of `production.tex` (user's Overleaf copy, Claude read-only) vs
+`draft_revised_2026-07-20.tex`. User rulings on the punch list:
+
+- **Baumann bias cite** — KEEP as-is in production. Vaskonen's own paper cites
+  Baumann (2022) for the same PBS bias formula; production's `\cite{Baumann:2022mni}`
+  is deliberate, not a bug. (Earlier memo suggestion to swap to `Sheth:1999mn` is
+  WITHDRAWN. HMF cite Sheth:1999su vs bias Sheth:1999mn distinction is moot here.)
+- **`\R{}` vs `\Gala{}` ownership (HARD RULE):** `\R{}` = Ville's comments — Claude
+  NEVER removes or resolves them, in production OR in proposed draft text, even when
+  the underlying model/content has since changed (e.g. the subhalo $\kappa_u$ `\R{}`
+  at production ~:214). Only Ville closes `\R{}` after reading. `\Gala{}` = user's own
+  notes. Do not treat a resolved-in-code item as license to delete Ville's note.
+- **Clustering-field caption vs script** (production plots one realization at three
+  masses per the current `plot_fig_clustering_field.py`, caption still says three
+  realizations at 1e13): user says "if I say different, then it's fine" — treat
+  caption/script mismatches as CHECK-WITH-USER, not auto-fix.
+- **§IV Comparison with earlier works** — stays a TO-DO placeholder in production
+  for now (user + Ville). Do NOT import the fully-written draft version yet.
+- **Weak-lensing footnotes** (single-angle shear, $\epsilon$ subscript) — settled
+  with Ville, DROPPED from import list.
+- **Subhalo two-panel figure** (#5) — user already fixed in production.
+- **variance_DL subhalo-contribution paragraph** (#8) — OPEN, "we should think about
+  it." No action yet.
+- **Filaments clustering-bias paragraph** (R2) — only live ready-to-import candidate;
+  hand off on request.
+
 ## Figure/script inventory for the revision
 
 | draft slot | file to use | status |
@@ -434,6 +467,7 @@ $\mathcal{O}(10^5\text{--}10^6)$" is the safer phrasing than O(10^6).
 | Fig. clustering (new) | `plots/fig_clustering_field.pdf` | generated now |
 | Fig. subhalo two-panel (new) | `plots/fig_subhalo_population.pdf` | generated now |
 | Fig. `fig:kappa_convergence` | `paper_prod/plots/figures/sigma_partition_vs_kthr_bias.pdf` | exists; caption to write |
-| Fig. `fig:subhalo-factor` | `plots/sigma_k_vs_subhalo_factor.png` | placeholder, regenerate |
+| Fig. `fig:subhalo-factor-mean` | `plots/fig_subhalo_sigma_decomposition_mean.pdf` | generated 2026-07-23 |
+| Fig. `fig:subhalo-factor-scatter` | `plots/fig_subhalo_sigma_decomposition_scatter.pdf` | generated 2026-07-23 |
 | Fig. `fig:variance_DL` | `plots/variance_D_L.pdf` | caption: fix spacing, move conclusion to text |
 | pyHalo comparison | `plots/figures/pyhalo_vs_ours.png` | exists |

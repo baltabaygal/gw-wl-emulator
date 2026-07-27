@@ -4,11 +4,15 @@ from typing import Dict, Optional, Tuple
 import h5py
 import numpy as np
 
-from ml.params import CONTEXT_DIM, lnAs10_from_As
+from ml.params import CONTEXT_DIM
 
-# per-config parameter keys by dataset schema (schema 2.0 = 1+6d As-mode)
+# per-config parameter keys by dataset schema. Schema 2.1 = 1+6d sigma8-mode
+# (current); schema 2.0 = 1+6d A_s-mode (deprecated, still readable); no version
+# attr = legacy 1+3d. Presence of OmegaB is the unambiguous 6d discriminator —
+# sigma8 alone is not, since legacy 1+3d files carry it too.
 _KEYS_LEGACY = ("h", "OmegaM", "sigma8")
-_KEYS_6D = ("h", "OmegaM", "As", "OmegaB", "ns", "zeq")
+_KEYS_6D = ("h", "OmegaM", "sigma8", "OmegaB", "ns", "zeq")
+_KEYS_6D_AS = ("h", "OmegaM", "As", "OmegaB", "ns", "zeq")
 
 
 def load_split(path: str) -> Dict[str, np.ndarray]:
@@ -21,7 +25,10 @@ def load_split(path: str) -> Dict[str, np.ndarray]:
             "metadata": dict(f["metadata"].attrs.items()),
             "preprocessing": dict(f["metadata/preprocessing"].attrs.items()),
         }
-        keys = _KEYS_6D if "samples/As" in f else _KEYS_LEGACY
+        if "samples/OmegaB" in f:
+            keys = _KEYS_6D_AS if "samples/As" in f else _KEYS_6D
+        else:
+            keys = _KEYS_LEGACY
         for k in keys:
             out[k] = f[f"samples/{k}"][:]
         if "samples/sigma8_derived" in f:
@@ -32,12 +39,26 @@ def load_split(path: str) -> Dict[str, np.ndarray]:
 
 
 def config_contexts(split_data: Dict[str, np.ndarray]) -> np.ndarray:
-    """Per-config context matrix (C, D): (z, h, Om, lnAs10, Ob, ns, zeq/1000) for
+    """Per-config context matrix (C, D): (z, h, Om, sigma8, Ob, ns, zeq/1000) for
     1+6d datasets (D = CONTEXT_DIM), or legacy (z, h, OmegaM, sigma8) (D = 4)."""
     z = np.asarray(split_data["z"], dtype=np.float64)
-    if "As" in split_data:
+    if "OmegaB" in split_data:
+        if "sigma8" in split_data:
+            s8 = split_data["sigma8"]
+        else:
+            # Deprecated schema-2.0 (A_s-mode) file. `sigma8_derived` is the
+            # smooth-k sigma8 of the P(k) that As produced, and feeding it back
+            # as the sigma8 input recovers deltaH8 to 1 ULP (1.4e-16 relative,
+            # measured), so this mapping is lossless at float64 precision — well
+            # below anything a context feature resolves.
+            if "sigma8_derived" not in split_data:
+                raise ValueError(
+                    "A_s-mode dataset without `sigma8_derived`: cannot map to the "
+                    "sigma8 context layout. Regenerate the dataset (schema 2.1)."
+                )
+            s8 = split_data["sigma8_derived"]
         ctx = np.stack([z, split_data["h"], split_data["OmegaM"],
-                        lnAs10_from_As(split_data["As"]), split_data["OmegaB"],
+                        s8, split_data["OmegaB"],
                         split_data["ns"], np.asarray(split_data["zeq"]) / 1000.0], axis=-1)
         assert ctx.shape[1] == CONTEXT_DIM
         return ctx
@@ -65,7 +86,7 @@ def flatten_dataset(
 
     Returns:
       X: float32, shape (N_valid, D) — context columns per config_contexts():
-         [z, h, Om, lnAs10, Ob, ns, zeq/1000] (D=7) for 1+6d datasets,
+         [z, h, Om, sigma8, Ob, ns, zeq/1000] (D=7) for 1+6d datasets,
          [z, h, OmegaM, sigma8] (D=4) for legacy ones.
       Y: float32, shape (N_valid, 1), values lnmu
     """

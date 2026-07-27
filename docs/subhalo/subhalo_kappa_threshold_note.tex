@@ -1,0 +1,242 @@
+% Analytic note: per-subhalo convergence threshold at fixed psi_min.
+% Companion to  playground/analytic/sigma_vs_subkappathr.py  (engine, exact Campbell
+% quadrature) and  paper_prod/scripts/plot_fig_subhalo_sigma_vs_subkappathr.py (figure).
+% Compile:  pdflatex docs/subhalo/subhalo_kappa_threshold_note.tex
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,hyperref}
+\newcommand{\kthrs}{\kappa_{\rm thr,sub}}
+\newcommand{\Mret}{M_{\rm ret}}
+\newcommand{\Pret}{P_{\rm ret}}
+
+\title{A per-subhalo convergence threshold at fixed $\psi_{\rm min}$:\\
+       analytic structure of $\sigma_\kappa$}
+\author{}
+\date{2026-07-24}
+
+\begin{document}
+\maketitle
+
+\section{What is being computed}
+
+The subhalo population of a host is held \emph{fixed} at the production floor
+$\psi_{\rm min}=m_{\rm floor}/M$ --- every subhalo is always sampled. A separate knob
+$\kthrs$ then acts on each clump's \emph{actual convergence at the ray},
+\begin{equation}
+  \kappa_c(m,d), \qquad d=\lvert \mathbf{y}-\mathbf{R}_{\rm clump}\rvert
+  \ \text{(lens-plane separation)},
+\end{equation}
+where $\mathbf{y}$ is the \emph{ray impact parameter} --- the lens-plane offset of the line
+of sight from the host centre --- and $\mathbf{R}_{\rm clump}$ is the projected clump
+position. Two distances must be kept apart: $y$ measures ray-to-host-centre, $d$ measures
+ray-to-clump. The threshold acts on $d$, but the distribution of $d$ depends on $y$ through
+$f(d\,|\,y)$, which is what couples them. Every moment below is conditional on $y$; the
+quoted numbers are area-weighted over the aperture,
+\begin{equation}
+  \langle X\rangle=\int_{0}^{r_{\max}}X(y)\,q(y)\,dy,
+  \qquad q(y)=\frac{2y}{r_{\max}^{2}},
+\end{equation}
+i.e.\ uniform ray density across the disc of radius $r_{\max}$, the radius at which the
+host's own convergence falls to the counting threshold $\kappa_{\rm thr}$
+($r_{\max}=6705\,$kpc at the fiducial host).
+dropping the clump from the sum whenever $\kappa_c<\kthrs$. This is the same rule the
+\emph{host} halos already obey: the \texttt{r\_thr} table in \texttt{cpp/subhalo.cpp} is
+precisely ``keep the object while its convergence at the ray exceeds $\kappa_{\rm thr}$''.
+The two thresholds are therefore directly comparable, which a $\psi_{\rm min}$ (mass-floor)
+sweep is not.
+
+The cut does \emph{not} commute with a mass cut: a massive clump far from the ray is
+dropped while a light clump the ray nearly hits survives. It must therefore be applied
+inside the clump--ray distance integral, not as a mass mask outside it.
+
+Dropped clumps keep their mass in the smooth host (mass-conserving carve, scheme A), so
+the host is built at $M-\Mret$ where $\Mret$ is the \emph{retained} clump mass.
+
+\section{Campbell moments with a threshold}
+
+Clumps form a Poisson process with intensity $dN/d\ln\psi=\gamma\,\psi^{\alpha}
+e^{-\beta\psi^{\omega}}$ ($\alpha=-0.82$, $\beta=50$, $\omega=4$; $\psi=m/M$), and the
+clump--ray separation has the projected pdf $f(d\,|\,y)$ at ray impact parameter $y$.
+For a Poisson sum $S=\sum_i g(x_i)$ Campbell's theorem gives $\langle S\rangle=\int\lambda g$
+and ${\rm Var}(S)=\int\lambda g^{2}$. A threshold only \emph{restricts the domain}, so every
+moment stays an exact two-dimensional quadrature with the indicator
+$\Theta=\mathbf{1}[\kappa_c(m,d)\ge\kthrs]$ folded in:
+\begin{align}
+  \langle N_{\rm ret}|y\rangle      &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,\Pret , &
+  \langle \kappa_{\rm sub}|y\rangle &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,
+                                       \langle \kappa_c\Theta\rangle_d ,\\
+  {\rm Var}(\kappa_{\rm sub}|y)     &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,
+                                       \langle \kappa_c^{2}\Theta\rangle_d , &
+  \langle \Mret|y\rangle            &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,m\,\Pret ,\\
+  {\rm Var}(\Mret|y)                &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,m^{2}\,\Pret , &
+  {\rm Cov}(\Mret,\kappa_{\rm sub}|y) &= \int d\ln\psi\,\tfrac{dN}{d\ln\psi}\,m\,
+                                       \langle \kappa_c\Theta\rangle_d ,
+\end{align}
+with $\langle X\rangle_d\equiv\int dd\,f(d|y)\,X$ and $\Pret$ defined in
+Eq.~\eqref{eq:pret}. \textbf{The mean carries $m$, the variance carries $m^{2}$.} That
+single difference drives everything below.
+
+\section{The host is a linear response}
+
+The host convergence is $\kappa_{\rm host}=\kappa_{\rm NFW}(M-\Mret,\,y)$. Expanding about
+the mean carve,
+\begin{equation}
+  \boxed{\ \sigma_{\rm host}(y)=
+  \left|\frac{\partial\kappa_{\rm NFW}}{\partial M}\right|
+  \sqrt{{\rm Var}(\Mret|y)}\ }
+  \label{eq:sighost}
+\end{equation}
+Two consequences worth stating explicitly.
+\begin{enumerate}
+  \item $\Mret$ enters \emph{only through its variance}. A deterministic carve, however
+        large, gives $\sigma_{\rm host}=0$: the host acquires scatter solely because
+        $\sum_i m_i$ is redrawn in every realization. The host mass and the ray position
+        are fixed; the realized subhalo mass is the only stochastic ingredient.
+  \item The \emph{mean} carve $\langle\Mret\rangle$ shifts $\langle\kappa_{\rm host}\rangle$
+        but touches $\sigma_{\rm host}$ only weakly, through the prefactor
+        $\partial\kappa/\partial M$ evaluated at the reduced mass.
+\end{enumerate}
+
+Note also that the carve is \emph{not} spatial: the host is rebuilt as a fresh NFW of mass
+$M-\Mret$ with $r_s,\rho_s$ from the $c(M,z)$ relation, rather than hollowed out at the
+clump positions. Since the subhalo radial distribution is anti-biased, a spatially faithful
+carve would remove mass preferentially from the outskirts and change $\kappa_{\rm host}$ at
+small $y$ much less. This is a known approximation of scheme A.
+
+\section{Where the threshold enters, and why $\sigma_{\rm host}$ is monotonic}
+
+$\kappa_c(m,d)$ decreases monotonically in $d$, so the cut is equivalent to a
+\emph{reach radius},
+\begin{equation}
+  \kappa_c(m,d)\ge\kthrs \iff d\le d_{\max}(m,\kthrs),
+  \qquad
+  \Pret(m,y)=\int_{0}^{d_{\max}(m,\kthrs)} f(d\,|\,y)\,dd .
+  \label{eq:pret}
+\end{equation}
+The threshold appears in \emph{one place only}, the upper limit of Eq.~\eqref{eq:pret}.
+Lowering $\kthrs$ increases $d_{\max}$ for \emph{every} mass, so $\Pret$ rises pointwise,
+so the integrand of ${\rm Var}(\Mret)$ rises pointwise. Hence
+\begin{equation}
+  \frac{\partial\,\sigma_{\rm host}}{\partial\,\kthrs}\le 0
+\end{equation}
+with no numerics required. The limits follow at once:
+\begin{itemize}
+  \item $\kthrs\to\infty$: $d_{\max}\to0$, $\Pret\to0$, ${\rm Var}(\Mret)\to0$, so
+        $\sigma_{\rm host}\to0$. Nothing is carved, the host is exactly $M$ every
+        realization, and it has no scatter.
+  \item $\kthrs\to0$: $\Pret\to1$ and the variance saturates at the finite constant
+        \begin{equation}
+          {\rm Var}_\infty=\gamma M^{2}\!\int \psi^{\alpha+1}e^{-\beta\psi^{\omega}}\,d\psi ,
+        \end{equation}
+        convergent because $\alpha+1=0.18>-1$ at the low end and the exponential cuts off
+        the high end.
+\end{itemize}
+
+\paragraph{Why the variance is top-heavy.} In $d\ln\psi$ the integrands scale as
+\begin{equation}
+  \text{mean:}\ \psi^{\alpha+1}=\psi^{0.18},
+  \qquad
+  \text{variance:}\ \psi^{\alpha+2}=\psi^{1.18}.
+\end{equation}
+Both rise toward large $\psi$, the variance far more steeply, so the carve \emph{scatter}
+is set by the few heaviest subhalos while the carve \emph{mean} collects the whole swarm.
+This is why the mean carved mass can double while $\sigma_{\rm host}$ moves by only a few
+percent.
+
+\paragraph{Why saturation is slow.} At large separation the projected NFW falls roughly as
+$\kappa_c\propto d^{-2}$, so $d_{\max}\propto\kthrs^{-1/2}$: retention grows only as a power
+law, and $\Pret\to1$ only once $d_{\max}$ exceeds the host's extent
+($\sim r_{200}+r_{\max}\approx7500\,$kpc at the fiducial host). Hence $\sigma_{\rm host}$ is
+still creeping upward at $\kthrs=10^{-6}$ rather than being flat.
+
+\section{Decomposition of the total}
+
+With the carve, host and subhalos are anti-correlated:
+\begin{equation}
+  {\rm Cov}(\kappa_{\rm host},\kappa_{\rm sub})
+  = -\frac{\partial\kappa_{\rm NFW}}{\partial M}\,{\rm Cov}(\Mret,\kappa_{\rm sub}) < 0 ,
+\end{equation}
+since $\partial\kappa/\partial M>0$ and ${\rm Cov}(\Mret,\kappa_{\rm sub})>0$ (clump mass and
+clump convergence rise together). A realization drawing a heavier clump population has more
+$\kappa_{\rm sub}$ but a lighter host, hence less $\kappa_{\rm host}$. Therefore
+\begin{equation}
+  {\rm Var}_{\rm tot}={\rm Var}_{\rm host}+{\rm Var}_{\rm sub}
+  +2\,{\rm Cov}(\kappa_{\rm host},\kappa_{\rm sub})
+\end{equation}
+can---and does---fall \emph{below} ${\rm Var}_{\rm sub}$. This ordering is a prediction of
+mass conservation, not a numerical artifact: switch the carve off, leave the host at full
+$M$, and the covariance vanishes, at which point $\sigma_{\rm tot}>\sigma_{\rm sub}$ as naive
+addition suggests.
+
+\section{Numerical results}
+
+Fiducial host $M=10^{14}\,M_\odot$, $z_l=0.5$, $z_s=1$, $\psi_{\rm min}=10^{-7}$ fixed,
+area-weighted over the aperture. Host counting threshold $\kappa_{\rm thr}=1.276\times10^{-4}$.
+
+\begin{table}[h]\centering
+\begin{tabular}{lrrrr}
+\toprule
+$\kthrs$ & $\langle N_{\rm ret}\rangle$ & mass carved & $\sigma_{\rm tot}$ &
+$\sigma_{\rm tot}/\sigma_{\rm tot}^{(0)}$\\
+\midrule
+$0$ (all clumps)          & $3.38\times10^{4}$   & 21.4\%  & $1.0017\times10^{-3}$ & 1.0000\\
+$1.34\times10^{-6}$ ($\simeq$ model-3 default) & $8.54$ & 17.1\% & $1.0011\times10^{-3}$ & 0.9994\\
+$1.24\times10^{-4}$ ($\simeq$ host $\kappa_{\rm thr}$) & $0.146$ & 10.3\% & $9.997\times10^{-4}$ & 0.9980\\
+$1.20\times10^{-3}$       & $1.28\times10^{-2}$  & 5.2\%   & $9.908\times10^{-4}$  & 0.9891\\
+$8.39\times10^{-3}$       & $1.20\times10^{-3}$  & 1.0\%   & $9.420\times10^{-4}$  & 0.9404\\
+$0.155$                   & $3.84\times10^{-6}$  & 0.006\% & $4.128\times10^{-4}$  & 0.4121\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Component budget at $\kthrs=0$, in units of ${\rm Var}_{\rm sub}$:
+$1+0.097-0.182=0.914$, i.e.\ $\sigma_{\rm tot}/\sigma_{\rm sub}=0.956$, correlation
+coefficient $r=-0.29$ (deepening to $-0.66$ by $\kthrs\simeq0.3$, the single-dominant-clump
+limit).
+
+\noindent Isolating the two effects in Eq.~\eqref{eq:sighost} over $0\le\kthrs\le1.2\times
+10^{-2}$: freezing the host mass and letting only ${\rm Var}(\Mret)$ vary reproduces a factor
+$2.8$ of the total factor $3.1$ change in $\sigma_{\rm host}$ ($\simeq92\%$); freezing
+${\rm Var}(\Mret)$ and letting only the host mass vary gives $8\%$.
+
+\section{Caveats}
+
+\begin{itemize}
+  \item Equation~\eqref{eq:sighost} is a \emph{first-order} response. The carve fluctuation
+        is not small and not Gaussian: ${\rm sd}(\Mret)/M=0.110$ with skewness $1.83$ at
+        $\kthrs=0$, rising to skewness $\sim6$ at the host threshold, where the carve is
+        essentially ``was one massive clump retained or not''. $\sigma_{\rm host}$ is thus
+        the least trustworthy of the three curves; $\sigma_{\rm sub}$ is exact Campbell with
+        no linearization and dominates the total.
+  \item $\sigma_{\rm host}$ and $\sigma_{\rm sub}$ are not separately physical. The threshold
+        defines where the split between ``explicitly realized clump'' and ``smooth host''
+        falls, and moving it shuffles mass across that line, so both components must move.
+        Only the total is meaningful, and the total is flat to $0.2\%$ at the host threshold.
+  \item All scatter here is substructure-induced: a smooth deterministic halo at fixed $y$
+        has none, which is why $\sigma_{\rm tot}\to0$ at large $\kthrs$. This is the
+        single-host substructure contribution, not $\sigma_\kappa$ of the universe.
+  \item Certified for $\sigma_\kappa$ and the mean only. Since the tail of $P(\ln\mu)$ is
+        built from rare close encounters, and a $\kappa$ threshold is precisely a cut on
+        encounter closeness, a JSD check on $P(\ln\mu)$ is required before adopting the
+        threshold in production.
+  \item Realizing the computational saving needs a sampler restructure. Testing
+        $\kappa_c(m,d)\ge\kthrs$ per clump requires $m$ and $d$, so draw-and-reject would
+        still instantiate all $3.4\times10^{4}$ clumps. The saving requires sampling from the
+        \emph{restricted} intensity: ${\rm Poisson}(\langle N_{\rm ret}\rangle(y))$ clumps
+        drawn from the retention-conditioned distribution, never instantiating the rejects.
+  \item Numerics: grids converged to $\sim10^{-4}$ in $n_d$ and $n_{\rm mass}$; the baseline
+        agrees with the independent $\psi_{\rm min}$ engine to $1.4\times10^{-5}$. The $n_y$
+        aperture grid shifts all curves by a uniform $1.83\%$, which cancels in ratios.
+\end{itemize}
+
+\section*{Code}
+\begin{itemize}
+  \item Engine (exact Campbell quadrature):
+        \texttt{playground/analytic/sigma\_vs\_subkappathr.py}
+  \item Figure: \texttt{paper\_prod/scripts/plot\_fig\_subhalo\_sigma\_vs\_subkappathr.py}
+        $\rightarrow$ \texttt{fig\_subhalo\_sigma\_vs\_subkappathr.\{png,pdf\}}
+  \item $\psi_{\rm min}$ companion (Fig.~5 machinery):
+        \texttt{playground/analytic/plot\_sigma\_vs\_psimin.py}
+\end{itemize}
+
+\end{document}

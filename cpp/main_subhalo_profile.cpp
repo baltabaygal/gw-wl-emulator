@@ -98,7 +98,8 @@ void write_profile_summary(const fs::path &path, bool subhalo, const LensingProf
     out << "  \"host_events\": " << host_events << ",\n";
     out << "  \"subhalo_calls\": " << sub_calls << ",\n";
     out << "  \"subhalo_clumps\": " << clumps << ",\n";
-    out << "  \"mean_clumps_per_subhalo_call\": " << (sub_calls ? static_cast<double>(clumps) / sub_calls : 0.0) << "\n";
+    out << "  \"mean_clumps_per_subhalo_call\": " << (sub_calls ? static_cast<double>(clumps) / sub_calls : 0.0) << ",\n";
+    out << "  \"subhalo_carve_negatives\": " << p.subhalo_carve_negatives << "\n";
     out << "}\n";
 }
 

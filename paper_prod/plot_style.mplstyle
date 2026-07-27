@@ -1,8 +1,9 @@
 font.family: serif
-font.serif: Computer Modern Roman, Times New Roman, DejaVu Serif
+font.serif: CMU Serif, Computer Modern Roman, cmr10, DejaVu Serif, Times New Roman
 font.size: 10
 mathtext.fontset: cm
 text.usetex: False
+axes.unicode_minus: False
 
 axes.titlesize: 11
 axes.labelsize: 10

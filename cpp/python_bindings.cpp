@@ -46,11 +46,15 @@ PYBIND11_MODULE(gwlensing, m) {
            double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
            int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           bool subhalo_carve,
+           double subhalo_kappathr,
+           double subhalo_kappathr_factor,
+           double psi_min_fixed,
            double kappathr_flat,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp, bool bias_weak, int bias_window) {
+           int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -68,6 +72,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
             samp.bias_weak = bias_weak;
+            samp.fil_bias = fil_bias;
             samp.bias_window = bias_window;
             samp.Nreal  = Nreal;
             samp.seed   = seed;
@@ -83,6 +88,10 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
+            samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_kappathr = subhalo_kappathr;
+            samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
+            samp.psi_min_fixed = psi_min_fixed;
             samp.kappathr_flat = kappathr_flat;
             samp.kappa_anchor = kappa_anchor;
             samp.kappa_anchor_cut = kappa_anchor_cut;
@@ -122,6 +131,10 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 3,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
+        py::arg("subhalo_carve") = true,
+        py::arg("subhalo_kappathr") = -1.0,
+        py::arg("subhalo_kappathr_factor") = 0.1,
+        py::arg("psi_min_fixed") = -1.0,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
         py::arg("OmegaB") = 0.0493,
@@ -135,7 +148,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias_model") = 0,
         py::arg("bias_Rperp") = 8441.0,
         py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0
+        py::arg("bias_window") = 0,
+        py::arg("fil_bias") = false
     );
 
 
@@ -144,11 +158,14 @@ PYBIND11_MODULE(gwlensing, m) {
         "sample_lnmu_ml",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           bool subhalo_carve,
+           double subhalo_kappathr,
+           double subhalo_kappathr_factor,
            double kappathr_flat,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp, bool bias_weak, int bias_window) {
+           int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
 
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
@@ -174,6 +191,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
             samp.bias_weak = bias_weak;
+            samp.fil_bias = fil_bias;
             samp.bias_window = bias_window;
             samp.Nreal  = nsamples;
             samp.seed   = seed;
@@ -189,6 +207,9 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
+            samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_kappathr = subhalo_kappathr;
+            samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
             samp.kappa_anchor = kappa_anchor;
             samp.kappa_anchor_cut = kappa_anchor_cut;
@@ -223,6 +244,9 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 3,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
+        py::arg("subhalo_carve") = true,
+        py::arg("subhalo_kappathr") = -1.0,
+        py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
         py::arg("OmegaB") = 0.0493,
@@ -237,6 +261,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias_Rperp") = 8441.0,
         py::arg("bias_weak") = false,
         py::arg("bias_window") = 0,
+        py::arg("fil_bias") = false,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
@@ -245,11 +270,14 @@ PYBIND11_MODULE(gwlensing, m) {
         "sample_lnmu_ml_with_diagnostics",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           bool subhalo_carve,
+           double subhalo_kappathr,
+           double subhalo_kappathr_factor,
            double kappathr_flat,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp, bool bias_weak, int bias_window) {
+           int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -285,6 +313,9 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
+            samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_kappathr = subhalo_kappathr;
+            samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
             samp.kappa_anchor = kappa_anchor;
             samp.kappa_anchor_cut = kappa_anchor_cut;
@@ -292,6 +323,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
             samp.bias_weak = bias_weak;
+            samp.fil_bias = fil_bias;
             samp.bias_window = bias_window;
 
             auto diag = sample_lnmu_with_diagnostics(z, cosmo, samp);
@@ -326,6 +358,9 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 3,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
+        py::arg("subhalo_carve") = true,
+        py::arg("subhalo_kappathr") = -1.0,
+        py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
         py::arg("OmegaB") = 0.0493,
@@ -340,6 +375,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias_Rperp") = 8441.0,
         py::arg("bias_weak") = false,
         py::arg("bias_window") = 0,
+        py::arg("fil_bias") = false,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -349,10 +385,10 @@ PYBIND11_MODULE(gwlensing, m) {
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj,
            bool filaments, bool bias, bool ell, int Nhalos, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute,
-           double subhalo_factor, double custom_kappathr, double kappathr_flat, double Mmin,
+           double subhalo_factor, bool subhalo_carve, double subhalo_kappathr, double subhalo_kappathr_factor, double custom_kappathr, double kappathr_flat, double Mmin,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
-           int bias_model, double bias_Rperp, bool bias_weak, int bias_window) {
+           int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
             std::uint64_t seed = 0;
             if (seed_obj.is_none()) {
                 std::random_device rd;
@@ -397,11 +433,15 @@ PYBIND11_MODULE(gwlensing, m) {
             cfg.subhalo_model = subhalo_model;
             cfg.subhalo_brute = subhalo_brute;
             cfg.subhalo_factor = subhalo_factor;
+            cfg.subhalo_carve = subhalo_carve;
+            cfg.subhalo_kappathr = subhalo_kappathr;
+            cfg.subhalo_kappathr_factor = subhalo_kappathr_factor;
             cfg.custom_kappathr = custom_kappathr;
             cfg.kappathr_flat = kappathr_flat;
             cfg.bias_model = bias_model;
             cfg.bias_Rperp = bias_Rperp;
             cfg.bias_weak = bias_weak;
+            cfg.fil_bias = fil_bias;
             cfg.bias_window = bias_window;
 
             auto raw = L.sample_lnmu_raw(C, z, mt, cfg);
@@ -450,6 +490,9 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 3,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
+        py::arg("subhalo_carve") = true,
+        py::arg("subhalo_kappathr") = -1.0,
+        py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("custom_kappathr") = -1.0,
         py::arg("kappathr_flat") = -1.0,
         py::arg("Mmin") = 1e7,
@@ -463,6 +506,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias_Rperp") = 8441.0,
         py::arg("bias_weak") = false,
         py::arg("bias_window") = 0,
+        py::arg("fil_bias") = false,
         "Return raw (kappa, gamma1, gamma2) realizations for diagnostics."
     );
 
@@ -483,6 +527,9 @@ PYBIND11_MODULE(gwlensing, m) {
             d["subhalo_model"] = 3;
             d["subhalo_brute"] = false;
             d["subhalo_factor"] = 1.0e-2;
+            d["subhalo_carve"] = true;
+            d["subhalo_kappathr"] = -1.0;        // model 5 only: <= 0 -> factor * host kappa_thr
+            d["subhalo_kappathr_factor"] = 0.1;  // model 5 only
             d["kappathr_flat"] = -1.0;
             d["Mmin"] = 1e7;
             d["NM"] = 100;
@@ -494,6 +541,7 @@ PYBIND11_MODULE(gwlensing, m) {
             d["bias_Rperp"] = 8441.0;       // comoving kpc = R_L(1e14 Msun) fiducial (bias_model = 1 only)
             d["bias_weak"] = false;         // weak arm: kappa_W conditional on the field
             d["bias_window"] = 0;           // 0 transverse disk, 1 spherical top-hat, 2 Gaussian
+            d["fil_bias"] = false;          // filaments use filbias (PBS of pFCfil) not halobias
 
             // derived power spectrum normalization (cheap: no sigma(M)/HMF tables)
             cosmology C;
@@ -533,11 +581,14 @@ PYBIND11_MODULE(gwlensing, m) {
            bool fast, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
            int subhalo_model, bool subhalo_brute, double subhalo_factor,
+           bool subhalo_carve,
+           double subhalo_kappathr,
+           double subhalo_kappathr_factor,
            double kappathr_flat,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
-           int bias_model, double bias_Rperp, bool bias_weak, int bias_window) {
+           int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
 
             CosmologyParams cosmo;
             cosmo.OmegaM = OmegaM;
@@ -565,6 +616,9 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_model = subhalo_model;
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
+            samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_kappathr = subhalo_kappathr;
+            samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
             samp.kappa_anchor = kappa_anchor;
             samp.kappa_anchor_cut = kappa_anchor_cut;
@@ -572,6 +626,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.bias_model = bias_model;
             samp.bias_Rperp = bias_Rperp;
             samp.bias_weak = bias_weak;
+            samp.fil_bias = fil_bias;
             samp.bias_window = bias_window;
 
             LnmuStats s = fast
@@ -604,6 +659,9 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_model") = 3,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
+        py::arg("subhalo_carve") = true,
+        py::arg("subhalo_kappathr") = -1.0,
+        py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
         py::arg("OmegaB") = 0.0493,
@@ -617,7 +675,8 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias_model") = 0,
         py::arg("bias_Rperp") = 8441.0,
         py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0
+        py::arg("bias_window") = 0,
+        py::arg("fil_bias") = false
     );
 
     m.def(

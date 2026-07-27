@@ -669,15 +669,46 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     // model 2 = DIAGNOSTIC ONLY: bare clumps, no host reduction / no gslope (spurious mean mass,
     // but Var(kappa)-Var(kappa_nosub) is the clean clump shot-noise). Used to isolate whether the
     // subhalo_factor sensitivity is clump shot-noise vs the mass-subtraction bookkeeping.
+    // model 4 (2026-07-23, docs/subhalo/mass_conserving_carve_note.md §10): the simplified
+    // production model requested by the supervisor -- every subhalo is sampled individually
+    // down to the absolute floor psi_min = m_floor/M (= M_min/M), the host is carved to
+    // M - Sum_i m_i (exact per-realization mass conservation), and there is NO unresolved
+    // term (no M_u, no kappa_u/Wsub, no dynamic floor, no subhalo_factor). Equivalent to
+    // model 1 + subhalo_brute + subhalo_carve, exposed as a single named model so callers
+    // need not know the flag combination. Carve is intrinsic (guarded below).
+    // model 5 (2026-07-27): model 4 plus a per-clump convergence threshold kappa_thr,sub.
+    // The population is unchanged -- every subhalo still exists down to psi_min = m_floor/M
+    // and there is still no unresolved/Gaussian stand-in -- but only the clumps whose kappa
+    // at the ray clears the threshold are rendered, sampled from the restricted Poisson
+    // intensity so the ~1e6 rejects per ray are never instantiated. This is the same
+    // resolution rule the host halos already obey, applied self-consistently to subhalos.
     if (cfg.subhalo && cfg.subhalo_model != 0 && cfg.subhalo_model != 1 && cfg.subhalo_model != 2
-        && cfg.subhalo_model != 3) {
+        && cfg.subhalo_model != 3 && cfg.subhalo_model != 4 && cfg.subhalo_model != 5) {
         throw std::invalid_argument("subhalo_model must be 0 (legacy), 1 (reduced-host resolved-only), "
-                                    "2 (diagnostic bare), or 3 (reduced-host + Wsub, default)");
+                                    "2 (diagnostic bare), 3 (reduced-host + Wsub), 4 (brute-to-floor + carve), "
+                                    "or 5 (brute-to-floor + carve + kappa_thr,sub)");
     }
     // model 3 replaces the unresolved clumps by the analytic mu+Gaussian term keyed to the
     // dynamic floor; brute mode resolves everything, so combining them double-counts.
     if (cfg.subhalo && cfg.subhalo_model == 3 && cfg.subhalo_brute) {
         throw std::invalid_argument("subhalo_brute is incompatible with subhalo_model 3 (use model 1 or 2 for brute references)");
+    }
+    // model 4 carves the host by the realized substructure mass; without the carve it would
+    // add brute clumps on top of a full-mass host (spurious ~f_s*M). Carve is not optional.
+    if (cfg.subhalo && cfg.subhalo_model == 4 && !cfg.subhalo_carve) {
+        throw std::invalid_argument("subhalo_model 4 requires subhalo_carve = true (the carve is intrinsic to the model)");
+    }
+    // model 5 inherits the carve for the same reason: dropped clumps keep their mass in the
+    // smooth host, which only works if the host is built at M - Sum_i m_i(retained).
+    if (cfg.subhalo && cfg.subhalo_model == 5 && !cfg.subhalo_carve) {
+        throw std::invalid_argument("subhalo_model 5 requires subhalo_carve = true (the carve is intrinsic to the model)");
+    }
+    if (cfg.subhalo && cfg.subhalo_model == 5 && cfg.subhalo_brute) {
+        throw std::invalid_argument("subhalo_brute is meaningless for subhalo_model 5 (the model is brute by construction, thresholded on kappa)");
+    }
+    if (cfg.subhalo && cfg.subhalo_model == 5 && cfg.subhalo_kappathr <= 0.0
+        && !(cfg.subhalo_kappathr_factor > 0.0)) {
+        throw std::invalid_argument("subhalo_model 5 needs subhalo_kappathr > 0 or subhalo_kappathr_factor > 0");
     }
     if (cfg.bias_model != 0 && cfg.bias_model != 1) {
         throw std::invalid_argument("bias_model must be 0 (legacy iid cell bias) or 1 (correlated 1D field)");
@@ -759,10 +790,20 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
     if (cfg.subhalo) {
         auto precompute_start = Clock::now();
         subhalo_.m_floor = cfg.m_floor;
+        subhalo_.psi_min_fixed = cfg.psi_min_fixed;
         // model 3 additionally builds the Wsub (unresolved mu/sigma) tables, which need
-        // the HOST threshold for the encounter-disc radius rmax per bin
-        subhalo_.precompute(C, zs, cfg.subhalo_factor * kappathrH,
-                            (cfg.subhalo_model == 3) ? kappathrH : 0.0);
+        // the HOST threshold for the encounter-disc radius rmax per bin.
+        // model 5 reuses r_thr as the clump REACH D(m), so it must be built at
+        // kappa_thr,sub rather than at subhalo_factor * kappathrH.
+        double clump_kappathr = cfg.subhalo_factor * kappathrH;
+        if (cfg.subhalo_model == 5) {
+            clump_kappathr = (cfg.subhalo_kappathr > 0.0)
+                               ? cfg.subhalo_kappathr
+                               : cfg.subhalo_kappathr_factor * kappathrH;
+        }
+        subhalo_.precompute(C, zs, clump_kappathr,
+                            (cfg.subhalo_model == 3) ? kappathrH : 0.0,
+                            cfg.subhalo_model == 5);
         if (profile != nullptr) {
             profile->subhalo_precompute_seconds = elapsed_seconds(precompute_start);
         }
@@ -874,15 +915,108 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                 // the filament counts, as in the legacy layer.
                 int bsh = -1;
                 double bDg = 0.0, bcomp = 0.0;
+                // Filament clustering amplitude (cfg.fil_bias): same field, but the
+                // filament counts ride b_fil(M,z) = filbias (PBS of pFCfil) instead
+                // of the halo bias. Only the correlated field (bias_model = 1) carries
+                // this; bDgF stays 0 otherwise and lambdaF falls back to the halo
+                // lambda in the loop below (so fil_bias is a no-op in the legacy layer).
+                double bDgF = 0.0, bcompF = 0.0;
                 if (cfg.bias_model == 1) {
                     bsh = bfield.shell(jz);
                     if (bsh >= 0) {
                         bDg = C.Dg(zl)*C.halobias(zl, C.sigmalist[jM][1]);
                         bcomp = 0.5*bDg*bDg*bfield.sig2[bsh];
+                        if (cfg.fil_bias) {
+                            bDgF = C.Dg(zl)*C.filbias(zl, C.sigmalist[jM][1]);
+                            bcompF = 0.5*bDgF*bDgF*bfield.sig2[bsh];
+                        }
                     }
                 }
 
                 auto add_host = [&](int j) {
+                    // --- Mass-conserving host carve (scheme A, 2026-07-22; docs/subhalo/
+                    // mass_conserving_carve_note.md). Draw the resolved clumps FIRST, then
+                    // build the smooth host at M - Sum_i m_i - M_u(r) so the total halo mass
+                    // is M exactly in every realization. The host build draws no random
+                    // numbers, so this reorder leaves the RNG stream identical to the
+                    // deterministic (non-carve) path. Applies to model 3 (production) and the
+                    // brute reference (model 1/2 + subhalo_brute; M_u = 0 there). Carve-off
+                    // and models 0 / 2-non-brute fall through to the original path below.
+                    if (cfg.subhalo && cfg.subhalo_carve &&
+                        (cfg.subhalo_model == 3 || cfg.subhalo_model == 4 || cfg.subhalo_model == 5 ||
+                         (cfg.subhalo_brute && (cfg.subhalo_model == 1 || cfg.subhalo_model == 2)))) {
+
+                        // 1. resolved clumps first: accumulate their kappa/gamma into raw[j]
+                        //    and their realized total mass Sum_i m_i (Msum). For model 5 the
+                        //    restricted sampler renders only the clumps above kappa_thr,sub and
+                        //    Msum is the RETAINED mass -- the rest stays in the smooth host,
+                        //    which is exactly what makes the threshold mass-conserving.
+                        auto subhalo_start = Clock::now();
+                        double Msum = 0.0;
+                        int Nc = (cfg.subhalo_model == 5)
+                            ? subhalo_.addClumpsRestricted(C, jz, jM, M, Sigmac, r, phi, mt,
+                                                           raw[j].kappa, raw[j].gamma1, raw[j].gamma2,
+                                                           &Msum)
+                            : subhalo_.addClumps(C, jz, jM, zl, M, Sigmac, r, phi, mt,
+                                                 raw[j].kappa, raw[j].gamma1, raw[j].gamma2,
+                                                 cfg.subhalo_model, cfg.subhalo_brute,
+                                                 cfg.subhalo_threads, cfg.subhalo_parallel_threshold,
+                                                 &Msum);
+                        if (profile != nullptr) {
+                            profile->subhalo_seconds[jM] += elapsed_seconds(subhalo_start);
+                            profile->subhalo_calls[jM]++;
+                            profile->subhalo_clumps[jM] += static_cast<uint64_t>(Nc);
+                        }
+
+                        // 2. mean unresolved mass at this ray (0 for brute: all clumps explicit)
+                        double M_u = (cfg.subhalo_model == 3)
+                                       ? subhalo_.unresolvedMass(C, jz, jM, r, M) : 0.0;
+
+                        // 3. carved smooth host at M - Sum m_i - M_u, with a negative-mass guard
+                        auto smooth_start_c = Clock::now();
+                        double M_host_eff = M - Msum - M_u;
+                        if (M_host_eff < C.Mmin) {          // ~9-sigma SHMF excursion; never seen in 40k
+                            M_host_eff = C.Mmin;
+                            if (profile != nullptr) profile->subhalo_carve_negatives++;
+                        }
+                        double rsH_c = rsH, kappa0H_c = kappa0H, epsilon_c = epsilon;
+                        {
+                            vector<double> NFWp = interpolate2(zl, M_host_eff, C.zlist, C.Mlist, C.NFWlist);
+                            rsH_c = NFWp[0];
+                            kappa0H_c = kappa0NFW(rsH_c, NFWp[1], Sigmac);
+                            if (cfg.ell > 0) epsilon_c = epsilonNFW(C, zl, M_host_eff);
+                        }
+                        auto kg_host = kappagammaNFWeps(epsilon_c, kappa0H_c, r / rsH_c, phiH);
+                        raw[j].kappa += kg_host[0];
+                        raw[j].gamma1 += cos(phi) * kg_host[1];
+                        raw[j].gamma2 += sin(phi) * kg_host[1];
+
+                        // full unperturbed host at M_total tracks kappa_nosub (as in models 1/3)
+                        auto kg_full = kappagammaNFWeps(epsilon, kappa0H, r / rsH, phiH);
+                        raw[j].kappa_nosub += kg_full[0];
+
+                        if (profile != nullptr) {
+                            profile->smooth_host_seconds[jM] += elapsed_seconds(smooth_start_c);
+                            profile->host_events[jM]++;
+                            if (subhalo_.fsub[jz][jM] > 0.0) {
+                                profile->fsub_weighted_sum[jM] += subhalo_.fsub[jz][jM];
+                                profile->nsub_mean_weighted_sum[jM] += subhalo_.Nsub[jz][jM];
+                            }
+                        }
+
+                        // 4. unresolved-clump term (model 3): mean profile + Gaussian fluctuation
+                        //    (kappa only, like the field-level sigma_W). Same RNG draw (pG) and
+                        //    position in the stream as the non-carve model-3 path.
+                        if (cfg.subhalo_model == 3) {
+                            double muU, sU;
+                            subhalo_.wsubTerm(jz, jM, r, muU, sU);
+                            raw[j].kappa += muU + sU * pG(mt);
+                        }
+
+                        NtotH++;
+                        return;
+                    }
+
                     auto smooth_start = Clock::now();
                     double rsH_eff = rsH;
                     double kappa0H_eff = kappa0H;
@@ -1004,6 +1138,14 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     if (cfg.bias == 0) {
                         lambda = 1.0;
                     }
+                    // Filament count modulation. Same realized field, but the filament
+                    // amplitude uses filbias (cfg.fil_bias, bias_model = 1). Defaults to
+                    // the halo lambda, so fil_bias = 0 (and the whole legacy layer) is
+                    // bitwise unchanged; no new RNG draw (bfvals[j][bsh] already realized).
+                    double lambdaF = lambda;
+                    if (cfg.fil_bias && cfg.bias != 0 && cfg.bias_model == 1 && bsh >= 0) {
+                        lambdaF = exp(bDgF*bfvals[static_cast<size_t>(j)*bfield.n + bsh] - bcompF);
+                    }
                     // look at this.
                     // generate halos
                     if (lambda*barNH < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
@@ -1028,8 +1170,8 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                     
                     if (cfg.fil > 0) {
                         // generate filaments
-                        if (lambda*barNF < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
-                            if (lambda*barNF > randomreal(0.0, 1.0, mt)) {
+                        if (lambdaF*barNF < 0.2) { // if lambda is small, compare to a random number U(0,1) (faster)
+                            if (lambdaF*barNF > randomreal(0.0, 1.0, mt)) {
                                 r = sqrt(randomreal(0.0,1.0,mt))*rmaxF; // distance from the line-of-sight
                                 phi = randomreal(0.0,2*PI,mt); // polar angle of r vector
                                 phiF = randomreal(0.0,2*PI,mt); // orientation of the filament
@@ -1044,7 +1186,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
                                 NtotF++;
                             }
                         } else { // for larger lambda, generate number of halos from Poisson distribution (slower)
-                            PN = poisson_distribution<int>(lambda*barNF);
+                            PN = poisson_distribution<int>(lambdaF*barNF);
                             NF = PN(mt);
                             if (NF > 0) {
                                 for (int jF = 0; jF < NF; jF++) {
