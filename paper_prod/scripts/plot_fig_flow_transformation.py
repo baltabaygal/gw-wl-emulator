@@ -195,6 +195,36 @@ def layer_densities(model, ctx_np, mu_edges, n_samples, seed, verbose=False):
 
 
 # --------------------------------------------------------------------------- #
+# cosmetic smoothing (plot-time only -- never touches the cache or the
+# closure check, which must run on the raw histogram)
+# --------------------------------------------------------------------------- #
+def gaussian_smooth_rows(hists, sigma_bins):
+    """Light Gaussian-kernel smoothing of each histogram row.
+
+    At finite sample count the intermediate RQS transforms histogram noisier
+    than the base/final layers: they have sharp local derivatives at spline
+    knots, so a fixed sample count lands unevenly bin to bin even at N~1e6.
+    This is display-only -- a KDE-equivalent smoothing of the same estimator,
+    same role as `scipy.ndimage.gaussian_filter1d` in the superseded script.
+    Implemented with a plain np.convolve kernel so `--replot` does not need
+    scipy installed on top of the `test` env's torch/zuko.
+    """
+    if sigma_bins <= 0:
+        return hists
+    radius = max(1, int(round(4 * sigma_bins)))
+    x = np.arange(-radius, radius + 1)
+    kernel = np.exp(-0.5 * (x / sigma_bins) ** 2)
+    kernel /= kernel.sum()
+    out = np.empty_like(hists)
+    for i, row in enumerate(hists):
+        # edge-reflect padding: rows are histograms with the total density
+        # sitting away from either edge over most of the plotted range
+        padded = np.pad(row, radius, mode="reflect")
+        out[i] = np.convolve(padded, kernel, mode="valid")
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # figure
 # --------------------------------------------------------------------------- #
 def make_figure(hists, ref, mu_centers, zs, ctx_label, out_stem, xlim, ylim):
@@ -278,6 +308,10 @@ def main():
     ap.add_argument("--tag", default=None, help="cache tag (default: zs<z>)")
     ap.add_argument("--replot", action="store_true",
                     help="rebuild the figure from the cached npz, no torch needed")
+    ap.add_argument("--smooth-sigma", type=float, default=1.5,
+                    help="Gaussian smoothing kernel width in bins, display-only "
+                         "(the cache and the closure check always use the raw "
+                         "histogram; 0 disables)")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -336,10 +370,17 @@ def main():
         print(f"  cached {cache.relative_to(ROOT)}")
         zs = args.zs
 
+    # display-only smoothing; cache above and the closure check inside
+    # layer_densities() already ran on the raw (unsmoothed) histogram
+    hists_plot = gaussian_smooth_rows(hists, args.smooth_sigma)
+    if args.smooth_sigma > 0:
+        print(f"  smoothing: Gaussian sigma = {args.smooth_sigma:g} bins "
+              f"(display only; raw histogram is cached and was used for closure)")
+
     # default limits: trim to where there is density, round the top up a little
-    peak = float(max(hists.max(), ref.max()))
+    peak = float(max(hists_plot.max(), ref.max()))
     if args.xlim is None:
-        sig = np.where(hists.max(axis=0) > 0.004 * peak)[0]
+        sig = np.where(hists_plot.max(axis=0) > 0.004 * peak)[0]
         lo = float(centers[max(sig[0] - 2, 0)])
         hi = float(centers[min(sig[-1] + 2, len(centers) - 1)])
         xlim = (lo, hi)
@@ -347,7 +388,7 @@ def main():
         xlim = tuple(args.xlim)
     ylim = tuple(args.ylim) if args.ylim else (0.0, 1.08 * peak)
 
-    make_figure(hists, ref, centers, zs, ctx_label, args.out, xlim, ylim)
+    make_figure(hists_plot, ref, centers, zs, ctx_label, args.out, xlim, ylim)
 
 
 if __name__ == "__main__":

@@ -349,10 +349,31 @@ because Vaskonen's own paper does (user ruling — do not "fix" it);
   would be free. **Cannot be measured until the module is rebuilt** — the current
   `.so` predates both the halobias and the subhalo-profile fixes, and the profile
   fix moves substructure inward, which moves σ and hence the flux.
-- **Neither §II.B figure has ever been run** (2026-07-28): no caches in
-  `paper_prod/plots/data/magpdf_*`. `fig:magpdf_zs` is referenced in the draft but
-  does not exist, and its caption carries an `$N_{\rm real}$` placeholder with a
-  `% TODO`. Heavy MC, needs the post-rebuild Mac build.
+- **§II.B figures must be REGENERATED** (2026-07-28). ⚠ Correction to an earlier
+  note in this file that said they had never been run — they were: 8 shards ×
+  60k = **480k realizations, 2026-07-25**, cached in `paper_prod/plots/data/`
+  (`magpdf_combined.npz` + `magpdf_shard2*.npz`, gitignored) with the figures
+  committed. They are nonetheless stale for three independent reasons:
+  1. **physics** — the run predates the `halobias` and subhalo-profile changes,
+     and used `subhalo_model=4` without `subhalo_virial`, i.e. a different
+     subhalo population from the one the draft describes. The script now imports
+     `PRODUCTION_CONFIG` from `ml/params.py` (hash `0d50caf91c75`) instead of
+     restating it, so this class of drift cannot recur;
+  2. **grid** — the cache is 2000 LINEAR bins over μ ∈ [0.4, 5], which cannot
+     show the μ⁻² tail (fitted above μ ≥ 8). Now 4000 log bins over
+     [0.05, 200], and the run also records under/overflow counts so the 0.1%
+     edge quantile is exact;
+  3. **content** — the figure now carries the low-μ edge markers and the log-log
+     tail inset.
+
+  The caption's `$N_{\rm real}$` placeholder is filled at that point. Old-grid
+  caches still replot correctly (plotting uses the cache's own edges) and the
+  inset auto-disables with a warning, but they cannot be combined with new ones.
+  Measured 0.1% edge on the 480k run, for reference: lnμ = −0.048/−0.119/−0.238/
+  −0.411/−0.506 at z_s = 0.5/1/2/5/10 (the z_s=1 value reproduces the −0.111 in
+  `docs/edge_tail_flux_note.md`). ⚠ At z_s=10 the edge sits at μ = 0.603, right
+  on the default left limit `--mu-range 0.6 1.8` — widen to ~0.55 or that marker
+  is clipped.
 - **The seven new bib keys are unverified** (`Dyer:1972`, `Weinberg:1976`,
   `Blandford:1986`, `Schneider:1992`, `Vietri:1983`, `Zakharov:1995`,
   `Seitz:1997`). `refs.bib` exists only on Overleaf — the draft lists them in a

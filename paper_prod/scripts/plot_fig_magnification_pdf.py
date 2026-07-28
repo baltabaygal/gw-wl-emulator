@@ -76,19 +76,30 @@ ZS_LIST = [0.5, 1.0, 2.0, 5.0, 10.0]
 # NOTE: model 4 + carve requires the post-2026-07-23 Mac build of gwlensing.
 # ----------------------------------------------------------------------------
 _COMMON = dict(filaments=True, ell=True, Nhalos=100, Mmin=1e7,
-               NM=100, Nz=100, kappa_anchor=1, kappa_anchor_cut=1.0)
+               NM=100, Nz=100)
 
-CONFIG_FULL = dict(_COMMON, bias=True,
-                   subhalo=True, subhalo_model=4, subhalo_carve=True,
-                   bias_model=1, bias_window=1, bias_Rperp=20000.0,
-                   bias_weak=True, fil_bias=True)
+# The "full" arm IS the paper's production physics -- import it rather than
+# restating it, so this figure cannot drift from ml/params.py. Before
+# 2026-07-28 this file hard-coded subhalo_model=4 and omitted
+# subhalo_kappathr_factor and subhalo_virial, i.e. it plotted a different
+# subhalo population from the one the draft describes (model 4 and 5 agree in
+# physics, but subhalo_virial does change the population).
+from ml.params import PRODUCTION_CONFIG, PRODUCTION_CONFIG_HASH  # noqa: E402
 
+CONFIG_FULL = dict(_COMMON, bias=True, **PRODUCTION_CONFIG)
+
+# Baseline = Vaskonen 2026: legacy iid clustering layer, no subhalos. Keeps the
+# production anchor so the two arms differ only in the ingredients under study.
 CONFIG_BASE = dict(_COMMON, bias=True,
                    subhalo=False,
                    bias_model=0, bias_window=0, bias_Rperp=8441.0,
-                   bias_weak=False, fil_bias=False)
+                   bias_weak=False, fil_bias=False,
+                   kappa_anchor=PRODUCTION_CONFIG["kappa_anchor"],
+                   kappa_anchor_cut=PRODUCTION_CONFIG["kappa_anchor_cut"])
 
-CONFIG_SUBH = dict(CONFIG_BASE, subhalo=True, subhalo_model=4, subhalo_carve=True)
+CONFIG_SUBH = dict(CONFIG_BASE,
+                   **{k: v for k, v in PRODUCTION_CONFIG.items()
+                      if k.startswith("subhalo") or k == "m_floor"})
 
 # ----------------------------------------------------------------------------
 # Fine histogram grid used for the on-disk cache. We store binned counts (tiny)
@@ -169,9 +180,13 @@ def build_series(zs_ing):
     return series
 
 
-def save_cache(path, data, meta):
+def save_cache(path, data, meta, edges=None):
+    # `edges` must be the grid the counts were binned on -- when re-saving a
+    # combination of OLD-grid shards, writing the current STORE_EDGES would
+    # mislabel every bin.
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    kw = {"edges": STORE_EDGES, "_meta": np.array(json.dumps(meta))}
+    edges = STORE_EDGES if edges is None else np.asarray(edges, dtype=float)
+    kw = {"edges": edges, "_meta": np.array(json.dumps(meta))}
     for tag, (counts, ntot, nlo, nhi) in data.items():
         kw[f"counts__{tag}"] = counts
         kw[f"ntot__{tag}"] = np.array(ntot, dtype=np.int64)
@@ -191,22 +206,30 @@ def load_cache(path):
             data[tag] = (z[k], int(z[f"ntot__{tag}"]),
                          int(z[f"nlo__{tag}"]) if f"nlo__{tag}" in z.files else 0,
                          int(z[f"nhi__{tag}"]) if f"nhi__{tag}" in z.files else 0)
-    return data, meta
+    # Return the cache's OWN edges. Plotting must use these, not the module-level
+    # STORE_EDGES: a cache written before the 2026-07-28 log-grid change stores
+    # 2000 linear bins over [0.40, 5.00], and re-plotting it against the current
+    # STORE_EDGES would silently place every count at the wrong mu.
+    return data, meta, z["edges"]
 
 
 def combine_caches(paths):
     """Sum histogram counts (and ntot) across shard caches with matching edges."""
-    total, meta = {}, None
+    total, meta, ref_edges, ref_path = {}, None, None, None
     for p in paths:
-        data, meta = load_cache(p)
-        edges = np.load(p, allow_pickle=False)["edges"]
-        if edges.shape != STORE_EDGES.shape or not np.allclose(edges, STORE_EDGES):
+        data, meta, edges = load_cache(p)
+        # Shards may only be summed if they share a histogram grid. They are NOT
+        # required to match the current STORE_EDGES -- an old linear-grid set can
+        # still be combined and replotted among itself; it just cannot show the
+        # tail inset, whose window lies outside that grid.
+        if ref_edges is None:
+            ref_edges, ref_path = edges, p
+        elif edges.shape != ref_edges.shape or not np.allclose(edges, ref_edges):
             raise SystemExit(
-                f"[combine] {p} was written with a different histogram grid "
-                f"({edges.size - 1} bins over [{edges[0]:g}, {edges[-1]:g}]) than the "
-                f"current STORE_EDGES ({STORE_NBINS} bins over "
-                f"[{STORE_LO:g}, {STORE_HI:g}]). Summing them would be wrong; "
-                f"re-run the shard or check out the matching script revision.")
+                f"[combine] histogram grids differ: {ref_path} has "
+                f"{ref_edges.size - 1} bins over [{ref_edges[0]:g}, {ref_edges[-1]:g}], "
+                f"{p} has {edges.size - 1} bins over [{edges[0]:g}, {edges[-1]:g}]. "
+                f"Summing them would be wrong; re-run the odd shard out.")
         for tag, (counts, ntot, nlo, nhi) in data.items():
             if tag not in total:
                 total[tag] = [np.zeros_like(counts), 0, 0, 0]
@@ -214,7 +237,7 @@ def combine_caches(paths):
             total[tag][1] += ntot
             total[tag][2] += nlo
             total[tag][3] += nhi
-    return {t: tuple(v) for t, v in total.items()}, meta
+    return {t: tuple(v) for t, v in total.items()}, meta, ref_edges
 
 
 # ============================================================================
@@ -292,7 +315,7 @@ def _maybe_smooth(y, window):
     return y
 
 
-def plot_figures(data, args):
+def plot_figures(data, args, edges=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -301,8 +324,15 @@ def plot_figures(data, args):
     apply_style()
     guard_broken_latex()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    edges = STORE_EDGES
+    # Always plot against the grid the counts were BINNED on.
+    edges = STORE_EDGES if edges is None else np.asarray(edges, dtype=float)
     factor = args.rebin
+    if args.inset and edges[-1] < args.tail_range[1]:
+        print(f"[warn] this cache stops at mu = {edges[-1]:g}, below the tail "
+              f"window {args.tail_range[1]:g}; the mu^-2 inset needs a cache "
+              f"re-run on the current (log, wide) grid. Disabling the inset.",
+              flush=True)
+        args.inset = False
     mu_lo, mu_hi = args.mu_range
 
     # ---- Figure 1: dP/dmu vs mu for several z_s (full production config) -----
@@ -341,7 +371,8 @@ def plot_figures(data, args):
     # SLOPE only; it is not a fit, and the absolute normalization of the far
     # tail is not certified (standing rule -- state this in the caption).
     if args.inset:
-        from matplotlib.ticker import LogLocator
+        from matplotlib.ticker import LogLocator, NullFormatter
+        from paper_prod.plot_style import format_log_axis_decimal
         axi = ax.inset_axes(args.inset_box)
         ti_lo, ti_hi = args.tail_range
         anchor_mu, anchor_y = max(ti_lo * 1.5, 3.0), 0.0
@@ -369,7 +400,15 @@ def plot_figures(data, args):
         axi.set_xlim(ti_lo, ti_hi)
         axi.yaxis.set_major_locator(LogLocator(numticks=4))
         axi.yaxis.set_minor_locator(LogLocator(subs=(), numticks=4))
+        # Over a narrow tail window matplotlib labels the MINOR decades too
+        # (2x10^0, 3x10^0, ...), which collide at inset font size. Label major
+        # decades only, in the paper's 0.1/1/10 convention.
+        axi.xaxis.set_major_locator(LogLocator(numticks=5))
+        axi.xaxis.set_minor_locator(LogLocator(subs=(2.0, 5.0), numticks=12))
+        axi.xaxis.set_minor_formatter(NullFormatter())
+        format_log_axis_decimal(axi, axis="x")
         axi.tick_params(labelsize=5.5, pad=1.0, length=2.0)
+        axi.tick_params(which="minor", length=1.2)
         axi.set_xlabel(r"$\mu$", fontsize=6, labelpad=-0.5)
 
     fig.subplots_adjust(left=0.17, right=0.96, bottom=0.16, top=0.95)
@@ -461,12 +500,11 @@ def main():
                     help="mu window shown in the tail inset")
     ap.add_argument("--tail-rebin", type=int, default=40,
                     help="coarser rebin for the inset (tail bins are sparse)")
-    ap.add_argument("--guide-norm", type=float, default=1.0,
-                    help="normalization of the mu^-2 slope guide in the inset; "
-                         "purely cosmetic, set it so the guide sits beside the "
-                         "curves without overlapping them")
+    ap.add_argument("--guide-norm", type=float, default=3.0,
+                    help="how far ABOVE the highest tail curve to place the "
+                         "mu^-2 slope guide (multiplicative); purely cosmetic")
     ap.add_argument("--inset-box", type=float, nargs=4,
-                    default=[0.50, 0.42, 0.46, 0.50],
+                    default=[0.52, 0.46, 0.44, 0.48],
                     help="inset axes box (x0 y0 w h) in axes fraction")
     ap.add_argument("--ylim", type=float, nargs=2, default=[1e-2, 3e1])
     ap.add_argument("--rebin", type=int, default=8,
@@ -486,21 +524,23 @@ def main():
         if not paths:
             sys.exit(f"--combine matched no files: {args.combine}")
         print(f"[combine] {len(paths)} shard(s)", flush=True)
-        data, meta = combine_caches(paths)
-        save_cache(cache_path, data, {"combined_from": paths})
+        data, meta, edges = combine_caches(paths)
+        save_cache(cache_path, data, {"combined_from": paths}, edges)
     elif args.replot:
         if not cache_path.exists():
             sys.exit(f"--replot: cache not found: {cache_path}")
-        data, meta = load_cache(cache_path)
+        data, meta, edges = load_cache(cache_path)
     else:
         series = build_series(args.zs_ingredients)
         data = run_series(series, args.nreal, args.seed)
+        edges = STORE_EDGES
         save_cache(cache_path, data,
                    {"cosmo": COSMO, "nreal": args.nreal, "seed": args.seed,
-                    "zs_list": ZS_LIST, "zs_ingredients": args.zs_ingredients})
+                    "zs_list": ZS_LIST, "zs_ingredients": args.zs_ingredients},
+                   edges)
 
     if not args.no_plot:
-        plot_figures(data, args)
+        plot_figures(data, args, edges)
 
 
 if __name__ == "__main__":

@@ -294,6 +294,36 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   + flux calibration `cache/flux_target_fit.json`; do NOT use flow_ar.pt).
   Validation numbers (KL 0.0073, PIT ≤2.1%, posterior recovery): 
   `ml/autoresearch/REPORT.md`. Retraining recipe: CLAUDE.md §NSF.
+- Fig. `fig:flow_transformation` (2026-07-28, §III intro): generative path of the
+  flow, base Gaussian → K=6 spline transforms → flow density, single column.
+  `paper_prod/scripts/plot_fig_flow_transformation.py` →
+  `paper_prod/plots/figures/fig_flow_transformation.{pdf,png}`, histogram cache
+  `paper_prod/plots/data/flow_transformation_<tag>.npz` (`--replot` restyles
+  without torch). Needs the `test` env (torch + zuko). REPLACES the tikz
+  input→output box that production.tex still has at :367–378, and supersedes
+  `scripts/figures/plot_flow_layer_transformation.py` +
+  `paper_prod/plots/fig_flow_transformation_steps.*` (kept, unused).
+  Three corrections vs the superseded version:
+  1. **Layer order.** zuko's `Flow.transform` maps DATA→LATENT applying
+     `transforms[0]` first, so the generative path is the inverses in REVERSE
+     order. The old script walked forward, so its intermediate curves were not
+     on the flow's path and its final panel missed `model.log_prob` — visible
+     as the peak/offset mismatch against the dashed curve. The new script does
+     not assume the convention: it walks both orders, scores each final density
+     against `log_prob`, and refuses to write the figure unless one closes
+     (`--verbose` prints both residuals).
+  2. **`ConditionalNSF.log_prob` is the BARE flow** — no μ⁻² tail, no
+     empty-beam edge, no flux calibration. The dashed curve is a closure check
+     on the layer walk, NOT an accuracy claim; do not label it "full"/"hybrid".
+  3. **Model-agnostic**: context dim read off the checkpoint's `context_mean`,
+     so it runs on the legacy 1+3d checkpoint and on a retrained 1+6d model.
+  ⚠ Currently generated from `data/models/conditional_nsf_backend_current.pt`
+  = the legacy 1+3d checkpoint (context z_s, h, Ω_M, σ8), while
+  `fig:emulator_arch` right above it advertises 7 context features.
+  Regenerate after retraining (TODO comment carried in the .tex).
+  ⚠ With `features=1` zuko's NSF is AUTOREGRESSIVE, not a coupling flow —
+  `fig:emulator_arch`'s caption (draft AND production) says "coupling
+  transformations". Flagged to the user 2026-07-28, not changed.
 - Fig. `fig:variance_DL` (`plots/variance_D_L.pdf`): **no generating script or
   file found in the repo** (2026-07-20) — lives outside or TBD; add here when
   created.
