@@ -185,9 +185,11 @@ def Bx(x):
     return out
 
 
-# inverse-CDF of dN/dx ~ x^2/(1+c_host x)^2 B(x) on x in (0,1]
+# inverse-CDF of dN/dx = 4 pi r^2 rho_NFW(x) B(x) ~ x/(1+c_host x)^2 B(x) on x in (0,1]
+# (matches cpp/subhalo.cpp; corrected 2026-07-28 from x^2/(1+c x)^2 -- see the
+# RADIAL SAMPLING CONVENTION block at the top of cpp/subhalo.cpp)
 _xs = np.linspace(1e-4, 1.0, 6000)
-_wx = _xs**2 / (1 + C_H * _xs)**2 * Bx(_xs)
+_wx = _xs / (1 + C_H * _xs)**2 * Bx(_xs)
 _cx = np.concatenate([[0], np.cumsum(0.5 * (_wx[1:] + _wx[:-1]) * np.diff(_xs))])
 _cx /= _cx[-1]
 

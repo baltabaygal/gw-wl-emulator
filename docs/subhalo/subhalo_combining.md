@@ -37,11 +37,38 @@ primary observable.
 6. `N_sub` — ∫ dN/dlnψ above the floor (number is bottom-heavy ⇒ floor-dependent; Poisson mean).
 7. reduced host NFW at (1−f_s)M; host r200 and c for the radial profile.
 
-## Spatial profile (user-specified, anti-biased)
-Subhalo number density per shell ∝ x²/(1+c x)² · B(x), x=r/r200,
-B(x)=1/√((x/0.54)^{−2.5}+1)  (central depletion; →1 at large x).
-Per active bin, the inverse radial CDF x(u) is tabulated (128 pts); a clump's 3D radius is
-r=x·r200, then projected to 2D (random direction).
+## Spatial profile (Green+21 anti-biased NFW)
+**CORRECTED 2026-07-28 — this section previously specified `x²/(1+cx)²·B(x)`, which was
+wrong, and the code matched it at all three sites.** Green+21 define the bias function as
+a ratio of **volume number densities** (their §3.2.1 / Fig. 7 caption),
+`B(x) = (dÑ/dx³)_sub / (dÑ/dx³)_NFW → 1` when unbiased, so B multiplies the host
+**density**, not the shell count:
+
+    n_sub(x) = rho_NFW(x) B(x) ~ B(x) / [x (1 + c x)²]
+    dN/dx    = 4 pi r² n_sub   ~ x B(x) / (1 + c x)²        <-- x^1, NOT x^2
+
+The x² shell-volume factor cancels one power of x against the NFW 1/x cusp. The old
+`x²` form was `n_sub ~ B/(1+cx)²`: a cored profile with an extra power of x of central
+suppression stacked on top of B (inner slope x^2.25 instead of x^1.25) and an x^-2
+rather than x^-3 outskirt — contradicting both `B→1` ("subhaloes trace the host outside")
+and the Han+16 x^1.3 inner bias that B is fitted to reproduce.
+
+    B(x) = 1/sqrt((x/x0)^{-2.5} + 1),  x = r/r200,  x0 = 0.86 * eta  (r_vir -> r200)
+
+x0 = 0.86 is in **r_vir** units (Green+21 normalize at r_vir), converted per host by
+`eta = r_vir/r200` in `etaVirTo200`. Per active bin the inverse radial CDF x(u) is
+tabulated (128 pts); a clump's 3D radius is r = x·r200, then projected to 2D (random
+direction).
+
+**Impact of the correction** (`data/results/subhalo_profile_fix/`): substructure mass
+within 0.3 r200 rises **3.0x** (0.033 -> 0.100, stable in M and z); clipped sigma(lnmu)
+rises **+1.17/+1.98/+1.40 %** at z_s = 0.5/1/5 (+2.2/+4.6/+6.0 sigma), q99 +2-4%.
+NOT bitwise-compatible with pre-2026-07-28 subhalo-on runs. Note that the binned JSD
+stays at ~1.0x the sampling floor even at 6 sigma on sigma -- **use sigma, not JSD, to
+judge a width change of this size.**
+
+See also `docs/subhalo/virial_convention_note.md` for the r_vir/r200 audit of x0,
+the radial extent, and the psi mass scale.
 
 ## Resolution
 Two modes (both `subhalo_model=1`, the reduced-host option B):

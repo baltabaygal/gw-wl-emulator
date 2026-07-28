@@ -376,6 +376,46 @@ def dsigma_bins(cos, M, zl, zs):
     return np.diff(frac @ dsig) / _XIW
 
 
+def campbell_moments(cos, zs, kappa_min, Mmin=1e7, Mmax=1e16, Nz=40, NM=48):
+    """Campbell (compound-Poisson) moments of the ADDITIVE fields kappa and
+    gamma, integrated over the same lens population as ``R_of_xi``.
+
+    For a compensated Poisson sum, Var(kappa) = int kappa^2 dR exactly and
+    <|sum gamma_i|^2> = int gamma^2 dR (cross terms vanish for random lens
+    position angles).  These involve NO scalar reduction and no Fourier
+    inversion -- they test abundance x profile x geometry x counts alone, so
+    they separate an error in R from an error in the kappa -> mu composition.
+
+    Each halo is integrated out to the radius where its own convergence falls
+    to ``kappa_min``, matching the engine's coverage: explicit lenses above
+    kappa_thr plus the Gaussian background down to eps_floor * kappa_thr.
+    """
+    zgrid = np.linspace(1e-3, zs - 1e-3, Nz)
+    dz = zgrid[1] - zgrid[0]
+    Mgrid = np.logspace(np.log10(Mmin), np.log10(Mmax), NM)
+    dlnM = log(Mgrid[1]) - log(Mgrid[0])
+    acc = dict(kappa=0.0, kappa2=0.0, gamma2=0.0, xi=0.0, xi2=0.0, N=0.0)
+    for z in zgrid:
+        wz = (1 + z)**2 * CKMS / cos.Hz(z) * dz
+        for M in Mgrid:
+            C, rs, ks, fC = cos.nfw_params(M, z, zs)
+            k, g = kappa_gamma(_XG, ks)
+            sel = k > kappa_min                    # engine's radial coverage
+            if not np.any(sel):
+                continue
+            x, kk, gg = _XG[sel], k[sel], g[sel]
+            detA = (1 - kk)**2 - gg * gg
+            xi = np.where(detA > 0, -log(np.where(detA > 0, detA, 1.0)), 0.0)
+            pref = wz * cos.dndlnM(M, z) * dlnM * 2 * pi * rs * rs
+            acc["N"] += pref * _trapz(x, x)
+            acc["kappa"] += pref * _trapz(x * kk, x)
+            acc["kappa2"] += pref * _trapz(x * kk * kk, x)
+            acc["gamma2"] += pref * _trapz(x * gg * gg, x)
+            acc["xi"] += pref * _trapz(x * xi, x)
+            acc["xi2"] += pref * _trapz(x * xi * xi, x)
+    return acc
+
+
 def R_of_xi(cos, zs, Mmin=1e7, Mmax=1e16, Nz=40, NM=48):
     """Line-of-sight-integrated jump measure R(xi; zs) [per lnmu, per l.o.s.].
 

@@ -5,6 +5,10 @@ import shutil
 import h5py
 import numpy as np
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from ml.params import PRODUCTION_CONFIG, PRODUCTION_CONFIG_HASH
+
+
 def test_parallel_dataset_generation():
     test_dir = "datasets/test_parallel"
     if os.path.exists(test_dir):
@@ -41,13 +45,29 @@ def test_parallel_dataset_generation():
             assert "samples/z" in f
             assert "samples/h" in f
             assert "samples/OmegaM" in f
-            # schema 2.0 (1+6d, As-mode)
-            for k in ("As", "OmegaB", "ns", "zeq", "sigma8_derived"):
+            # schema 2.1 (1+6d, sigma8-mode). 2.0 was the A_s-mode variant,
+            # retired 2026-07-27 in favour of Vaskonen's convention.
+            for k in ("sigma8", "OmegaB", "ns", "zeq", "As_derived"):
                 assert f"samples/{k}" in f
             assert "metadata" in f
-            assert f["metadata"].attrs.get("dataset_schema_version") == "2.0"
-            assert f["metadata"].attrs.get("amplitude_mode") == "As"
-            
+            assert f["metadata"].attrs.get("dataset_schema_version") == "2.1"
+            assert f["metadata"].attrs.get("amplitude_mode") == "sigma8"
+
+            # The physics config must be pinned from ml.params, not inherited
+            # from the compiled-in C++ defaults (several of which are still the
+            # legacy staged values).
+            assert "metadata/physics_config" in f
+            phys = f["metadata/physics_config"].attrs
+            assert phys["config_hash"] == PRODUCTION_CONFIG_HASH
+            for k, v in PRODUCTION_CONFIG.items():
+                assert phys[k] == v, f"{k}: {phys[k]} != {v}"
+            # Guard against the pin silently becoming a no-op: at least one
+            # production setting must differ from the shipped default.
+            defaults = f["metadata/simulator_defaults"].attrs
+            assert any(defaults[k] != v for k, v in PRODUCTION_CONFIG.items()
+                       if k in defaults)
+
+
     # Cleanup
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)

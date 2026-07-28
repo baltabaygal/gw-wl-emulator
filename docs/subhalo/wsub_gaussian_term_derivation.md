@@ -41,8 +41,12 @@ plane, and a source at $z_s$. The code (`Subhalo::addClumps`) draws
   $e^{-\beta\psi^\omega}$ — by the Poisson thinning theorem this realizes *exactly* the
   intensity of the evolved SHMF $dN/d\ln\psi = \gamma\,\psi^\alpha e^{-\beta\psi^\omega}$,
 - i.i.d. 3D positions from the anti-biased radial profile
-  $p_3(x) \propto x^2(1+cx)^{-2} B(x)$, isotropically projected to a 2D host-centric
+  $p_3(x) \propto x\,(1+cx)^{-2} B(x)$, isotropically projected to a 2D host-centric
   radius $R$ with surface pdf $\sigma_{2D}(R)$ (Abel projection).
+  (Corrected 2026-07-28 from $x^2(1+cx)^{-2}B$: $B$ is Green+21's ratio of volume
+  densities, so $n_{\rm sub}=\rho_{\rm NFW}B$ and $dN/dx=4\pi r^2 n_{\rm sub}\propto
+  x\,(1+cx)^{-2}B$. The old form was a cored profile with one extra power of $x$ of
+  central suppression.)
 
 So the total clump convergence at the ray,
 

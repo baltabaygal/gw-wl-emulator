@@ -55,7 +55,9 @@ def projected_profile(c_host: float, r200: float, n_grid: int = 2048):
     """
     x = np.linspace(1.0e-6, 1.0, n_grid)
     bias = 1.0 / np.sqrt((x / 0.54) ** (-2.5) + 1.0)
-    w3 = x**2 / (1.0 + c_host * x) ** 2 * bias
+    # dN/dx = 4 pi r^2 rho_NFW(x) B(x) ~ x/(1+c x)^2 B(x); corrected 2026-07-28
+    # from x^2/(1+c x)^2 -- see cpp/subhalo.cpp RADIAL SAMPLING CONVENTION.
+    w3 = x / (1.0 + c_host * x) ** 2 * bias
     w3 /= np.trapezoid(w3, x)                      # p3(x), x = r/r200
 
     def p3_interp(q: np.ndarray) -> np.ndarray:

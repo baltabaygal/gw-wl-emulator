@@ -11,13 +11,10 @@ used by the sampler (now essentially immaterial: the top-hat already suppresses
 the power there, unlike the disk window whose only LOS cutoff was numerical).
 
 Panel (b): the count-modulation factor lambda(M, z) at three halo masses along a
-single z_s = 3 line of sight. SOLID lines are the underlying CONTINUOUS field,
-drawn at the Fourier-mode level (mode_field: xi_q, eta_q ~ N(0,1),
-delta(chi) = sum_q sqrt(w_q)[xi_q cos(chi k_q) + eta_q sin(chi k_q)]); the faint
-STEPS are its per-shell segment-average -- exactly what the simulator applies to
-the halo counts (sinc(k_q L_i/2) reinstated, same mode draw, covariance
-identical to validate_field_covariance.py::cpp_field / BiasField1D::build). So
-the steps ARE the binned version of the continuous curve. In both cases
+single z_s = 3 line of sight, shown as the per-shell segment-average (the
+binned field) -- exactly what the simulator applies to the halo counts
+(mode_field: xi_q, eta_q ~ N(0,1), sinc(k_q L_i/2) reinstated, covariance
+identical to validate_field_covariance.py::cpp_field / BiasField1D::build).
 lambda = exp(b Dg delta - (b Dg)^2 sigma^2 / 2) with <lambda> = 1.
 
 Run (no C++ build needed; numpy-only):
@@ -63,10 +60,10 @@ M_STYLE = {1.0e12: ("#A569BD", ":", 0.8),
            1.0e13: ("#7D3C98", "--", 0.9),
            1.0e14: ("#4A235A", "-", 1.1)}
 M_BAND = 1.0e14                     # mass whose +-1 sigma band is drawn (the widest)
-SEED_FIELD = 21                     # the single delta_1D realization on display
-PANELB_XSCALE = "linear"            # panel (b) z axis: "linear" or "log"
-PANELB_YSCALE = "log"              # panel (b) lambda axis: "linear" or "log"
-PANELB_ZMAX = 0.15                  # None -> full z_s; else zoom panel (b) to z <= this
+SEED_FIELD = 7                      # the single delta_1D realization on display
+PANELB_XSCALE = "log"                # panel (b) z axis: "linear" or "log"
+PANELB_YSCALE = "linear"             # panel (b) lambda axis: "linear" or "log"
+PANELB_ZMAX = None                   # None -> full z_s; else zoom panel (b) to z <= this
 
 
 def P1D_curve(C, kpar, Rperp, window=0):
@@ -88,20 +85,6 @@ def P1D_curve(C, kpar, Rperp, window=0):
         f = kperp[:, None] ** 2 * C.Pk(kk) * w2
         out[i0:i1] = np.trapezoid(f, dx=dlnkp, axis=0) / (2.0 * PI)
     return out
-
-
-def sigma_of_R(C, Rperp, window=1):
-    """Point variance sigma(R_s) of the 1D field = the AREA under P_1D:
-    sigma^2 = int_{-inf}^{inf} dk_par/(2 pi) P_1D = 2 int_0^inf dk_par/(2 pi) P_1D.
-    Integrated on a dedicated wide k_par grid (well past the top-hat cutoff) so
-    the reported number is the true variance, not the plotted-range partial area.
-    Recovers the top-hat point sigma: 0.530 (20 Mpc), 0.972 (8.44 Mpc); the
-    R_s -> 0 pencil diverges (smoothing is what renders the variance finite)."""
-    if Rperp <= 0.0:
-        return np.inf
-    kpar = np.exp(np.linspace(np.log(1e-8), np.log(200.0 / Rperp), 4000))
-    P = P1D_curve(C, kpar, Rperp, window=window)
-    return np.sqrt(2.0 * np.trapezoid(P, kpar) / (2.0 * PI))
 
 
 def mode_field(C, zs, Rperp, window, seed):
@@ -164,10 +147,9 @@ def main():
     # ---------------- panel (a): P1D, spherical top-hat, three scales
     kpar = np.exp(np.linspace(np.log(3e-6), np.log(6e-3), 240))   # kpc^-1
     curves = [
-        (0.0, "solid", "0.35", r"$R_s \to 0$ (pencil)"),
-        (RS_DEFAULT, "solid", "C0", r"$R_s = 20\,{\rm Mpc}$ (default)"),
-        (RS_SIGNAL, "dashed", "C1",
-         r"$R_s = 8.44\,{\rm Mpc} = R_L(10^{14}M_\odot)$"),
+        (0.0, "solid", "0.35", r"$R_s \to 0$"),
+        (RS_DEFAULT, "solid", "C0", r"$R_s = 20\,{\rm Mpc}$"),
+        (RS_SIGNAL, "dashed", "C1", r"$R_s = 8.44\,{\rm Mpc}$"),
     ]
 
     # Use the same single-column figure size as the other paper figures and
@@ -188,13 +170,8 @@ def main():
         kmaxR = 2.0 * PI / Rp if Rp > 0 else np.inf     # sampler mode cutoff
         sel = kpar <= kmaxR
         P = P1D_curve(C, kpar[sel], Rp, window=WINDOW)
-        # sigma(R_s) = sqrt(area under P_1D) -> the variance the field carries;
-        # appended to the legend so the amplitude ordering reads quantitatively
-        sig = sigma_of_R(C, Rp, window=WINDOW)
-        siglab = (r", $\sigma \to \infty$" if not np.isfinite(sig)
-                  else rf", $\sigma = {sig:.2f}$")
         axa.plot(kpar[sel] / KPC2MPC, P * KPC2MPC, ls=ls, color=col,
-                 label=lab + siglab)
+                 label=lab)
         if np.isfinite(kmaxR):
             axa.plot(kmaxR / KPC2MPC, P[-1] * KPC2MPC, "o", ms=3, color=col)
     axa.set_xscale("log")
@@ -211,10 +188,8 @@ def main():
     # ln lambda = btilde delta_1D - btilde^2 sig^2/2, so raising M rescales one
     # and the same field (up to the mean-one compensation).
     #
-    # SOLID lines = the underlying CONTINUOUS field lambda(chi) (the Fourier-mode
-    # object); faint STEPS = its per-shell segment-average, i.e. exactly what the
-    # simulator applies to the halo counts. Both come from the SAME mode draw, so
-    # the steps are literally the binned version of the continuous curve.
+    # STEPS = the per-shell segment-average of the Fourier-mode field, i.e.
+    # exactly what the simulator applies to the halo counts.
     fm = mode_field(C, ZS_FIELD, RS_DEFAULT, WINDOW, SEED_FIELD)
     n = fm["n"]
     zsh = C.zlist[1:n + 1]                               # shell upper edges
@@ -223,9 +198,8 @@ def main():
     sig2_pt = fm["sig2_point"]                           # continuous point variance
     sig_pt = np.sqrt(sig2_pt)
 
-    # dense LOS grid for the continuous curve (log-spaced in z to match the axis)
+    # dense LOS grid for the continuous +-1 sigma envelope (log-spaced to match the axis)
     z_c = np.exp(np.linspace(np.log(C.zlist[1]), np.log(ZS_FIELD), 600))
-    d_c = fm["delta_cont"](C.dc(z_c))                    # continuous field on the grid
 
     def bDg_at(zarr, sigM):
         return np.array([C.Dg(z) * C.halobias(z, sigM) for z in zarr])
@@ -245,19 +219,13 @@ def main():
     for M in M_LIST:
         sigM = sigM_of(M)
         col, ls, lw = M_STYLE[M]
-        # continuous field (solid, mass-coded style) — the underlying object
-        bDg_c = bDg_at(z_c, sigM)
-        lam_c = np.exp(bDg_c * d_c - 0.5 * bDg_c ** 2 * sig2_pt)
-        axb.plot(z_c, lam_c, lw=lw, ls=ls, color=col,
-                 label=rf"$M = 10^{{{int(round(np.log10(M)))}}}\,M_\odot$")
-        # shell-averaged version (faint steps) — what production applies
+        # shell-averaged version (binned field) — what production applies
         bDg_s = bDg_at(zsh, sigM)
         lam_s = np.exp(bDg_s * dbar - 0.5 * bDg_s ** 2 * fm["sig2_shell"])
-        axb.plot(zsh, lam_s, drawstyle="steps-mid", lw=0.7 * lw, ls="-",
-                 color=col, alpha=0.4)
+        axb.plot(zsh, lam_s, drawstyle="steps-mid", lw=lw, ls=ls, color=col,
+                 label=rf"$M = 10^{{{int(round(np.log10(M)))}}}\,M_\odot$")
         print(f"  M={M:.0e}: sigma(M)={sigM:.4f}, b(z=0.5)="
               f"{C.halobias(0.5, sigM):.3f}, b(z=2)={C.halobias(2.0, sigM):.3f}, "
-              f"lambda_cont in [{lam_c.min():.3f}, {lam_c.max():.3f}], "
               f"lambda_shell in [{lam_s.min():.3f}, {lam_s.max():.3f}]")
 
     axb.axhline(1.0, color="0.35", lw=0.7, ls=":")
@@ -273,17 +241,13 @@ def main():
             __import__("matplotlib").ticker.FuncFormatter(
                 lambda v, _: f"{v:g}"))
     else:
-        axb.set_ylim(0.0, 6.0)          # M=1e14 point-field peaks clip above this
+        axb.set_ylim(0.0, 6.0)          # M=1e14 shell-average peaks clip above this
     axb.set_xlabel(r"$z$")
     axb.set_ylabel(r"$\lambda(M,z)$")
     axb.legend(fontsize=6.0, frameon=False, loc="upper left", ncol=2,
                columnspacing=0.9, handlelength=1.6, borderaxespad=0.3)
     axb.text(0.985, 0.955, r"$z_s = 3$", transform=axb.transAxes,
              ha="right", va="top", fontsize=7)
-    axb.text(0.985, 0.045,
-             "solid: continuous field\nsteps: shell average (applied)",
-             transform=axb.transAxes, ha="right", va="bottom", fontsize=5.6,
-             color="0.35", linespacing=1.25)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_png = OUT_DIR / "fig_clustering_field.png"

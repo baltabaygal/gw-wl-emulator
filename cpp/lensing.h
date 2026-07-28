@@ -124,6 +124,18 @@ struct LensingConfig {
   // reference and for A/B. The RNG stream is identical either way (the host build draws
   // no random numbers; the carve only reorders the host build after the clump draw).
   bool subhalo_carve = true;
+  // JvdB14 virial convention (2026-07-28, default OFF). JvdB14 sec. 2 defines haloes and
+  // subhaloes inside their VIRIAL radii (mean density Delta_vir(z) rho_crit(z)), so f_s and
+  // psi = m/M are M_vir quantities and the population extends to r_vir; Green+21, which
+  // calibrates the radial bias B(x), also normalizes at r_vir. The engine's M is M_200c, and
+  // only the bias SCALE x0 was converted (etaVirTo200) -- not the extent or the mass
+  // normalization -- so the legacy path packs a virial-calibrated population into an r_200
+  // aperture (~9% too much substructure inside r_200 at z=5, ~49% at z=0.1).
+  // true: psi referred to M_vir = M mu(c_vir)/mu(c_200), radial profile sampled to r_vir, and
+  // the carve converts the realized clump mass back to the M_200 scale (divide by M_vir/M_200)
+  // so the smooth host keeps the same FRACTIONAL mass in both apertures.
+  // Gated to subhalo_model 4/5 (production + reference); throws otherwise.
+  bool subhalo_virial = false;
   // Diagnostic override (2026-07-23): > 0 fixes psi_min everywhere the subhalo module would
   // otherwise use m_floor/M (buildWsubBin, unresolvedMass, addClumps' subhalo_brute path).
   // E.g. psi_min_fixed = 1e-4 = psi_res tests "no extrapolation below the SHMF's own

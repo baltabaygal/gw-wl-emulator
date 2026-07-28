@@ -37,7 +37,9 @@ import sys, json, numpy as np
 sys.path.insert(0, "build")
 import gwlensing as gw
 zs, nray, seed, model, factor = float(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), float(sys.argv[5])
-kw = dict(subhalo=True, subhalo_carve=True, subhalo_model=model, kappa_anchor=1)
+virial = bool(int(sys.argv[7])) if len(sys.argv) > 7 else False
+kw = dict(subhalo=True, subhalo_carve=True, subhalo_model=model, kappa_anchor=1,
+          subhalo_virial=virial)
 if model == 5:
     kw["subhalo_kappathr_factor"] = factor
 x = np.asarray(gw.sample_lnmu(zs, 0.315, 0.811, 0.674, nray, seed, **kw))
@@ -45,7 +47,7 @@ np.save(sys.argv[6], x)
 """
 
 
-def run_shards(tag, zs, nray, nshard, model, factor, seed0, outdir):
+def run_shards(tag, zs, nray, nshard, model, factor, seed0, outdir, virial=False):
     src = outdir / "_shard.py"
     src.write_text(SHARD_SRC)
     procs, paths = [], []
@@ -55,7 +57,8 @@ def run_shards(tag, zs, nray, nshard, model, factor, seed0, outdir):
         if p.exists():
             continue
         procs.append(subprocess.Popen(
-            [PY, str(src), str(zs), str(nray), str(seed0 + 1000 * s), str(model), str(factor), str(p)],
+            [PY, str(src), str(zs), str(nray), str(seed0 + 1000 * s), str(model), str(factor),
+             str(p), str(int(virial))],
             cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE))
     for pr in procs:
         _, err = pr.communicate()
@@ -87,22 +90,28 @@ def main():
     ap.add_argument("--nshard", type=int, default=8)
     ap.add_argument("--zs", type=float, default=1.0)
     ap.add_argument("--factor", type=float, default=0.1)
+    ap.add_argument("--virial", action="store_true",
+                    help="run BOTH arms with subhalo_virial=True (validates the model-5 "
+                         "restricted-intensity tables under the virial convention)")
     ap.add_argument("--outdir", default=None)
     args = ap.parse_args()
 
-    outdir = Path(args.outdir) if args.outdir else ROOT / "tmp" / f"m5gate_zs{args.zs}_f{args.factor}"
+    tag_v = "_virial" if args.virial else ""
+    outdir = Path(args.outdir) if args.outdir else \
+        ROOT / "tmp" / f"m5gate_zs{args.zs}_f{args.factor}{tag_v}"
     outdir.mkdir(parents=True, exist_ok=True)
 
     print(f"z_s={args.zs}  {args.nshard} shards x {args.nray} rays  factor={args.factor}")
     print("running model 4 (full brute, ~45 ms/ray) ...", flush=True)
-    m4 = run_shards("m4", args.zs, args.nray, args.nshard, 4, 0.0, 12345, outdir)
+    m4 = run_shards("m4", args.zs, args.nray, args.nshard, 4, 0.0, 12345, outdir, args.virial)
     print("running model 5 (thresholded) ...", flush=True)
-    m5 = run_shards("m5", args.zs, args.nray, args.nshard, 5, args.factor, 12345, outdir)
+    m5 = run_shards("m5", args.zs, args.nray, args.nshard, 5, args.factor, 12345, outdir, args.virial)
 
     a4, a5 = np.concatenate(m4), np.concatenate(m5)
     edges = np.linspace(-0.35, 0.35, 121)
 
-    r = {"zs": args.zs, "factor": args.factor, "nray_total": int(a4.size)}
+    r = {"zs": args.zs, "factor": args.factor, "nray_total": int(a4.size),
+         "subhalo_virial": bool(args.virial)}
     for tag, a in (("model4", a4), ("model5", a5)):
         mu, sd, n = clipped_moments(a)
         r[tag] = {"clip_mean": mu, "clip_sd": sd, "n_clip": n, "raw_sd": float(a.std())}
@@ -126,7 +135,8 @@ def main():
     r["verdict"] = verdict
     print(f"  VERDICT: JSD is {verdict}")
 
-    out = ROOT / "data" / "results" / "subkappathr_population" / f"gate_zs{args.zs}_f{args.factor}.json"
+    out = (ROOT / "data" / "results" / "subkappathr_population" /
+           f"gate_zs{args.zs}_f{args.factor}{tag_v}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(r, indent=2))
     print(f"\nsaved {out}")

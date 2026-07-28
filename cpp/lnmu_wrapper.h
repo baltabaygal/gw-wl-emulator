@@ -44,6 +44,7 @@ struct SamplingParams {
     bool subhalo_brute = false;
     double subhalo_factor = 1.0e-2;  // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12)
     bool subhalo_carve = true;       // mass-conserving realized-clump host carve (scheme A, 2026-07-22); false = legacy (1-f_s,b)M
+    bool subhalo_virial = false;     // JvdB14 virial convention: psi = m/M_vir, profile to r_vir (2026-07-28); model 4/5 only
     // model 5 only (2026-07-27): per-clump convergence threshold kappa_thr,sub.
     // > 0 absolute; <= 0 uses subhalo_kappathr_factor * host kappa_thr.
     double subhalo_kappathr = -1.0;

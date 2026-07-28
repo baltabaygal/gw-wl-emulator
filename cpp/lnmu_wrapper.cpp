@@ -88,6 +88,7 @@ LnmuStats compute_lnmu_stats_fast(
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
     cfg.subhalo_carve = sp.subhalo_carve;
+    cfg.subhalo_virial = sp.subhalo_virial;
     cfg.subhalo_kappathr = sp.subhalo_kappathr;
     cfg.subhalo_kappathr_factor = sp.subhalo_kappathr_factor;
     cfg.psi_min_fixed = sp.psi_min_fixed;
@@ -288,6 +289,7 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     cfg.subhalo_brute = sp.subhalo_brute;
     cfg.subhalo_factor = sp.subhalo_factor;
     cfg.subhalo_carve = sp.subhalo_carve;
+    cfg.subhalo_virial = sp.subhalo_virial;
     cfg.subhalo_kappathr = sp.subhalo_kappathr;
     cfg.subhalo_kappathr_factor = sp.subhalo_kappathr_factor;
     cfg.psi_min_fixed = sp.psi_min_fixed;

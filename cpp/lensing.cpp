@@ -710,6 +710,15 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         && !(cfg.subhalo_kappathr_factor > 0.0)) {
         throw std::invalid_argument("subhalo_model 5 needs subhalo_kappathr > 0 or subhalo_kappathr_factor > 0");
     }
+    // The virial convention rescales psi and the radial extent inside the clump sampler.
+    // Models 0-3 additionally reduce the host through the incomplete-Gamma f_s_res / Wsub
+    // tables, which are still written in M_200 units, so mixing them would be inconsistent.
+    // Gate to the production (5) + reference (4) path.
+    if (cfg.subhalo && cfg.subhalo_virial
+        && !(cfg.subhalo_model == 4 || cfg.subhalo_model == 5)) {
+        throw std::invalid_argument("subhalo_virial requires subhalo_model 4 or 5 "
+                                    "(models 0-3 reduce the host with M_200-referred tables)");
+    }
     if (cfg.bias_model != 0 && cfg.bias_model != 1) {
         throw std::invalid_argument("bias_model must be 0 (legacy iid cell bias) or 1 (correlated 1D field)");
     }
@@ -791,6 +800,7 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
         auto precompute_start = Clock::now();
         subhalo_.m_floor = cfg.m_floor;
         subhalo_.psi_min_fixed = cfg.psi_min_fixed;
+        subhalo_.virial = cfg.subhalo_virial;   // must be set BEFORE precompute()
         // model 3 additionally builds the Wsub (unresolved mu/sigma) tables, which need
         // the HOST threshold for the encounter-disc radius rmax per bin.
         // model 5 reuses r_thr as the clump REACH D(m), so it must be built at
@@ -974,7 +984,13 @@ vector<lensing::RealizationRaw> lensing::sample_lnmu_raw(cosmology &C, double zs
 
                         // 3. carved smooth host at M - Sum m_i - M_u, with a negative-mass guard
                         auto smooth_start_c = Clock::now();
-                        double M_host_eff = M - Msum - M_u;
+                        // Virial mode: Msum is drawn against the M_vir budget, but the smooth
+                        // host is parameterized by its M_200-equivalent grid mass. Convert so the
+                        // host keeps the same FRACTIONAL mass (1-f_s) in both apertures; the
+                        // remainder is the substructure in the r_200..r_vir shell, which was
+                        // never part of the M_200 budget. vr == 1 in legacy mode (bitwise).
+                        const double vr = subhalo_.virialRatio(jz, jM);
+                        double M_host_eff = M - Msum / vr - M_u;
                         if (M_host_eff < C.Mmin) {          // ~9-sigma SHMF excursion; never seen in 40k
                             M_host_eff = C.Mmin;
                             if (profile != nullptr) profile->subhalo_carve_negatives++;

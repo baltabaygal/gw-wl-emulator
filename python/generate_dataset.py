@@ -11,7 +11,8 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../build')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import gwlensing as gw
-from ml.params import PRIOR_6D, WIDE_6D, PARAM_KEYS_6D
+from ml.params import (PRIOR_6D, WIDE_6D, PARAM_KEYS_6D,
+                       PRODUCTION_CONFIG, PRODUCTION_CONFIG_HASH)
 
 try:
     from pyDOE3 import lhs
@@ -53,9 +54,14 @@ def simulate_config_worker(args_tuple):
     # sigma8-mode: As is left at its default (-1.0), so the amplitude is set by
     # the sigma8 positional via deltaH8 = sigma8/sigmaC(M8, 1). This is the
     # upstream Vaskonen convention (halos main_lensing.cpp).
+    #
+    # The physics config (subhalos, clustering field, flux anchor) is passed
+    # EXPLICITLY from ml.params.PRODUCTION_CONFIG — several of those settings are
+    # not yet the shipped C++ defaults, so relying on defaults here would
+    # silently generate legacy-physics data.
     result = gw.sample_lnmu_ml_with_diagnostics(
         z, h, om, sigma8, nsamples_per_point, sim_seed, False,
-        OmegaB=ob, ns=ns, zeq=zeq
+        OmegaB=ob, ns=ns, zeq=zeq, **PRODUCTION_CONFIG
     )
     return i, list(result["lnmu"]), dict(result["invalid_stats"])
 
@@ -341,6 +347,22 @@ def generate_dataset_split(params, split_name, output_file, nsamples_per_point, 
         g_meta.attrs["bias"] = sim_config["bias"]
         g_meta.attrs["ell"] = sim_config["ell"]
         g_meta.attrs["Nhalos"] = sim_config["Nhalos"]
+
+        # Physics config actually PASSED to the sampler. Note that
+        # get_simulator_config() above reports the compiled-in defaults, which
+        # is not the same thing: several production settings are still staged.
+        # Record the effective value of every knob = defaults overridden by
+        # PRODUCTION_CONFIG, so a dataset is self-describing even after the C++
+        # defaults flip.
+        g_phys = f.create_group("metadata/physics_config")
+        for k, v in PRODUCTION_CONFIG.items():
+            g_phys.attrs[k] = v
+        g_phys.attrs["config_source"] = "ml.params.PRODUCTION_CONFIG"
+        g_phys.attrs["config_hash"] = PRODUCTION_CONFIG_HASH
+        g_defaults = f.create_group("metadata/simulator_defaults")
+        for k, v in sim_config.items():
+            g_defaults.attrs[k] = v
+        g_meta.attrs["physics_config_hash"] = PRODUCTION_CONFIG_HASH
 
         # Parameter ranges metadata
         g_ranges = f.create_group("metadata/parameter_ranges")

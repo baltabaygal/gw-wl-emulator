@@ -71,16 +71,38 @@ downstream — this is the intended model change, gated behind the flag.
   `halobias` to `filbias` moves P(lnmu) below MC noise at 70k samples (body sigma
   Delta < 1e-4 at z_s=1). Real but small; quote from a high-N ensemble if needed.
 - **Default staged OFF** (matches `bias_weak` / `bias_window`). Paper/production config
-  = `bias_model=1, bias_window=1, bias_Rperp=20000, fil_bias=true`. Flip the default
-  only bundled with the other bias sign-offs.
+  = `bias_model=1, bias_window=1, bias_Rperp=20000, bias_weak=true, fil_bias=true`.
+  Flip the default only bundled with the other bias sign-offs. Since 2026-07-27 the ML
+  pipeline no longer depends on that flip: the config is pinned explicitly in
+  `ml.params.PRODUCTION_CONFIG` and threaded through `python/generate_dataset.py`.
 
-## 5. STILL PENDING — Mac gates
+## 5. Mac gates — ALL PASSED (2026-07-27)
 
-Built and smoke-tested in the **Linux sandbox** only (GSL replaced by a local shim;
-Python 3.10). Before production use, on the Mac `test` env:
-1. `make build` (Python 3.12 `.so`);
-2. `tests/test_cosmology_params.py` incl. `test_backward_compat_bitwise` (fil_bias
-   default must stay bitwise);
-3. a fil_bias on/off A/B at `bias_model=1` on a high-N ensemble to log the P(lnmu)
-   shift + the emulator edge/flux impact (expected negligible; filaments carry no weak
-   arm and the shift is < emulator KL).
+Previously built and smoke-tested in the Linux sandbox only. Now closed on the Mac
+`test` env. Full evidence: **`data/results/fil_bias/report.md`**.
+
+1. `make build` (Python 3.12 `.so`) — clean.
+2. `tests/test_cosmology_params.py` **11/11** incl. `test_backward_compat_bitwise`.
+   Its stored reference (`tests/data/reference_lnmu_pre6d.npz`) predates `fil_bias`,
+   so passing it IS the bitwise-default gate — no new reference capture needed.
+3. `tests/test_fil_bias.py` (new) **10/10** — default bitwise across four configs,
+   inert at `bias_model=0`, live at `bias_model=1` and in the production config
+   (dead-flag guard), deterministic/finite for all three windows, wired and acted on
+   by all five entry points.
+4. A/B at the full production config (`ml.params.PRODUCTION_CONFIG`),
+   `scripts/convergence/fil_bias_ab.py`, 480k rays/arm at z_s = 0.5/1/5 plus a 2M
+   rays/arm deep run at z_s = 1:
+   - **JSD at the sampling floor everywhere**, and the cross-JSD tracks 1/N
+     (6.22e-5 → 1.53e-5 for a ×4.17 in rays), which is the signature of a null and
+     bounds any true offset at z_s=1 to J\* ≲ 1e-5 — ~500× under the emulator KL.
+   - clipped σ shifts −0.4 to −0.8%, negative at every z_s (the predicted direction,
+     `filbias < halobias`), but only ~2σ and it does NOT firm up with statistics.
+     Quote it as "of order −0.4% at ~2σ, unresolved"; do **not** quote −0.78%.
+   - edge Δq01 = +2–4e-4 (35–65× below the `bias_weak` arm's −1.4e-2) and flux
+     Δln⟨1/μ⟩ ~ 1e-6–2e-4 ⇒ **no new emulator edge/flux refit** beyond the weak arm's.
+
+⚠ A null was the *expected* outcome here (filaments are subdominant), so this bounds
+the effect rather than measuring it — same caveat as the model-5 gate. The case for
+`fil_bias=true` in production is physical correctness, not numerics: the draft states
+filaments collapse from the flatter (0, 0.7) barrier, and with the flag off they ride
+`halobias` and that sentence is false in the code.

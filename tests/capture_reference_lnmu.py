@@ -1,8 +1,22 @@
-"""Capture reference lnmu vectors from the pre-A_s-change module (fixed seeds).
+"""Capture reference lnmu vectors for the bitwise backward-compat test (fixed seeds).
 
-Run once BEFORE the 1+6d parameterization change; the output feeds the bitwise
-backward-compat test in test_cosmology_params.py. Re-run only if the physics of
-the sampler intentionally changes.
+The output feeds test_cosmology_params.py::test_backward_compat_bitwise. Re-run ONLY
+when the physics of the DEFAULT sampler path intentionally changes.
+
+Re-baseline history:
+  2026-07-08  original capture (pre-1+6d parameterization).
+  2026-07-28  re-captured after `cosmology::halobias` q 0.75 -> 0.8 (b is now the
+              peak-background split of pFC's own (0.3, 0.8) barrier). halobias is on
+              the DEFAULT path (`samp.bias = 1` is hardcoded), so this shifts every
+              ray. Old file kept as `reference_lnmu_pre_halobias.npz`.
+              Verified before re-baselining: a build with ONLY halobias reverted
+              reproduced the 2026-07-08 reference bit-for-bit at all three points, so
+              halobias was the sole cause — the same-day subhalo radial-profile fix and
+              the subhalo_virial code are both bitwise-clean on the default path.
+
+BEFORE re-capturing, always run that check: revert the suspected change alone and
+confirm the old reference still passes. Otherwise a re-baseline silently absorbs any
+OTHER unintended drift that happens to be in the tree.
 
 Usage (test env):  $PY tests/capture_reference_lnmu.py
 """

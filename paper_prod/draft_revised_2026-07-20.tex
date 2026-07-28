@@ -36,25 +36,25 @@
 \affiliation{Laboratory of High Energy and Computational Physics, KBFI, R{\"a}vala 10, Tallinn, 10143, Estonia}
 
 \begin{abstract}
-\B{Gravitational-wave standard sirens provide direct, calibration-free measurements of the luminosity distance, and the scatter that weak lensing by intervening structure induces around the mean Hubble diagram is itself a probe of cosmic structure, complementary to the mean distance-redshift relation~\cite{Vaskonen:2026ubd}. Predicting the resulting magnification probability distribution $dP/d\mu$ accurately, however, requires summing the lensing contribution of a large, stochastically realized population of halos, filaments, and their substructure, a computation too slow to repeat at every point of a cosmological parameter scan. We extend the stochastic lensing model of Ref.~\cite{Vaskonen:2026ubd} by adding the contribution of dark matter subhalos and by replacing its independent (Poisson) halo and filament counts with a correlated treatment of large-scale clustering, and we train a conditional normalizing-flow emulator that reproduces the resulting $dP/d\mu$ as a function of the source redshift and the full six-dimensional set of cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,A_s,n_s,z_{\rm eq}\}$. The emulator matches the simulator to a median Kullback-Leibler divergence of $0.0073$, comparable to existing machine-learning emulators of the magnification distribution, while running orders of magnitude faster than the underlying Monte Carlo, making likelihood-based cosmological inference with the extended lens model computationally practical.}
+Gravitational-wave standard sirens provide direct, calibration-free measurements of the luminosity distance, and the scatter that weak lensing by intervening structure induces around the mean Hubble diagram is itself a probe of cosmic structure, complementary to the mean distance-redshift relation~\cite{Vaskonen:2026ubd}. Predicting the resulting magnification probability distribution $dP/d\mu$ accurately, however, requires summing the lensing contribution of a large, stochastically realized population of halos, filaments, and their substructure, a computation too slow to repeat at every point of a cosmological parameter scan. We extend the stochastic lensing model of Ref.~\cite{Vaskonen:2026ubd} by adding the contribution of dark matter subhalos and by replacing its independent (Poisson) halo and filament counts with a correlated treatment of large-scale clustering, and we train a conditional normalizing-flow emulator that reproduces the resulting $dP/d\mu$ as a function of the source redshift and the full six-dimensional set of cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,\sigma_8,n_s,z_{\rm eq}\}$. The emulator matches the simulator \B{to a median Kullback-Leibler divergence of $0.0073$, comparable to existing machine-learning emulators of the magnification distribution, while running orders of magnitude faster than the underlying Monte Carlo, making likelihood-based cosmological inference with the extended lens model computationally practical.}
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
 
-\B{Gravitational waves (GWs) from compact binary mergers with an identified electromagnetic (EM) counterpart are standard sirens, whose luminosity distance is read directly off the waveform amplitude without a distance-ladder calibration. Ref.~\cite{Vaskonen:2026ubd} showed that the scatter weak gravitational lensing induces around the mean luminosity distance-redshift relation is itself sensitive to the amplitude of matter fluctuations, $\sigma_8$, complementing the standard-siren measurement of the Hubble constant $H_0$ and the matter abundance $\Omega_M$. A population of $\mathcal{O}(100)$ bright sirens from third-generation detectors could reach a competitive measurement of $\sigma_8$ this way.}
+Gravitational waves (GWs) from compact binary mergers with an identified electromagnetic (EM) counterpart are standard sirens, whose luminosity distance is read directly off the waveform amplitude without a distance-ladder calibration. Ref.~\cite{Vaskonen:2026ubd} showed that the scatter weak gravitational lensing induces around the mean luminosity distance-redshift relation is itself sensitive to the amplitude of matter fluctuations, $\sigma_8$, complementing the standard-siren measurement of the Hubble constant $H_0$ and the matter abundance $\Omega_M$. A population of $\mathcal{O}(100)$ bright sirens from third-generation detectors could reach a competitive measurement of $\sigma_8$ this way.
 
-\B{Exploiting this scatter for cosmological inference requires an accurate model of the magnification probability distribution $dP/d\mu$. One route is ray tracing through the density field of cosmological $N$-body simulations~\cite{Holz:1997ic,Holz:2004xx,Takahashi:2011qd,Takahashi:2017hjr}. Such simulations, however, lack the mass resolution to populate the high-magnification tail of $dP/d\mu$, which is generated by rare, compact structures close to the line of sight~\cite{DES:2025omh}. The stochastic approach of Refs.~\cite{Kainulainen:2009dw,Kainulainen:2010at,Kainulainen:2011zx}, implemented for bright sirens in Ref.~\cite{Vaskonen:2026ubd}, instead builds $dP/d\mu$ by directly summing the contributions of a Monte Carlo-realized population of discrete lenses, resolving magnifications that $N$-body ray tracing misses at a fraction of the computational cost. Even so, evaluating $dP/d\mu$ at the many points of a cosmological parameter space required for Markov chain Monte Carlo inference remains expensive, since each evaluation requires a fresh Monte Carlo realization of the lens population. This has motivated machine-learning emulators of the magnification distribution, such as ACE-Lensing~\cite{Turker:2025rdt}, which learn a fast, differentiable surrogate for $dP/d\mu$ directly from simulated samples.}
+Exploiting this scatter for cosmological inference requires an accurate model of the magnification probability distribution $dP/d\mu$. One route is ray tracing through the density field of cosmological $N$-body simulations~\cite{Holz:1997ic,Holz:2004xx,Takahashi:2011qd,Takahashi:2017hjr}. To accelerate inference with such simulations, machine-learning emulators such as ACE-Lensing~\cite{Turker:2025rdt} have been trained directly on $N$-body ray-tracing catalogs. However, $N$-body simulations are limited by particle mass resolution, imposing a high halo mass cutoff (per particle mass resolution $\approx 10^{9}\,\Msun$) and smoothing out small-scale substructure. As a result, they fail to populate the high-magnification tail of $dP/d\mu$, which is generated by rare, compact structures close to the line of sight~\cite{DES:2025omh}. The stochastic approach of Refs.~\cite{Kainulainen:2009dw,Kainulainen:2010at,Kainulainen:2011zx}, implemented for bright sirens in Ref.~\cite{Vaskonen:2026ubd}, instead builds $dP/d\mu$ by directly summing the contributions of a Monte Carlo-realized population of discrete lenses down to $10^7\,\Msun$, resolving magnifications that $N$-body ray tracing misses at a fraction of the computational cost. Even so, evaluating $dP/d\mu$ at the many points of a cosmological parameter space required for Markov chain Monte Carlo inference remains expensive, since each evaluation requires a fresh Monte Carlo realization of the lens population. This motivates building a fast, differentiable neural emulator directly for the stochastic lens model.
 
-\B{In this work we extend the stochastic lensing model of Ref.~\cite{Vaskonen:2026ubd} in two ways. First, we add the previously unmodeled contribution of dark matter subhalos, sampling the substructure of every lensing halo down to a fixed mass floor and subtracting the corresponding mass from the smooth halo profile so that the total halo mass is conserved in every realization. Second, we replace the independent Poisson realization of halo and filament counts with a physically motivated treatment of their large-scale clustering, correlating the lens population along the line of sight with a stochastic realization of the underlying density field, together with the sub-threshold background contribution. We then train a conditional normalizing-flow emulator that reproduces the resulting $dP/d\mu$ as a function of the source redshift $z_s$ and the cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,A_s,n_s,z_{\rm eq}\}$, matching the fidelity of existing emulators while incorporating this extended physical model.}
+In this work we extend the stochastic lensing model of Ref.~\cite{Vaskonen:2026ubd} in two ways. First, we add the previously unmodeled contribution of dark matter subhalos, sampling the substructure of every lensing halo down to a fixed mass floor and subtracting the corresponding mass from the smooth halo profile so that the total halo mass is conserved in every realization. Second, we replace the independent Poisson realization of halo and filament counts with a physically motivated treatment of their large-scale clustering, correlating the lens population along the line of sight with a stochastic realization of the underlying density field, together with the sub-threshold background contribution. We then train a conditional normalizing-flow emulator that reproduces the resulting $dP/d\mu$ as a function of the source redshift $z_s$ and the cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,\sigma_8,n_s,z_{\rm eq}\}$, matching the accuracy of existing emulators while incorporating this extended physical model.
 
-\B{The remainder of this paper is organized as follows. In Sec.~\ref{sec:lensing} we describe the stochastic lensing model, including the clustering of field halos, the subhalo contribution, and the resulting magnification distribution. In Sec.~\ref{sec:ml} we describe the emulator and its training. In Sec.~\ref{sec:comparison} we compare our model and its emulator with earlier work. We conclude in Sec.~\ref{sec:conclusions}.}
+The remainder of this paper is organized as follows. In Sec.~\ref{sec:lensing} we describe the stochastic lensing model, including the clustering of field halos, the subhalo contribution, and the resulting magnification distribution. In Sec.~\ref{sec:ml} we describe the emulator and its training. In Sec.~\ref{sec:comparison} we compare our model and its emulator with earlier work. We conclude in Sec.~\ref{sec:conclusions}.
 
 \section{Weak lensing}
 \label{sec:lensing}
 
-\B{Weak gravitational lensing by structures near the line of sight magnifies the observed signal by a factor $\mu$.} Accordingly, the apparent luminosity distance is given by
+Weak gravitational lensing by structures near the line of sight magnifies the observed signal by a factor $\mu$. Accordingly, the apparent luminosity distance is given by
 \be
     D_L(z) = \frac{\tilde{D}_L(z)}{\sqrt{\mu}} \,,
 \ee
@@ -68,7 +68,7 @@ The lensing magnification is given by
 \be \label{eq:mueq}
 	\mu = \frac{1}{(1-\kappa)^2 - \gamma^2} \,\B{,}
 \ee
-where the convergence $\kappa$ and the shear $\gamma = \sqrt{\gamma_1^2+\gamma_2^2}$ are, in the weak-lensing approximation, obtained by summing the contributions of individual lenses, $\kappa = \sum_j \kappa_\epsilon(\vect\theta_j)$, $\gamma_1 = \sum_j \gamma_\epsilon(\vect\theta_j) \cos\phi_j$ and $\gamma_2 = \sum_j \gamma_\epsilon(\vect\theta_j) \sin\phi_j$. Here $\phi_j$ denotes the polar angle of the lens position in the lens plane, defined with respect to a coordinate system common to all lenses, and $\vect\theta_j$ encodes the lens redshift $z_j$, its projected distance $r_j$ from line-of-sight to the source, and parameters describing the lens properties and orientation. \B{The subscript $\epsilon$ indicates that $\kappa_\epsilon$ and $\gamma_\epsilon$ are the convergence and shear profiles of the pseudo-elliptically distorted lens models specified below, with $\epsilon$ the ellipticity of the projected profile.}
+where the convergence $\kappa$ and the shear $\gamma = \sqrt{\gamma_1^2+\gamma_2^2}$ are, in the weak-lensing approximation, obtained by summing the contributions of individual lenses: $\kappa = \sum_j \kappa_\epsilon(\vect\theta_j)$, $\gamma_1 = \sum_j \gamma_\epsilon(\vect\theta_j) \cos\phi_j$ and $\gamma_2 = \sum_j \gamma_\epsilon(\vect\theta_j) \sin\phi_j$. Here $\phi_j$ denotes the polar angle of the lens position in the lens plane, defined with respect to a coordinate system common to all lenses, and $\vect\theta_j$ encodes the lens redshift $z_j$, its projected distance $r_j$ from line-of-sight to the source, and parameters describing the lens properties and orientation.
 
 We include lensing contributions from field halos, subhalos, and filaments. The field halos and filaments are modeled as in~\cite{Vaskonen:2026ubd}. The new ingredient included in this study is the contribution of subhalos. Furthermore, we introduce an improved treatment of the clustering of field halos.
 
@@ -76,17 +76,17 @@ We include lensing contributions from field halos, subhalos, and filaments. The 
 
 Long-wavelength linear density perturbations modulate the spatial distribution of halos. The resulting change in the halo number density is governed by the halo bias $b(M,z)$, which increases with halo mass $M$ because massive halos originate from increasingly rare peaks of the primordial density field.
 
-We estimate the halo clustering using the one-dimensional density field $\delta_{\rm 1D}(z) \equiv \delta_{\rm 1D}(d_c(z))$, obtained by smoothing the three-dimensional density field \B{isotropically with a spherical window of comoving radius $R_s$} before projecting onto the line of sight. Its power spectrum is\footnote{This generalizes the pencil-beam construction of Ref.~\cite{1991ApJ...379..482K}, whose $P_{\rm 1D}(k_\parallel)=\int_{k_\parallel}^\infty \td k\,k\,P(k)/(2\pi)$ is recovered in the $R_s\to0$ limit.}
+We estimate the halo clustering using the one-dimensional density field $\delta_{\rm 1D}(z) \equiv \delta_{\rm 1D}(d_c(z))$, obtained by smoothing the three-dimensional density field isotropically with a window of radius $R_{\rm s}$ before projecting onto the line of sight. Its power spectrum is\footnote{This generalizes the pencil-beam construction of Ref.~\cite{1991ApJ...379..482K}, whose $P_{\rm 1D}(k_\parallel)=\int_{k_\parallel}^\infty \td k\,k\,P(k)/(2\pi)$ is recovered in the $R_{\rm s}\to0$ limit.}
 \be
-    P_{\rm 1D}(k_\parallel) = \frac{1}{2\pi} \int_{k_\parallel}^\infty \!\td k \, k \, P(k)\, \tilde{W}^2(R_s k) \,,
+    P_{\rm 1D}(k_\parallel) = \frac{1}{2\pi} \int_{k_\parallel}^\infty \!\td k \, k \, P(k) \tilde{W}^2(R_{\rm s} k) \,,
 \ee
-\B{where the integration variable is the modulus $k = |\vect{k}|$ and $\tilde{W}(x) = 3(\sin x - x\cos x)/x^3$ is the Fourier transform of the spherical top-hat.} The smoothing suppresses the contribution of scales smaller than $R_s$ both along and perpendicular to the line of sight. We use the real-space \B{spherical top-hat window function and fix $R_s = 20\,$Mpc}. We show later how changing $R_s$ impacts our results.
+The smoothing suppresses the contribution of scales smaller than $R_{\rm s}$ both along and perpendicular to the line of sight. We use the real-space top-hat window function and fix $R_s = 20\,$Mpc. We show later how changing $R_s$ impacts our results. 
 
-On a periodic path of length \B{$L = 1.05\, d_c(z_s)$}, the 1D density field is given by
+On a periodic path of length $L$, padded beyond the source distance $d_c(z_s)$ so that the periodicity does not spuriously correlate structure near the observer with that near the source, the 1D density field is given by
 \be
     \delta_{\rm 1D}(z) = \frac{1}{L} \sum_{n\geq 1} \tilde\delta_n e^{i k_n d_c(z)} + {\rm c.c.} \,, \quad k_n= \frac{2\pi n}{L} \,,
 \ee
-where $d_c(z)$ denotes the comoving distance and mode orthogonality gives $\langle\tilde\delta_n\tilde\delta_{n'}^*\rangle=LP_{\rm 1D}(k_n)\delta_{nn'}$. \B{The residual periodic correlation between the observer and source ends of the path is at the per-cent level.} The real and imaginary parts of $\tilde\delta_n$ are independent Gaussian random variables with equal variance
+where $d_c(z)$ denotes the comoving distance and mode orthogonality gives $\langle\tilde\delta_n\tilde\delta_{n'}^*\rangle=LP_{\rm 1D}(k_n)\delta_{nn'}$. The real and imaginary parts of $\tilde\delta_n$ are independent Gaussian random variables with equal variance
 \be
     \sigma_n^2 = \frac{L}{2} P_{\rm 1D}(k_n) \,.
 \ee
@@ -103,40 +103,37 @@ The second term in the exponent in $\lambda(M,z)$ with
 \be
     \sigma_{\rm 1D}^2 = \frac{1}{\pi} \int_0^\infty \td k_\parallel P_{\rm 1D}(k_\parallel) = \frac{4}{L^2} \sum_{n\geq 1} \sigma_n^2
 \ee
-ensures that the ensemble average is normalized to unity, $\langle \lambda(M,z)\rangle_{\rm ens} = 1$. \B{For the spherical top-hat window, $\sigma_{\rm 1D}^2 = \sigma^2(R_s)$ is the variance of the matter field smoothed on the scale $R_s$.} The power spectrum $P_{\rm 1D}(k_\parallel)$ is computed from the present-day linear matter power spectrum $P(k)$, and the redshift dependence of the clustering is carried entirely by $\tilde b(M,z) = D(z) b(M,z)$, which combines the halo bias $b(M,z)$ with the linear growth factor $D(z)$ of density perturbations. \B{For the halo bias we use the peak-background-split bias of the ellipsoidal collapse barrier~\cite{Sheth:1999mn},
-\be
+ensures that the ensemble average is normalized to unity, $\langle \lambda(M,z)\rangle_{\rm ens} = 1$. The power spectrum $P_{\rm 1D}(k_\parallel)$ is computed from the present-day linear matter power spectrum $P(k)$, and the redshift dependence of the clustering is carried entirely by $\tilde b(M,z) = D(z) b(M,z)$, which combines the halo bias $b(M,z)$ with the linear growth factor $D(z)$ of density perturbations.
+For the bias of field halos and filaments, we use the peak-background-split expression derived from the collapse barrier~\cite{Sheth:1999mn},
+\be \label{eq:bias}
     b(M,z) = 1 + \frac{q\nu^2 - 1}{\delta_c} + \frac{2p}{\delta_c\left[1+(q\nu^2)^p\right]} \,,
 \ee
-with $(p,q) = (0.3,\,0.75)$ and $\nu = \delta_c(z)/\sigma(M)$.}
+where $\nu = \delta_c(z)/\sigma(M)$. \B{In each case we evaluate Eq.~\eqref{eq:bias} with the same barrier parameters that set the corresponding abundance, so that the bias is the peak-background split of the barrier the population is defined by:} $(p,q) = (0.3,\,0.8)$ \B{for field halos, matching the first-crossing distribution of Eq.~\eqref{eq:hmf}, and} $(p,q) = (0,\,0.7)$ \B{for filaments, matching their flatter barrier~\cite{Yan:2011ux}}. This gives a $10\text{--}20\%$ lower bias for filaments relative to halos of the same mass, reflecting their weaker large-scale clustering.
 
-\B{The power spectrum of $\delta_{\rm 1D}$ and example realizations of the count modulation $\lambda$ are shown in Fig.~\ref{fig:clustering_field}. We have checked that replacing the top-hat with a Gaussian window of the variance-matched radius $R_G = 9.4\,$Mpc ($\sigma^2_G(R_G) = \sigma^2(R_s)$) leaves the magnification distribution unchanged, so the results depend on the smoothing variance but not on the window shape.}
-
-\B{The filament counts are modulated by the large-scale density field, but with their own peak-background-split bias $b_{\rm F}(M,z) = 1 + (0.7\nu^2-1)/\delta_c$ consistent with their flatter first-crossing barrier, rather than the halo bias $b(M,z)$. Since $b_{\rm F}$ is 10--20\% lower than $b(M,z)$ at $10^{12}$--$10^{15}\Msun$, filaments cluster more weakly than halos of the same mass.}
+The power spectrum of $\delta_{\rm 1D}$ and example realizations of the count modulation $\lambda$ are shown in Fig.~\ref{fig:clustering_field}.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{plots/fig_clustering_field.pdf}
-    \caption{\B{The top panel shows the power spectrum of the one-dimensional density field
-    $\delta_{\rm 1D}$ for the spherical top-hat window at the smoothing radius used
-    in this work, $R_s = 20\,{\rm Mpc}$, and, for comparison, the pencil-beam limit
-    $R_s\to0$~\cite{1991ApJ...379..482K} and the signal-weighted scale
-    $R_s = 8.44\,{\rm Mpc} = R_L(10^{14}\Msun)$. The dots mark the mode cutoff
-    $k_{\rm max} = 2\pi/R_s$ of the discrete realization. The bottom panel shows one realization of
-    the count modulation $\lambda(M,z)$ along a $z_s=3$ line of sight for host masses
-    $M = 10^{12}$, $10^{13}$, and $10^{14}\Msun$, with the per-shell $\pm1\sigma$
-    range of the mean-one lognormal for $M = 10^{14}\Msun$ (gray band).}}
+    \includegraphics[width=1.0\linewidth]{plots/fig_clustering_field.pdf}
+    \caption{
+    \textbf{Top:} power spectrum of the one-dimensional density field
+    $\delta_{\rm 1D}$ obtained with the spherical top-hat window, for the
+    pencil-beam limit $R_s\to0$~\cite{1991ApJ...379..482K}, the smoothing radius
+    used in this work $R_s = 20\,{\rm Mpc}$, and the signal-weighted scale
+    $R_s = 8.44\,{\rm Mpc} = R_L(10^{14}\Msun)$ for comparison. The dots mark the
+    mode cutoff $k_{\rm max} = 2\pi/R_s$ of the discrete realization. \textbf{Bottom:} different realizations of the count modulation $\lambda(M,z)$ for $M = 10^{13}\Msun$ along a $z_s=3$ line of sight (piecewise constant over the redshift shells of the simulation grid), with the per-shell $\pm1\sigma$ range of the mean-one lognormal (gray band).}
     \label{fig:clustering_field}
 \end{figure}
 
 \subsubsection{Field halos and filaments}
 
-\B{The mean field-halo abundance is given by the halo mass function of the
-ellipsoidal-collapse first-crossing distribution~\cite{Sheth:1999su},
+The mean field-halo abundance is given by the halo mass function of the
+ellipsoidal-collapse first-crossing distribution~\B{\cite{Sheth:1999su}},
 \be \label{eq:hmf}
     \frac{\td\bar n}{\td\ln M} = \frac{\rho_m}{M}\,A\left[1+(q\nu^2)^{-p}\right]
     \sqrt{\frac{q\nu^2}{2\pi}}\,e^{-q\nu^2/2}\left|\frac{\td\ln\nu^2}{\td\ln M}\right|,
 \ee
-with $(p,q) = (0.3,\,0.8)$, $\nu = \delta_c(z)/\sigma(M)$, $\rho_m$ the mean comoving
+with \B{$(p,q) = (0.3,\,0.8)$}, $\nu = \delta_c(z)/\sigma(M)$, $\rho_m$ the mean comoving
 matter density, and $A = [1+2^{-p}\Gamma(\tfrac12-p)/\sqrt\pi]^{-1}$ fixing the
 normalization $\int f\,\td\nu = 1$. The number of halos in each mass and redshift
 cell is Poisson distributed with the mean of Eq.~\eqref{eq:dN} modulated by the
@@ -146,15 +143,15 @@ defined at 200 times the critical density), projected with an elliptical
 distortion whose axis ratio follows the $N$-body calibration of
 Ref.~\cite{Allgood:2005eu}, $s = 0.54\,(M/M_*(z))^{-0.05}$,
 $\epsilon = (1-s)/(1+s)$, where $M_*(z)$ is the characteristic collapse mass. The convergence and shear of each halo follow from
-the closed-form NFW lensing functions~\cite{Wright:1999tv}.}
+the closed-form NFW lensing functions~\cite{Wright:1999tv}.
 
-\B{Filaments are modeled as in Ref.~\cite{Vaskonen:2026ubd}. They are uniform-density
+Filaments are modeled as in Ref.~\cite{Vaskonen:2026ubd}. They are uniform density
 cylinders of radius $r_{\rm F} = 1\,{\rm Mpc}\,(M/10^{14}\Msun)^{1/3}$, length
 $L_{\rm F} = 20\,{\rm Mpc}\,(M/10^{14}\Msun)^{1/3}$ and mean density
 $14.4\rho_{\rm c}$, with random orientation. Their abundance is obtained from
-the first-crossing distribution with a lowered, scale-independent barrier
+the first-crossing distribution with a lowered, scale-independent barrier\B{
 ($p=0$, $q=0.7$), consistent with the filament mass function measured in
-$N$-body simulations~\cite{Yan:2011ux}.}
+$N$-body simulations~\cite{Yan:2011ux}}.
 
 The expected differential number of lenses is
 \be \label{eq:dN}
@@ -165,7 +162,7 @@ where $r$ denotes the proper projected distance of the lens from the line of sig
 
 \subsubsection{Sub-threshold contribution}
 
-\B{The} number of halos with $\kappa < \kappa_{\rm thr}$ is too large to be explicitly sampled, but their collective effect \B{can} be non-negligible. As in Ref.~\cite{Vaskonen:2026ubd}, we include them through a stochastic background convergence $\kappa_W$ added to every realization. In~\cite{Vaskonen:2026ubd}, $\kappa_W$ was drawn from an unconditional Gaussian. Here we instead draw it \emph{conditionally} on the same realization of $\delta_{\rm 1D}$ that modulates the discrete lens counts, so that the resolved lenses and the sub-threshold background fluctuate coherently with the large-scale density perturbations. \B{Only the NFW field halos contribute to $\kappa_W$, while their respective subhalos and filaments are not included in the background term.}
+The number of halos with $\kappa < \kappa_{\rm thr}$ is too large to be explicitly sampled, but their collective effect can be non-negligible. As in Ref.~\cite{Vaskonen:2026ubd}, we include them through a stochastic background convergence $\kappa_W$ added to every realization. In~\cite{Vaskonen:2026ubd}, $\kappa_W$ was drawn from an unconditional Gaussian. Here we instead draw it \emph{conditionally} on the same realization of $\delta_{\rm 1D}$ that modulates the discrete lens counts, so that the resolved lenses and the sub-threshold background fluctuate coherently with the large-scale density perturbations. Only the NFW field halos contribute to $\kappa_W$,  while subhalos and filaments are not included in the background term.
 
 Conditional on a realization of $\delta_{\rm 1D}$, the halo counts form a Poisson process with the modulated density of Eq.~\eqref{eq:n}, and Campbell's theorem gives the conditional mean and variance of the summed sub-threshold convergence as
 \bea \label{eq:weakcond}
@@ -179,7 +176,6 @@ where the moments of the sub-threshold convergence per redshift and mass are
     w_n(M,z) = \int_{A_W} \td r \,
     \frac{\td \bar N}{\td z \, \td \ln M \, \td r}  \kappa_{\rm NFW}(r)^n \,.
 \ee
-\B{The radial integration in Eq.~\eqref{eq:wk} is truncated at the radius where $\kappa_{\rm NFW} = \kappa_{\rm min} \equiv 10^{-3}\kappa_{\rm thr}$, which acts as an effective outer truncation of the NFW profiles. Here $\kappa_{\rm min}$ is a parameter of the model rather than a numerical convergence knob.}
 
 The mean of $\kappa_W$ vanishes, $\langle {\rm E}\!\left[ \kappa_W | \delta_{\rm 1D} \right] \rangle_{\rm ens} = 0$, and the variance of $\kappa_W$ can be split into one-halo (shot-noise) and two-halo (correlation) contributions,
 \be \label{eq:sigmaW}
@@ -203,19 +199,19 @@ where we used $\langle \lambda \lambda' \rangle_{\rm ens} = \exp[ \tilde b \tild
 Figure~\ref{fig:kappa_convergence} shows the resulting partition of the convergence
 standard deviation at $z_s=1$ between the sub-threshold background $\sigma_W$ and the
 explicitly sampled lenses, together with their sum, as a function of $\kappa_{\rm
-thr}$. The total is flat to within $\sim\!2\%$ over the full range shown, confirming
+thr}$. \B{The total is flat to within $\sim\!2\%$ over the full range shown, confirming
 that the split of Eq.~\eqref{eq:sigmaW} is insensitive to the choice of resolution
 threshold, as it must be for $\kappa_{\rm thr}$ to be a purely computational device
-rather than a physical parameter.
+rather than a physical parameter.}
 
 \begin{figure}
     \centering
     \includegraphics[width=1.0\columnwidth]{plots/sigma_partition_vs_kthr_bias.pdf}
-    \caption{\B{Partition of the convergence fluctuations at $z_s=1$ between the
+    \caption{Partition of the convergence fluctuations at $z_s=1$ between the
     sub-threshold background (weak), the explicitly sampled lenses (strong), and
-    their sum, as a function of the threshold $\kappa_{\rm thr}$, measured on the
+    their sum, as a function of the threshold $\kappa_{\rm thr}$\B{, measured on the
     $\kappa \leq 1$ core of 8-seed ensembles. The plotted domain ends at the model
-    floor $\kappa_{\rm min}$.}}
+    floor $\kappa_{\rm min}$}.}
     \label{fig:kappa_convergence}
 \end{figure}
 
@@ -223,51 +219,45 @@ rather than a physical parameter.
 
 Each lensing halo of mass $M$ is split into a reduced smooth component and a population of discrete subhalos,
 \be \label{eq:reducedhost}
-    \kappa_{\rm halo} = \kappa_{\rm NFW}\!\big[\B{M - \textstyle\sum_i m_i}\big] + \sum_i \kappa_{\rm NFW}(m_i) \,,
+    \kappa_{\rm halo} = \kappa_{\rm NFW}\!\big[M - \textstyle\sum_i m_i\big] + \sum_i \kappa_{\rm NFW}(m_i) \,,
 \ee
-\B{where every subhalo down to an absolute mass floor $m_{\rm floor} = 10^7\Msun$ (equivalently $\psi \geq \psi_{\rm min} = m_{\rm floor}/M$) is sampled individually, and the smooth component is reduced by the realized substructure mass $\sum_i m_i$ of that realization. The subhalo mass function is normalized through the fixed bound fraction $f_{\rm s}$ of Eq.~\eqref{eq:fsnorm}, and only the realized $\sum_i m_i$ fluctuates from halo to halo. Reducing the host by the realized mass rather than by the ensemble-averaged bound mass conserves the total halo mass, $\big(M - \sum_i m_i\big) + \sum_i m_i = M$, in every realization rather than only in the mean, consistent with a halo mass function that counts the total, substructure-inclusive mass. Sampling all subhalos above $m_{\rm floor}$ explicitly reproduces the full substructure convergence field, including the anti-correlation between the smooth host and its subhalos, with no unresolved remainder to model. The contribution of the smooth host and of the subhalos to the convergence and its scatter is illustrated in Figs.~\ref{fig:subhalo-factor-mean} and~\ref{fig:subhalo-factor-scatter}.}
+where every subhalo down to an absolute mass floor $m_{\rm floor} = 10^7\Msun$ (equivalently $\psi \geq \psi_{\rm min} = m_{\rm floor}/M$) is sampled individually, and the smooth component is reduced by the realized substructure mass $\sum_i m_i$ of that realization. The subhalo mass function is normalized through the fixed bound fraction $f_{\rm s}$ of Eq.~\eqref{eq:fsnorm}, and only the realized $\sum_i m_i$ fluctuates from halo to halo. Reducing the host by the realized mass rather than by the ensemble-averaged bound mass conserves the total halo mass, $\big(M - \sum_i m_i\big) + \sum_i m_i = M$, in every realization rather than only in the mean, consistent with a halo mass function that counts the total, substructure-inclusive mass. Sampling all subhalos above $m_{\rm floor}$ explicitly reproduces the full substructure convergence field, including the anti-correlation between the smooth host and its subhalos, with no unresolved remainder to model. The contribution of the smooth host and of the subhalos to the convergence and its scatter is illustrated in Figs.~\ref{fig:subhalo-factor-mean} and~\ref{fig:subhalo-factor-scatter}.
 
 The subhalo masses $m$ are drawn from the evolved subhalo mass function that we evaluate following Ref.~\cite{Jiang:2014nsa}:
 \be \label{eq:shmf}
-    \frac{\td N}{\td \ln\psi} = \tilde\gamma\, \psi^{\alpha} e^{-\beta \psi^{\omega}} \,, \qquad \psi \equiv \frac{m}{M} \,,
+    \frac{\td N_{\rm sub}}{\td \ln\psi} = \tilde\gamma\, \psi^{\alpha} e^{-\beta \psi^{\omega}} \,, \qquad \psi \equiv \frac{m}{M} \,,
 \ee
 with $(\alpha,\beta,\omega) = (-0.82,\,50,\,4)$\B{, in the range $\psi \leq 1$}. The normalization $\tilde\gamma$ is fixed by the bound substructure mass fraction,
 \be \label{eq:fsnorm}
     f_{\rm s} = \frac{\tilde\gamma}{\omega}\, \beta^{-s} \left[ \Gamma\!\left(s,\beta\psi_{\rm res}^{\omega}\right) - \Gamma\!\left(s,\beta\right) \right] , \quad s = \frac{1+\alpha}{\omega} \,,
 \ee
-where $\psi_{\rm res}=10^{-4}$ \B{is the resolution of the simulations on which the mass fraction fit was calibrated} and $\Gamma(s,x)$ is the upper incomplete gamma function. The mass fraction depends on the dynamical age of the subhalo \B{population}, $f_{\rm s} = 0.3563\, N_\tau^{-0.6} - 0.075$, where $N_\tau$ counts the number of dynamical timescales elapsed since the halo formation redshift $z_f$,
+where $\psi_{\rm res}=10^{-4}$ \B{is the resolution of the simulations on which the mass fraction fit was calibrated} and $\Gamma(s,x)$ is the upper incomplete gamma function. The mass fraction depends on the dynamical age of the subhalo population, $f_{\rm s} = 0.3563\, N_\tau^{-0.6} - 0.075$, where $N_\tau$ counts the number of dynamical timescales elapsed since the halo formation redshift $z_f$,
 \be
-    N_\tau = \int_{z}^{z_f} \frac{\td z'}{1+z'}\, 6.006 \sqrt{\frac{\Delta_{\rm vir}(z')}{178}} \,,
+    N_\tau = \int_{z}^{z_f} \frac{\td z'}{1+z'}\, 6 \sqrt{\frac{\Delta_{\rm vir}(z')}{178}} \,,
 \ee
-\B{where $\Delta_{\rm vir}(z) = 18\pi^2 + 82\,d - 39\,d^2$, $d \equiv \Omega_M(z)-1$, is the virial overdensity relative to the critical density~\cite{Bryan:1997dn}, and the numerical coefficient follows from the dynamical time $\tau_{\rm dyn} \simeq 1.628\,h^{-1}{\rm Gyr}\,(\Delta_{\rm vir}/178)^{-1/2} (H/H_0)^{-1}$~\cite{Jiang:2014nsa}.} The formation redshift is obtained from the excursion-set relation $\delta_c(z_f) = \delta_c(z) + \tilde w_f \sqrt{\sigma^2(M/2) - \sigma^2(M)}$ with the median weight $\tilde w_f = \sqrt{2\ln(1+\alpha_f)}$, $\alpha_f = 0.815\, e^{-1/4}\, 2^{0.707}$ \B{\cite{Giocoli:2006yz}}.
+where $\Delta_{\rm vir}(z) = 18\pi^2 + 82\,d - 39\,d^2$, $d \equiv \Omega_M(z)-1$, is the virial overdensity relative to the critical density~\cite{Bryan:1997dn}, and the numerical coefficient follows from the dynamical time $\tau_{\rm dyn} \simeq 1.628\,h^{-1}{\rm Gyr}\,(\Delta_{\rm vir}/178)^{-1/2} (H/H_0)^{-1}$~\cite{Jiang:2014nsa}. The formation redshift is obtained from the excursion-set relation $\delta_c(z_f) = \delta_c(z) + \tilde w_f \sqrt{\sigma^2(M/2) - \sigma^2(M)}$ with the median weight $\tilde w_f = \sqrt{2\ln(1+\alpha_f)}$, $\alpha_f = 0.815\, e^{-1/4}\, 2^{0.707}$ \B{\cite{Giocoli:2006yz}}. The subhalo mass function is shown in the upper panel of Fig.~\ref{fig:shmf}.
 
-The subhalos are distributed within their host following the radial profile motivated by \B{$N$-body results~\cite{Green:2021,Klypin:2010qw}. Subhalos selected by bound mass trace the host density profile in the outskirts but are strongly depleted in the central region by tidal stripping. We use the transition fit $B(x) = [1+(x/0.86)^{-5/2}]^{-1/2}$ to the Bolshoi radial-bias measurement~\cite{Klypin:2010qw} (as tabulated in Fig.~7 of Ref.~\cite{Green:2021}),}
+The subhalos are distributed within their host following the radial profile motivated by $N$-body results~\cite{Green:2021vtc, Klypin:2010qw}. Subhalos selected by bound mass trace the host density profile in the outskirts but are strongly depleted in the central region by tidal stripping. \B{Following Ref.~\cite{Green:2021vtc} we quantify this through the radial \emph{bias function} $B(x)$, the ratio of the subhalo number density to the host density profile, normalized to unity in the outskirts, and adopt} the transition fit $B(x) = [1+(x/\B{x_0})^{-5/2}]^{-1/2}$ to the Bolshoi radial-bias measurement~\cite{Klypin:2010qw} (as tabulated in Fig.~7 of Ref.~\cite{Green:2021vtc})\B{. The number of subhalos per unit host-centric radius is then $\td N_{\rm sub}/\td x \propto x^2 \rho_{\rm NFW}(x) B(x)$, i.e.}
 \be \label{eq:radial}
-    \frac{\td N}{\td x} \propto \frac{x^2}{(1+c_{200} x)^2} \left[ 1 + \left(\frac{x}{\eta\, x_0}\right)^{-\frac52} \right]^{-\frac12} \!, \,\, x = \frac{r}{r_{200}}, \,\, x_0 = 0.86
+    \frac{\td N_{\rm sub}}{\td x} \propto \frac{\B{x}}{(1+c_{200} x)^2} \left[ 1 + \left(\frac{x}{\B{x_0}}\right)^{-\frac52} \right]^{-\frac12} \!, \,\, x = \frac{r}{r_{200}} ,
 \ee
-where $c_{200}$ is the host halo concentration \B{from Ref.~\cite{Dutton:2014xda}} and $r_{200}$ is related to the NFW scale radius $r_s$ of the host halo as $r_{200} = c_{200} r_s$. \B{The fit of Ref.~\cite{Green:2021} is calibrated in units of the virial radius, so we rescale its transition scale to $r_{200}$ units per host through $x_0 \to \eta\, x_0$, with $\eta \equiv r_{\rm vir}/r_{200} = c_{\rm vir}/c_{200}$. Here $c_{\rm vir}$ follows from $c_{200}$ and the Bryan--Norman~\cite{Bryan:1997dn} virial overdensity $\Delta_{\rm vir}(z)$ by matching the enclosed NFW mass, giving $\eta \simeq 1.17$--$1.33$ over $z_l = 0.5$--$0$.} The depletion of the subhalo population in the central region reflects their \B{tidal stripping and disruption}. Each subhalo is projected onto the lens plane, and its convergence and shear are evaluated using a circular NFW profile \B{with the same concentration-mass relation evaluated at the subhalo mass. The subhalo mass function and radial distribution are illustrated in Fig.~\ref{fig:subhalo_population}.}
+where $c_{200}$ is the host halo concentration and $r_{200} = c_{200} r_s$, with $r_s$ the NFW scale radius of the host. \B{The first factor is the radial distribution of an NFW host, $4\pi r^2 \rho_{\rm NFW}$, which the subhalos would follow if they were unbiased; the second factor $B(x)$ carries the central depletion by tidal stripping and disruption.} The fit of Ref.~\cite{Green:2021vtc} is calibrated in units of the virial radius, so we rescale its transition scale to $r_{200}$ units per host through $x_0 \to \eta\, x_0$, with $\eta \equiv r_{\rm vir}/r_{200} = c_{\rm vir}/c_{200}$. Here $c_{\rm vir}$ follows from $c_{200}$ and the Bryan--Norman~\cite{Bryan:1997dn} virial overdensity $\Delta_{\rm vir}(z)$ by matching the enclosed NFW mass. Each subhalo is projected onto the lens plane, and its convergence and shear are evaluated using a circular NFW profile with the same concentration-mass relation evaluated at the subhalo mass.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{plots/fig_subhalo_population.pdf}
-    \caption{\B{The top panel shows the evolved subhalo mass function, Eq.~\eqref{eq:shmf}, in
+    \includegraphics[width=1.0\linewidth]{plots/fig_subhalo_population.pdf}
+    \caption{
+    \textbf{Top:} the evolved subhalo mass function, Eq.~\eqref{eq:shmf}, in
     bound mass $\psi = m/M$ for a host of mass $M = 10^{13}\Msun$ at $z=0.5$,
     normalized by the bound fraction $f_{\rm s}(N_\tau) = 0.14$ of
-    Eq.~\eqref{eq:fsnorm}. The main curve (solid) is labeled `JvdB14'. For
+    Eq.~\eqref{eq:fsnorm}. The main curve JvdB14 is adapted from Ref.~\cite{Jiang:2014nsa}. For
     comparison we overlay the concentration-conditioned mass function of
-    \textsc{Diffhalos}~\cite{Zacharegkas:2026zzy} (dashed, peak masses converted to
-    bound by an emergent stripping factor $s_{\rm eff}\simeq0.11$) and the
-    \textsc{pyHalo} result~\cite{Gilman:2021sdr} (squares). The bottom panel shows the radial bias
-    function plotted as $\tilde{\rho}_{\rm host}^{-1}\;\mathrm{d}\tilde{N}_{\rm sub}/\mathrm{d}x^{3}$
-    versus $x = r/r_{200}$, where tildes denote quantities normalized to unity
-    at $x=1$. The adopted transition fit
-    $B(x) = [1+(x/0.86)^{-5/2}]^{-1/2}$ (solid) is shown with the Bolshoi
-    measurements (Klypin+11, squares). For context we also plot the analytic
-    Springel+08 Aquarius A-1 Einasto curve~\cite{Springel:2008cc} and the
-    Han+16 $x^{1.3}$ power law~\cite{Han:2015pua}
-    (both analytic). All curves except the Bolshoi points are analytic, and the
-    central depletion in every case reflects tidal stripping and disruption.}}
-    \label{fig:subhalo_population}
+    \textsc{Diffhalos}~\cite{Zacharegkas:2026zzy}\footnote{git: https://github.com/ArgonneCPAC/diffhalos} (dashed, peak masses converted to
+    bound by an emergent stripping factor) and the
+    \textsc{pyHalo}~\cite{Gilman:2021sdr}\footnote{git: https://github.com/dangilman/pyHalo} result (squares).
+    \textbf{Bottom:} the radial bias
+    function plotted versus $x = r/r_{200}$, where tildes denote quantities normalized to unity at $x=1$. The adopted transition fit $B(x) = [1+(x/0.86)^{-5/2}]^{-1/2}$ (solid) is shown with the Bolshoi measurements Ref.~\cite{Klypin:2010qw} (squares). For context we also plot the analytic curves from Ref.~\cite{Springel:2008cc} and Ref.~\cite{Han:2015pua}.}
+    \label{fig:shmf}
 \end{figure}
 
 \begin{figure}
@@ -297,6 +287,13 @@ where $c_{200}$ is the host halo concentration \B{from Ref.~\cite{Dutton:2014xda
     \label{fig:subhalo-factor-scatter}
 \end{figure}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{plots/fig_subhalo_sigma_ratio_vs_subkappathr.pdf}
+    \caption{Substructure boost (effect) to $\sigma_k$ at $z_s=1$ versus per-subhalo convergence threshold, decomposed. The red line indicates the threshold used in the code.}
+    \label{fig:subhalo-kappa}
+\end{figure}
+
 \B{The subhalo mass function is normalized through Eq.~\eqref{eq:fsnorm} at the
 calibration resolution $\psi_{\rm res} = 10^{-4}$, but the discrete population is sampled
 down to the absolute floor $\psi_{\rm min} = m_{\rm floor}/M$, which for cluster-scale
@@ -315,63 +312,176 @@ above $\sim\!10^9\Msun$.}
 \subsection{Magnification PDF}
 \label{sec:pdf}
 
-\B{Repeating the Monte Carlo realization described above (drawing the discrete lens population and, when included, the correlated density field and subhalo substructure) for many independent lines of sight builds up the magnification probability distribution $dP/d\ln\mu$ at fixed source redshift $z_s$ and cosmology $\vect\Theta$. Because $\kappa$ and $\gamma$ receive contributions both from the large number of faint, distant lenses in the sub-threshold background and from the occasional foreground structure that dominates a given line of sight, the resulting distribution is non-Gaussian. It has a sharp low-magnification edge, set by the small but nonzero probability of an underdense (``empty-beam'') sightline, and a heavy high-magnification tail generated by rare close encounters with a single massive lens. For a single dominant lens, Eq.~\eqref{eq:mueq} diverges at the Einstein radius as $\mu\propto\theta^{-1}$, which translates the generic source-plane fold-caustic scaling $dP_S/d\mu\propto\mu^{-3}$~[CITE-caustic-scaling] into $dP/d\mu\propto\mu^{-2}$ for the image-plane distribution sampled here, in agreement with what we find numerically at high $\mu$. We further verify flux conservation, $\langle\mu^{-1}\rangle=1$, which holds exactly in the underlying continuum theory and to good approximation for the finite, mass- and radius-truncated lens population simulated here. The resulting distributions are shown in Fig.~\ref{fig:magpdf_zs} for a range of source redshifts, and Fig.~\ref{fig:magpdf_ingredients} isolates the effect of the two ingredients introduced in this work, the subhalo population and the correlated clustering of field halos, at $z_s = 5$.}
+\B{The ingredients described above combine into a single Monte Carlo realization. For each line of sight we draw the one-dimensional density field, the discrete field halos and filaments whose abundance it modulates, the conditional sub-threshold convergence, and the subhalo population of every explicitly generated halo, and we sum their convergences and shears. The magnification follows from Eq.~\eqref{eq:mueq}, and repeating over many independent lines of sight yields the magnification distribution $\td P/\td\ln\mu$ at fixed source redshift $z_s$ and cosmology $\vect\Theta$, shown in Fig.~\ref{fig:magpdf_zs}.\footnote{From each realization we subtract the mean convergence of the explicitly generated lens population, so that $\kappa = 0$ corresponds to the mean density of the universe. The mean is estimated excluding the rare rays with $\kappa>1$ that cross halo cores, whose contribution to a finite-sample average is not converged. Throughout, $\td P/\td\mu$ denotes the distribution for a random direction on the observer's sky, that is, the image-plane distribution; the source-plane distribution, appropriate when sources rather than solid angle are sampled uniformly, follows from $\td P_S/\td\mu \propto \mu^{-1}\,\td P/\td\mu$.}
+
+Because the convergence receives contributions both from a large number of faint lenses and from the occasional massive structure that happens to lie close to the line of sight, the distribution is strongly non-Gaussian, and its two limiting regimes are governed by different physics.
+
+At low magnification the distribution terminates near the emptiest beam the lens population allows, $\mu_{\rm min} = (1-\kappa_{\rm min})^{-2}$, the ``empty-beam'' limit of an underdense sightline~\cite{Dyer:1972,Weinberg:1976}. The edge realized by the simulation is not the empty-beam value, however: with $\bar N_l = 100$ explicitly generated lenses per line of sight a genuinely empty beam has probability $e^{-\bar N_l}$, so the observed cutoff is a soft convolution edge lying above the hard floor, and its position tracks the abundance of the lens population and hence $\sigma_8$. We quantify this offset in Appendix~\ref{app:edge_tail}. It is the reason the emulator of Sec.~\ref{sec:ml} localizes the edge from the simulated distributions themselves rather than imposing the analytic empty-beam value.
+
+At high magnification single lenses dominate. Near a fold caustic the source-plane density scales as $\td P_S/\td\mu \propto \mu^{-3}$~\cite{Blandford:1986,Schneider:1992}, which for a random direction on the sky corresponds to $\td P/\td\mu \propto \mu^{-2}$ in the image plane~\cite{Vietri:1983,Zakharov:1995}. Our realizations reproduce this exponent, and distinguish it decisively from the source-plane value (Appendix~\ref{app:edge_tail}).
+
+The image-plane distribution further obeys the flux-conservation sum rule $\langle \mu^{-1}\rangle = 1$~\cite{Weinberg:1976,Seitz:1997}. The raw sample mean of $\mu^{-1}$ over a finite set of realizations is not a useful check of it, being dominated by a handful of core-crossing rays; the sum rule is instead imposed on the emulator through the flux contained within the support of the distribution, as described in Sec.~\ref{sec:ml}. Together, the low-magnification edge, the $\mu^{-2}$ tail and the flux sum rule are the three features that the emulator is built to respect exactly rather than to learn from data.}
 
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{plots/fig_magnification_pdf_zs.pdf}
-    \caption{\B{Magnification probability distribution $\mathrm{d}P/\mathrm{d}\mu$
-    for source redshifts $z_s = 0.5$, $1$, $2$, $5$, and $10$ at the fiducial
-    Planck cosmology, computed with the full lens model of this section. The
+    \caption{\B{Image-plane magnification probability distribution
+    $\td P/\td\mu$ for source redshifts $z_s = 0.5$, $1$, $2$, $5$
+    and $10$ at the fiducial Planck cosmology, computed with the full lens model
+    of this section from $N_{\rm real}$ realizations at each $z_s$. The
     distribution sharpens toward the empty-beam edge at low $\mu$ and develops a
     heavier $\mu^{-2}$ tail as $z_s$ increases.}}
+    % TODO: replace $N_{\rm real}$ with the realization count actually used
+    % (plot_fig_magnification_pdf.py --nreal / --combine; Vaskonen 2026 used 4e5).
     \label{fig:magpdf_zs}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{plots/fig_magnification_pdf_ingredients.pdf}
-    \caption{\B{Effect of the two ingredients introduced in this work on the
-    magnification distribution at $z_s = 5$. The baseline curve reproduces the
-    model of Ref.~\cite{Vaskonen:2026ubd}, to which we successively add the
-    subhalo population and the correlated clustering of field halos. The subhalos
-    raise the high-magnification tail, while the correlated clustering broadens the
-    body of the distribution.}}
-    \label{fig:magpdf_ingredients}
 \end{figure}
 
 \section{Machine learning}
 \label{sec:ml}
 
-\B{The model of Sec.~\ref{sec:lensing} predicts $dP/d\mu$ as a function of the source redshift $z_s$ and the cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,A_s,n_s,z_{\rm eq}\}$ (the flat-$\Lambda$CDM primordial amplitude and tilt, and the redshift of matter-radiation equality, which extends the parameterization beyond fixed-radiation $\Lambda$CDM), but a single Monte Carlo evaluation is too slow to repeat at every point of a parameter scan or MCMC chain. We therefore train a neural emulator, illustrated schematically below, that maps $(z_s,\vect\Theta)$ directly onto $dP/d\ln\mu$.}
+The model of Sec.~\ref{sec:lensing} predicts $dP/d\mu$ as a function of the source redshift $z_s$ and the cosmological parameters $\vect\Theta = \{h,\Omega_M,\Omega_B,\sigma_8,n_s,z_{\rm eq}\}$ (the flat-$\Lambda$CDM primordial amplitude and tilt, and the redshift of matter-radiation equality, which extends the parameterization beyond fixed-radiation $\Lambda$CDM), but a single Monte Carlo evaluation is too slow to repeat at every point of a parameter scan or MCMC chain. We therefore train a neural emulator, \B{illustrated in Fig.~\ref{fig:emulator_arch},} that maps $(z_s,\vect\Theta)$ directly onto $dP/d\ln\mu$.
 
-\begin{center}
-\begin{tikzpicture}[node distance=2.0cm]
-\node[draw, rounded corners, align=center, minimum width=5.0cm] (input)
-{Source redshift $z_s$ and \\[1mm]
-cosmological parameters \\[1mm]
-$\vect{\Theta} = \{h,z_{\rm eq},\Omega_M,\Omega_B,A_s,n_s\}$.};
-\node[draw, rounded corners, align=center, minimum width=5.0cm, below of=input] (output)
-{Magnification PDF \\[1mm]
-$\mathrm{d}P/\mathrm{d}\mu$.};
-\draw[->, thick] (input) -- (output);
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{plots/fig_flow_transformation.pdf}
+    \caption{\B{Generative path of the conditional normalizing flow at
+    $z_s = 5$ and the fiducial cosmology. The standardized Gaussian base
+    density ($k=0$) is carried onto the magnification distribution
+    $\td P/\td\mu$ by the $K=6$ stacked rational-quadratic spline transforms;
+    each curve is the density of $2\times10^{6}$ samples after the $k$-th
+    transform. The dashed curve is the flow density evaluated in closed form,
+    which the final transform reproduces. The $\mu^{-2}$ tail, the empty-beam
+    edge and the flux calibration are applied on top of this density and are
+    not shown.}}
+    % TODO: regenerate from the retrained 1+6d emulator before submission --
+    % the current figure comes from the legacy 1+3d checkpoint
+    % (context = z_s, h, Omega_M, sigma_8), while Fig.~\ref{fig:emulator_arch}
+    % above advertises 7 context features. Script:
+    % paper_prod/scripts/plot_fig_flow_transformation.py --model <new.pt>
+    % Also update "2\times10^{6}" if --nsamples is changed.
+    \label{fig:flow_transformation}
+\end{figure}
+
+The emulator is a conditional normalizing flow that models the smooth body of the distribution, combined with a power-law tail calibrated to the $\mu^{-2}$ asymptote of Sec.~\ref{sec:pdf}, a fitted low-magnification edge, and a flux-conservation calibration that enforces $\langle\mu^{-1}\rangle=1$ on the emulated distribution. Each component is trained on Monte Carlo realizations of the extended lens model, sampled over a wide prior on $\vect\Theta$ and $z_s$. The resulting emulator reproduces held-out simulations with a median Kullback-Leibler divergence of $0.0073$, comparable to the value $0.007$ reported for ACE-Lensing~\cite{Turker:2025rdt}.
+
+\subsection{\B{Neural Spline Flow Architecture}}
+
+\B{To capture the non-Gaussian shape of $dP/d\ln\mu$ with high fidelity across parameter space, we employ a Conditional Neural Spline Flow (NSF)~\cite{Durkan:2019}. The flow models the target variable $x = \ln\mu$ conditioned on the context vector $\vect{c} = (z_s, \vect\Theta)$ through a sequence of $K = 6$ stacked monotonic rational-quadratic spline transformations. Each transformation divides the domain into $B = 8$ bins with linear extrapolation outside the standardized $[-3, 3]$ region. The bin widths, heights, and derivatives of the splines are generated by residual MLPs comprising 2 hidden layers with 128 hidden features per layer.
+
+Both the target variable $x = \ln\mu$ and context features $\vect{c}$ are standardized to zero mean and unit variance using pre-computed training set statistics, with exact log-Jacobian determinant corrections $-\ln\sigma_{\ln\mu}$ applied during probability density evaluations to maintain exact normalization.}
+
+\begin{figure*}[h]
+\centering
+\begin{tikzpicture}[xscale=1.12, yscale=0.68,
+    node/.style={circle, draw=black!70, fill=white, inner sep=0pt, minimum size=5.5mm, font=\tiny},
+    hnode/.style={circle, draw=blue!60!black, fill=blue!10, inner sep=0pt, minimum size=5.5mm, font=\tiny},
+    flownode/.style={rectangle, rounded corners=3pt, draw=orange!80!black, fill=orange!10, inner sep=3pt, align=center, font=\scriptsize},
+    layerlabel/.style={font=\small\bfseries, align=center}
+]
+
+% Input Layer (Context)
+\node[layerlabel] at (0, 3.8) {Context Input\\[-1mm]\scriptsize (7 features)};
+\node[node] (in1) at (0, 2.5) {$z_s$};
+\node[node] (in2) at (0, 1.5) {$h$};
+\node[node] (in3) at (0, 0.5) {$\Omega_M$};
+\node[node] (in4) at (0, -0.5) {$\Omega_B$};
+\node[node] (in5) at (0, -1.5) {$\B{\sigma_8}$};
+\node[node] (in6) at (0, -2.5) {$n_s$};
+\node[node] (in7) at (0, -3.5) {$z_{\rm eq}$};
+
+% Hidden Layer 1 (128 units)
+\node[layerlabel] at (2.2, 3.8) {Hidden Layer 1\\[-1mm]\scriptsize (128 units)};
+\node[hnode] (h1_1) at (2.2, 2.5) {};
+\node[hnode] (h1_2) at (2.2, 1.5) {};
+\node[hnode] (h1_3) at (2.2, 0.5) {};
+\node[hnode] (h1_4) at (2.2, -0.5) {};
+\node[hnode] (h1_5) at (2.2, -1.5) {};
+\node[hnode] (h1_6) at (2.2, -2.5) {};
+
+% Dots for hidden units
+\node at (2.2, -0.0) {$\vdots$};
+
+% Hidden Layer 2 (128 units)
+\node[layerlabel] at (4.4, 3.8) {Hidden Layer 2\\[-1mm]\scriptsize (128 units)};
+\node[hnode] (h2_1) at (4.4, 2.5) {};
+\node[hnode] (h2_2) at (4.4, 1.5) {};
+\node[hnode] (h2_3) at (4.4, 0.5) {};
+\node[hnode] (h2_4) at (4.4, -0.5) {};
+\node[hnode] (h2_5) at (4.4, -1.5) {};
+\node[hnode] (h2_6) at (4.4, -2.5) {};
+
+% Dots for hidden units
+\node at (4.4, -0.0) {$\vdots$};
+
+% Flow Transforms
+\node[layerlabel] at (6.8, 3.8) {Normalizing Flow\\[-1mm]\scriptsize ($K=6$ Splines)};
+\node[flownode, minimum height=4.2cm, minimum width=1.5cm] (flow) at (6.8, -0.5) {RQ-Spline\\[1mm]Transform 1\\[1.5mm]$\vdots$\\[1.5mm]RQ-Spline\\[1mm]Transform 6};
+
+% Connections: Input -> Hidden 1
+\foreach \i in {1,...,7} {
+    \foreach \j in {1,2,3,4,5,6} {
+        \draw[->, >=stealth, black!20] (in\i) -- (h1_\j);
+    }
+}
+
+% Connections: Hidden 1 -> Hidden 2
+\foreach \i in {1,2,3,4,5,6} {
+    \foreach \j in {1,2,3,4,5,6} {
+        \draw[->, >=stealth, blue!25] (h1_\i) -- (h2_\j);
+    }
+}
+
+% Connections: Hidden 2 -> Flow
+\foreach \i in {1,2,3,4,5,6} {
+    \draw[->, >=stealth, blue!50!black] (h2_\i) -- (flow.west);
+}
+
+% Output Layer
+\node[layerlabel] at (9.3, 3.8) {Output PDF\\[-1mm]\scriptsize ($\mathrm{d}P/\mathrm{d}\mu$)};
+\node[rectangle, rounded corners=4pt, draw=blue!80!black, fill=blue!15, inner sep=5pt, align=center, font=\small\bfseries] (out) at (9.3, -0.5) {$\mathrm{d}P/\mathrm{d}\mu$\\[2mm]\tiny $+\,\mu^{-2}$ tail\\[-1mm]\tiny $+\,\langle\mu^{-1}\rangle=1$};
+
+\draw[->, >=stealth, thick, orange!80!black] (flow.east) -- (out);
+
 \end{tikzpicture}
-\end{center}
+\caption{\B{Schematic diagram of the Conditional Neural Spline Flow (NSF) emulator architecture. The 7-dimensional context vector $\vect{c} = (z_s, \vect\Theta)$ is processed through a conditioning hypernetwork comprising 2 hidden layers with 128 units each, which parameterizes $K=6$ stacked Rational-Quadratic Spline coupling transformations to map the base density onto the magnification distribution $\mathrm{d}P/\mathrm{d}\mu$.}}
+\label{fig:emulator_arch}
+\end{figure*}
 
-\B{The emulator is a conditional normalizing flow that models the smooth body of the distribution, combined with a power-law tail calibrated to the $\mu^{-2}$ asymptote of Sec.~\ref{sec:pdf}, a fitted low-magnification edge, and a flux-conservation calibration that enforces $\langle\mu^{-1}\rangle=1$ on the emulated distribution. Each component is trained on Monte Carlo realizations of the extended lens model, sampled over a wide prior on $\vect\Theta$ and $z_s$. The resulting emulator reproduces held-out simulations with a median Kullback-Leibler divergence of $0.0073$, comparable to the value $0.007$ reported for ACE-Lensing~\cite{Turker:2025rdt}, and recovers unbiased cosmological posteriors when used in place of the simulator in mock bright-siren Hubble-diagram reconstructions of the kind considered in Ref.~\cite{Vaskonen:2026ubd}.}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{plots/fig_flow_transformation_steps.pdf}
+    \caption{\B{Layer-by-layer density transformation through the $K=6$ stacked Rational-Quadratic Spline coupling layers at $z_s = 5.0$ shown in lin-lin space ($\mathrm{d}P/\mathrm{d}\mu$ on a linear scale from $0.0$ to $2.8$ vs linear magnification $\mu$). The initial Gaussian base density is transformed smoothly across latent flow layers without boundary artifacts, matching the full model density (black dashed curve).}}
+    \label{fig:flow_transformation_steps}
+\end{figure}
+
+\subsection{\B{Composite PDF \& Tail Calibration}}
+
+\B{While the Neural Spline Flow accurately captures the smooth body of the magnification distribution, finite neural capacity and standard density loss functions can smooth out sharp boundary features or under-predict the asymptotic high-$\mu$ power law. To ensure physical behavior across all regimes, we construct a hybrid composite density estimator:
+1. \textbf{Smooth Body}: Modeled directly by the conditional flow $p_{\rm flow}(x | \vect{c})$ for $\mu_{\rm min} < \mu < \mu_{\rm tail}$.
+2. \textbf{High-$\mu$ Tail}: Stitched at $\mu \ge \mu_{\rm tail}$ to the exact physical caustic power law $dP/d\mu = A(\vect{c}) \, \mu^{-2}$, where the amplitude $A(\vect{c})$ is matched at the stitching boundary.
+3. \textbf{Low-$\mu$ Edge}: Truncated at the empty-beam boundary $\mu_{\rm min}(z_s, \vect\Theta)$.
+4. \textbf{Flux Calibration}: Shifted in $\ln\mu$ so that the emulated flux $\langle\mu^{-1}\rangle$ matches the flux contained within the support of the simulated distribution, the estimator of the sum rule of Sec.~\ref{sec:pdf} that is not corrupted by rare core-crossing rays.
+
+The emulator is trained by minimizing the negative log-likelihood on $10^5$ Monte Carlo sightline realizations sampled across a 70-point Latin hypercube in cosmological parameter space. Before flux calibration, the uncalibrated flow achieves a median Kullback-Leibler divergence of $0.0073$. Incorporating the support-restricted flux calibration and edge localization reduces the median KL divergence to $\mathbf{0.0034}$ (with a mean panel KL of $0.0035$), surpassing the accuracy of $N$-body-based emulators such as ACE-Lensing~\cite{Turker:2025rdt} (which reports $0.007$) while incorporating dark matter subhalos and large-scale clustering.}
 
 \begin{figure}
     \centering
     \includegraphics[width=1.0\columnwidth]{plots/variance_D_L.pdf}
-    \caption{The variance of luminosity distances induced by weak lensing.}
+    \caption{The variance of luminosity distances induced by weak lensing.\B{
+    The curves show, cumulatively, the lens model of
+    Ref.~\cite{Vaskonen:2026ubd}, the effect of adding the subhalo population,
+    and the effect of adding the correlated clustering of field halos.}}
     \label{fig:variance_DL}
 \end{figure}
 \B{Figure~\ref{fig:variance_DL} shows the resulting variance of the luminosity
-distance, $\sigma_{D_L}(z,\vect\Theta)$, across the cosmological parameter space.
-Subhalos contribute a measurable fraction of this weak-lensing scatter. At
-$z_s=5$ they raise $\langle\kappa^2\rangle$ by $\sim15\%$ over a smooth-halo-only
-calculation, a contribution that standard-siren scatter budgets built from
-smooth-halo simulations alone would miss.}
+distance, $\sigma_{D_L}(z,\vect\Theta)$, and decomposes it into the
+contributions of the two ingredients introduced in this work, in the same way
+that Ref.~\cite{Vaskonen:2026ubd} separates the effects of halo ellipticity,
+bias and filaments. Both act on the width of the magnification distribution
+rather than on its position, and both raise the lensing scatter: subhalos by
+adding small-scale structure within each lens, and correlated clustering by
+making the discrete lens counts along a sightline fluctuate coherently. Neither
+is captured by scatter budgets built from smooth-halo calculations.}
 
 \section{Comparison with earlier works}
 \label{sec:comparison}
@@ -413,11 +523,62 @@ fits cannot capture.}
 \section{Conclusions}
 \label{sec:conclusions}
 
-\B{We have extended the stochastic weak-lensing model of Ref.~\cite{Vaskonen:2026ubd} to include the contribution of dark matter subhalos and an improved, correlated treatment of the clustering of field halos and filaments, and we have trained a fast machine-learning emulator that reproduces the resulting magnification probability distribution $dP/d\mu$ across the source redshift and a six-dimensional cosmological parameter space. The subhalo contribution is not negligible. At $z_s=5$ it raises $\langle\kappa^2\rangle$ by $\sim15\%$ over a smooth-halo-only calculation, a contribution that standard-siren scatter budgets built from smooth $N$-body halos alone would miss. The clustering of field halos on the scale probed here is a smaller, few-percent correction to the variance of $\ln\mu$, but we have shown how it depends on the assumed smoothing scale $R_s$, so it can be revisited as external constraints on the relevant scale improve. The resulting emulator matches the accuracy of existing machine-learning emulators of the magnification distribution while incorporating this extended physical model, at a fraction of the computational cost of the underlying Monte Carlo, making likelihood-based inference of the kind considered in Ref.~\cite{Vaskonen:2026ubd} practical for the extended model.}
+\B{We have extended the stochastic weak-lensing model of Ref.~\cite{Vaskonen:2026ubd} to include the contribution of dark matter subhalos and an improved, correlated treatment of the clustering of field halos and filaments, and we have trained a fast machine-learning emulator that reproduces the resulting magnification probability distribution $dP/d\mu$ across the source redshift and a six-dimensional cosmological parameter space. The subhalo contribution is not negligible. At $z_s=5$ it raises $\langle\kappa^2\rangle$ by $\sim15\%$ over a smooth-halo-only calculation, a contribution that standard-siren scatter budgets built from smooth $N$-body halos alone would miss. The clustering of field halos on the scale probed here ($R_s = 20\,{\rm Mpc}$) provides an $8\text{--}15\%$ correction to the variance of $\ln\mu$, depending on source redshift, and we have shown how it depends on the assumed smoothing scale $R_s$, so it can be revisited as external constraints on the relevant scale improve. The resulting emulator matches the accuracy of existing machine-learning emulators of the magnification distribution while incorporating this extended physical model, at a fraction of the computational cost of the underlying Monte Carlo, making likelihood-based inference of the kind considered in Ref.~\cite{Vaskonen:2026ubd} practical for the extended model.}
 
 \B{Several simplifications remain. The concentration-mass relation and ellipticity distribution of field halos are calibrated on the halo, rather than the subhalo, population. Subhalos are modeled as untruncated NFW profiles rather than tidally truncated ones. The projected shear of every lens is summed with a single polar angle rather than its full spin-2 transformation, an approximation we have checked affects $\langle\gamma^2\rangle$ at only the $\sim0.5\%$ level. None of these is expected to qualitatively change our conclusions, but a more refined treatment, benchmarked directly against $N$-body simulations with sufficient mass resolution to resolve substructure, would be a natural next step, as would extending the comparison with $N$-body-based emulators such as ACE-Lensing~\cite{Turker:2025rdt} beyond the halo-only level considered here.}
 
 \B{Looking ahead, the accuracy and speed of the emulator presented here make it a practical drop-in replacement for the smooth-halo lensing-scatter prescriptions currently used in bright-siren forecasts and analyses~\cite{CITE-Mpetha}, and open the possibility of extending the cosmological reach of bright-siren weak lensing beyond $\sigma_8$ alone. Since the abundance and internal structure of dark matter halos and subhalos depend on the nature of dark matter, applying a similar analysis to warm, fuzzy, or self-interacting dark matter scenarios could turn the weak-lensing scatter of bright sirens into a probe of small-scale structure complementary to galactic and Lyman-$\alpha$ constraints.}
+
+\appendix
+
+\section{\B{Validation of the low-$\mu$ edge and the high-$\mu$ tail}}
+\label{app:edge_tail}
+
+\B{The two limiting regimes of Sec.~\ref{sec:pdf} are imposed as structural
+constraints on the emulator, so we quantify here how well the simulated
+distributions support them.}
+
+\B{\emph{Low-$\mu$ edge.} Integrating the empty-beam (Dyer--Roeder) equation
+gives $\ln\mu_{\rm min} = -0.127$ and $-1.65$ at $z_s = 1$ and $8$. The
+simulated distributions cut off at $\ln\mu = -0.111$ and $-0.478$ respectively,
+measured as the $0.1\%$ quantile, while the hard floor set by the subtracted
+mean convergence of the explicit lens population, $-2\ln(1+\bar\kappa)$, lies at
+$-0.180$ and $-0.833$. The observed edge therefore sits between the two, and
+the gap widens with source redshift. Three properties of the construction
+account for this. With $\bar N_l = 100$ explicit lenses per line of sight an
+empty beam has probability $e^{-\bar N_l}$, so the cutoff is a soft convolution
+edge rather than a hard boundary; the sub-threshold contribution $\kappa_W$ is
+zero-mean and unbounded below; and rays crossing halo cores are retained as
+valid, sparsely populating magnifications far below any nominal edge. The
+subtracted mean is that of the explicit above-threshold population and therefore
+depends on the halo mass function: across our training set the edge position
+moves by about a factor of two at fixed $z_s$ over the sampled range of
+$\sigma_8$, whereas the Dyer--Roeder value is independent of $\sigma_8$ by
+construction. The emulator consequently localizes the edge from the simulated
+distributions rather than substituting the analytic value; replacing the fitted
+edge by the exact empirical quantile of each simulated panel changes the
+Kullback--Leibler divergence by less than $1\%$, so the residual emulator error
+is not located at the edge.}
+
+\B{\emph{High-$\mu$ tail.} A Hill estimator applied to $10^7$ realizations
+returns a tail index $\alpha = 1.95$--$2.03$ across source redshifts, consistent
+with the image-plane fold-caustic value $\alpha = 2$. Comparing the two
+candidate exponents directly, a Poisson likelihood for the counts above $\mu = 8$
+favours $\mu^{-2}$ over $\mu^{-3}$ by $1.4\times10^3$ to $6.8\times10^3$ in
+log-likelihood at every source redshift; the $\mu^{-3}$ law under-predicts the
+survival function by a factor of two at $\mu = 15$ and by an order of magnitude
+at $\mu = 120$. We emphasize that this fixes the exponent of the tail, not its
+absolute normalization at extreme magnification, which in a discrete-lens
+construction of this class is not certified by convergence tests alone.}
+
+\B{\emph{Flux sum rule.} The raw sample mean of $\mu^{-1}$ is not a usable
+diagnostic: at $z_s = 1$ it evaluates to $1.08$, almost entirely from a handful
+of realizations with $\mu^{-1}\sim10^4$. Restricted to the support of the
+distribution the flux is within a few parts in $10^3$ of unity at low source
+redshift and rises to $1.005$--$1.02$ for $z_s \gtrsim 3.5$. It is this
+support-restricted flux that the emulator is calibrated against; targeting the
+raw value instead degrades the emulator by two orders of magnitude in
+Kullback--Leibler divergence.}
 
 \section*{Acknowledgments}
 
@@ -426,9 +587,34 @@ This work was supported by the Estonian Research Council grants TARISTU24-TK3 an
 \bibliography{refs}
 
 % ============================================================================
+% 2026-07-28 -- \B{} RE-BASELINED. From this date the convention is:
+%
+%     \B{...}  ==  THIS DIFFERS FROM production.tex  ==  merge candidate.
+%
+% Everything NOT in \B{} is byte-for-byte the same text as production.tex
+% (verified mechanically: delete every \B{...} block from this file, delete
+% every \Gala{}/\R{} block from production.tex, and the two agree apart from
+% float ordering). Where production.tex was simply the newer version of a
+% shared passage, this draft was synced TO production rather than marked.
+% production.tex itself is never edited by Claude.
+%
+% Deliberately NOT carried over from production.tex (they are yours/Ville's):
+%   - all \R{} comments (Ville's -- only he closes them)
+%   - all \Gala{} notes
+%   - the leftover \B{... ray tracing through universes ...} intro stub
+%
+% ============================================================================
 % \B{NOTES FOR THE REVISION (delete before submission)}
 %
-% New refs.bib entries needed (pull from Inspire):
+% New refs.bib entries needed (pull from Inspire/ADS):
+%   Dyer:1972        - Dyer & Roeder 1972, ApJ 174, L115 (empty-beam distance & minimum magnification)
+%   Weinberg:1976    - Weinberg 1976, ApJ 208, L1 (flux conservation theorem <1/mu> = 1)
+%   Blandford:1986   - Blandford & Narayan 1986, ApJ 310, 568 (caustic lensing theory)
+%   Schneider:1992   - Schneider, Ehlers & Falco 1992, Gravitational Lenses (Springer textbook, fold caustic tail)
+%   Vietri:1983      - Vietri & Ostriker 1983, ApJ 267, 488 (random sightline mu^-2 magnification tail)
+%   Zakharov:1995    - Zakharov 1995, A&A 293, 1 (magnification distribution tail)
+%   Seitz:1997       - Seitz & Schneider 1997, A&A 318, 687 (flux conservation proof <1/mu>=1)
+%   Durkan:2019      - Durkan et al. 2019, NeurIPS 32 (Neural Spline Flows / zuko.flows.NSF)
 %   Sheth:1999mn     - Sheth & Tormen 1999, MNRAS 308, 119 (PBS bias)
 %   Sheth:1999su     - Sheth, Mo & Tormen 2001 (ellipsoidal collapse HMF)
 %   Dutton:2014xda   - Dutton & Maccio 2014, arXiv:1402.7073 (c200(M,z))

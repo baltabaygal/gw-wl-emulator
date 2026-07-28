@@ -28,12 +28,89 @@ Legacy 1+3d datasets (columns [z, h, OmegaM, sigma8]) remain loadable through
 ml.data, as do schema-2.0 A_s-mode datasets (mapped in exactly via the stored
 `sigma8_derived`). This module describes the scheme used for new data generation.
 """
+import hashlib
+import json
 from typing import Dict
 
 import numpy as np
 
 # Planck-2018-like fiducial point (sigma8-mode; the Vaskonen 2026 benchmark).
 FIDUCIAL = dict(h=0.674, Om=0.315, sigma8=0.811, Ob=0.0493, ns=0.965, zeq=3402.0)
+
+# --- production simulator configuration ---------------------------------------
+# The physics config the paper describes, pinned EXPLICITLY (2026-07-27). Several
+# of these differ from the shipped C++ defaults, which are still staged pending
+# Ville's sign-off (he is on holiday). Passing them explicitly makes the ML
+# pipeline independent of that default flip: nothing here changes meaning when
+# the defaults move, and data generated now is reproducible either way.
+#
+# Every key maps 1:1 onto a kwarg of `gwlensing.sample_lnmu_ml_with_diagnostics`
+# (and the other four py entry points), so this dict is splatted in directly.
+PRODUCTION_CONFIG = dict(
+    # -- substructure (draft sec. Subhalos) ------------------------------------
+    # Model 5 = the supervisor's simplified brute population (every subhalo down
+    # to m_floor/M, host carved to M - sum m_i, no unresolved/Gaussian stand-in)
+    # with the per-clump kappa threshold that makes it affordable: 0.21 vs 45.2
+    # ms/ray, i.e. 217x cheaper than model 4 at JSD-at-floor agreement. C++
+    # default is still 3.
+    subhalo=True,
+    subhalo_model=5,
+    # Mass-conserving realized carve. Model 5 THROWS without it (the carve is
+    # what absorbs the mass of the unrendered clumps), so pin it rather than
+    # inherit the default.
+    subhalo_carve=True,
+    # Population floor psi_min = m_floor/M. Converged: flat over 1e7 -> 1e8.
+    m_floor=1e7,
+    # Render clumps above 0.1 x the host kappa_thr. Population-weighted sigma
+    # loss 0.084/0.111/0.210% at z_s = 0.5/1/5 for a 1.9e4/1.3e4/4.1e3x clump
+    # reduction. The cost battle is already won at 0.1, so the extra decade
+    # (factor 1.0) buys nothing measurable and costs 0.24/0.41/1.29%.
+    subhalo_kappathr_factor=0.1,
+    # JvdB14 virial convention (2026-07-28). JvdB14 sec. 2 defines f_s and
+    # psi = m/M inside R_vir (mean density Delta_vir(z) rho_crit(z)) and Green+21
+    # normalizes the radial bias at r_vir, but the engine's M is M_200c. Without
+    # this the code applies a virial-referred normalization over an r_200
+    # aperture, carrying ~4% (z=5) to ~20% (z=0.1) too much substructure inside
+    # r_200. ON because the draft describes a JvdB14 population, so with it off
+    # the paper misstates the code; the P(lnmu) cost is at the sampling floor.
+    # Requires subhalo_model 4/5 (satisfied above).
+    # ⚠ The carve conversion inside this mode (host reduced by
+    # Sum m_i / (M_vir/M_200), so the host keeps the same FRACTIONAL mass in both
+    # apertures) is OUR choice, not something the sources settle -- it touches the
+    # supervisor's exact-mass-conservation requirement and is bundled for Ville.
+    # It shifts the smooth host by ~1% of M, so a later revision to the carve
+    # would not invalidate the convention itself.
+    subhalo_virial=True,
+    # -- clustering (draft sec. Clustering) ------------------------------------
+    # Correlated 1D field delta_1D shared by all (M,z) cells, replacing the
+    # legacy per-cell iid lognormal (which has no continuum limit in Nz).
+    bias_model=1,
+    # Real-space spherical top-hat on the full modulus |k|, R_s = 20 Mpc
+    # comoving. NOT the transverse-disk legacy window (0) and NOT the earlier
+    # 8441 kpc = R_L(1e14 Msun) placeholder.
+    bias_window=1,
+    bias_Rperp=20000.0,
+    # Draw the sub-threshold background kappa_W conditionally on the SAME
+    # realized delta_1D, instead of the unconditional Gaussian of Vaskonen
+    # (2026). This is the abstract's second headline extension and carries
+    # roughly half to two-thirds of the clustering effect at R_s = 20 Mpc.
+    bias_weak=True,
+    # Filaments cluster with the PBS bias of their own flatter first-crossing
+    # barrier, (p,q) = (0, 0.7), instead of borrowing the halo bias (0.3, 0.8).
+    fil_bias=True,
+    # -- flux anchor -----------------------------------------------------------
+    # Robust <kappa> = 0 anchor: mean over rays with kappa <= kappa_anchor_cut.
+    # The legacy setting (0) uses the raw empirical batch mean, so a single
+    # kappa >> 1 monster ray shifts the whole batch by -2 kappa / n.
+    kappa_anchor=1,
+    kappa_anchor_cut=1.0,
+)
+
+# Stable fingerprint of the physics config, written into dataset metadata so two
+# dataset generations can be told apart without diffing every attribute.
+PRODUCTION_CONFIG_HASH = hashlib.md5(
+    json.dumps(PRODUCTION_CONFIG, sort_keys=True).encode()
+).hexdigest()[:12]
 
 # In-distribution prior box (training/inference support).
 PRIOR_6D = dict(

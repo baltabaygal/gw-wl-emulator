@@ -5,11 +5,15 @@ engine from Vaskonen (2026). See `README.MD` for the project overview and `memor
 (auto-loaded) for cross-session context.
 
 **Paper (PRD draft, .tex on Overleaf):** before touching paper text, figures, or
-answering draft comments, read `paper_prod/paper_memo.md` (2026-07-20) — maps every
+answering draft comments, read **`paper_prod/paper_writer.md` (2026-07-28) FIRST** —
+the writing contract: file ownership, the `\B{}` = "differs from production.tex"
+convention + its verification script, prose style (synthesis of Vaskonen 2026 and
+Baltabay+ 2026 arXiv:2607.01333), the verification contract, and the open items.
+Then `paper_prod/paper_memo.md` (2026-07-20) — maps every
 draft section/equation to its implementation (file:line), figure scripts, and the
 claim-constraining standing rules; `paper_prod/draft_comments_memo.md` holds the
 resolved \R{}/\Gala{} comments + known draft↔code mismatches (R_s/window, model-3
-description, stale figure paths). Keep both updated like this file.
+description, stale figure paths). Keep all three updated like this file.
 
 **Two .tex files, different edit rights (2026-07-23):**
 - `paper_prod/production.tex` — pasted straight from Overleaf. **User-only: Claude may
@@ -232,8 +236,31 @@ train_smooth infer context dim from data (old checkpoints default 4);
 6d 16/20); smooth_model dispatches on len(theta) — 6d needs refit `*_6d.json` caches
 + a context=7 body. Retrain order unchanged (see §NSF recipe); regenerate
 `param_space_ref`, `groundtruth.npz`, `lowz_aug.npz`, `tail_counts_extra.npz` first.
-NOTE: the -ar worktree's `build/` module predates the As kwargs — rebuild there
-(or merge branches) before running its gen/validate scripts.
+~~NOTE: the -ar worktree's `build/` module predates the As kwargs — rebuild there.~~
+**CORRECTED 2026-07-27: there is nothing to rebuild.** `gw-wl-emulator-ar/build` is a
+**symlink** to `gw-wl-emulator/build` (made 2026-06-16), so the two worktrees share
+one `.so` and a `make build` in the main repo updates both. Verified: identical inode.
+
+## Production simulator config — PINNED IN PYTHON (2026-07-27)
+`ml/params.py::PRODUCTION_CONFIG` is the single source of truth for the physics the
+paper describes, passed EXPLICITLY on every call so the ML pipeline does not depend on
+the staged C++ default flip:
+`subhalo=True, subhalo_model=5, subhalo_carve=True, m_floor=1e7,
+subhalo_kappathr_factor=0.1, subhalo_virial=True, bias_model=1, bias_window=1,
+bias_Rperp=20000.0, bias_weak=True, fil_bias=True, kappa_anchor=1,
+kappa_anchor_cut=1.0` (hash `0d50caf91c75`; was `e9150c0370af` before
+`subhalo_virial` was folded in 2026-07-28). `subhalo_carve`, `m_floor`, `subhalo_kappathr_factor` and
+`kappa_anchor_cut` are already the shipped defaults — pinned for explicitness and
+because model 5 THROWS without carve. Threaded through `python/generate_dataset.py`
+(splatted into the sampler worker).
+**Datasets are now self-describing:** `metadata/physics_config` records what was
+PASSED, `metadata/simulator_defaults` what the C++ compiles in. ⚠ The pre-2026-07-27
+code wrote only `get_simulator_config()` — which reports the compiled-in DEFAULTS, not
+the config used — so any older dataset's `filaments`/`bias`/`ell`/`Nhalos` attrs
+describe the defaults and NOT necessarily that run. Gated by
+`tests/test_parallel_generation.py` (which also asserts the pin differs from the
+defaults, so it cannot silently become a no-op). That test was ALSO stale — it still
+asserted schema 2.0 / `amplitude_mode == "As"` after the σ₈ switch; fixed to 2.1.
 
 ## Building the C++ module
 ```bash
@@ -581,6 +608,129 @@ user explicitly asks, under their supervision.**
    Full evidence: `data/results/bias_window/{report.md,tables.md}`,
    `plots/bias_window_scan.png`; scripts `scripts/convergence/bias_window_{scan,
    sigmaR,weighted_scale}.py`.
+
+14. **`fil_bias` — filament clustering bias (STAGED, default false; ALL GATES CLOSED
+   2026-07-27):** filaments ride the PBS bias of the code's OWN filament barrier
+   `cosmology::filbias` `(p,q)=(0,0.7)` instead of borrowing `halobias` `(0.3,0.8)`;
+   10–20% lower. Requires `bias_model=1` (inert in the legacy iid layer, not a throw).
+   Same field, no new RNG — `lambdaF` reuses the realized `bfvals`, so off is
+   bitwise-identical. Mac gates: `make build` + `test_cosmology_params.py` 11/11 (its
+   reference predates fil_bias ⇒ that IS the bitwise gate) + new
+   `tests/test_fil_bias.py` 10/10 (incl. a dead-flag guard and an all-five-entry-point
+   check). A/B at the full PRODUCTION_CONFIG, 480k rays/arm at z_s=0.5/1/5 + 2M/arm at
+   z_s=1 (`scripts/convergence/fil_bias_ab.py`): **JSD at floor everywhere, and the
+   cross-JSD tracks 1/N** (6.22e-5 → 1.53e-5 for ×4.17 rays) — the signature of a null,
+   bounding any true offset to J\* ≲ 1e-5 ≈ 500× under the emulator KL. Clipped σ shifts
+   −0.4 to −0.8%, negative at every z_s (predicted direction), but ~2σ and it does NOT
+   firm up with statistics — **quote "of order −0.4% at ~2σ, unresolved"; do NOT quote
+   −0.78%**. Edge Δq01 +2–4e-4 (35–65× below the weak arm's −1.4e-2), flux Δln⟨1/μ⟩
+   ~1e-6–2e-4 ⇒ **no new emulator edge/flux refit** beyond the weak arm's. ⚠ A null was
+   the EXPECTED outcome (filaments are subdominant) — this bounds, does not measure.
+   The case for `fil_bias=true` is physical correctness: the draft states the (0,0.7)
+   barrier, and with the flag off that sentence is false in the code. Evidence:
+   `data/results/fil_bias/report.md`, `docs/filament_bias_note.md` §5.
+   Gotcha the A/B test caught: `sample_lnmu`/`compute_lnmu_stats` take
+   `(z, OmegaM, sigma8, h, Nreal, …)` but the `*_ml` family takes
+   `(z, h, OmegaM, sigma8, nsamples, …)` — pass by keyword.
+
+15. **Subhalo radial profile SHAPE FIX (2026-07-28) — the significant physics result;
+   NOT bitwise, no flag (the old form was simply wrong).** All three sites used
+   `dN/dx ~ x^2 B(x)/(1+cx)^2`. Green+21 define B as a ratio of **volume number
+   densities**, so B multiplies rho_NFW and `dN/dx = 4 pi r^2 n_sub ~ x B/(1+cx)^2` —
+   the x^2 shell factor cancels ONE power of x against the NFW 1/x cusp. The old form
+   was a CORED `n_sub ~ B/(1+cx)^2` (inner slope x^2.25 not x^1.25, outskirt x^-2 not
+   x^-3), contradicting both `B->1` and the Han+16 x^1.3 inner bias B is fitted to.
+   **Impact:** substructure mass within 0.3 r200 **x3.0** (stable in M and z; f_s and
+   psi_res unchanged, so total mass per host is the SAME — it REDISTRIBUTES inward);
+   clipped sigma(lnmu) **CONFIRMED at depth, and ATTRIBUTED: the profile fix ALONE is
+   +1.539+/-0.194 % (7.9 sigma) at z_s=1, 2M rays/arm.** ⚠ The same-day
+   `halobias` q 0.75->0.8 edit in cosmology.cpp confounded the first A/B — combined
+   profile+halobias is +1.895+/-0.219 % (8.7 sigma) at z_s=1 and +1.277+/-0.110 %
+   (11.7 sigma) at z_s=5; `halobias` alone is +0.351+/-0.243 % (1.4 sigma, NOT resolved).
+   Additivity closes to 0.005% (1.890 vs 1.895), confirming the split. **Do NOT attribute
+   +1.90% to the profile.** Central value stable under a 4x depth increase and sigma
+   scaled as sqrt(N) = the signature of a REAL effect, unlike `subhalo_virial` and
+   `fil_bias`, whose central values COLLAPSED under the same test.
+   ⚠ **Always `git diff --stat cpp/` before attributing an A/B to a named change** — this
+   confound came from assuming the only edit was the one described in a code comment. q99 +2.7-2.9%, edge q01
+   -9e-4..-3.1e-3. At 480k the binned JSD sat at ~1.0x floor even where the effect was
+   real (a 1-2% width change barely reshapes a 161-bin histogram); at 2M it clears the
+   floor (1.4-2.2x) — so **use sigma for width changes, and treat "JSD at floor" as a
+   statement about binning and depth, not about the effect.** Must regenerate:
+   **Fig 4** (`fig_subhalo_sigma_decomposition` — sigma_sub up at small r, down at
+   large r), the **model-4/5 gate** and the **subkappathr population sizing** (clump
+   reach D(m) unchanged, but model 5's envelope thins against the projected Sigma_n,
+   which moved), and anything with a stored subhalo-ON reference
+   (`test_backward_compat_bitwise` is safe — its reference has subhalo=false). ~2% on
+   sigma is ~4e-4 in KL (under the emulator's 7.3e-3) but it is SYSTEMATIC, and the
+   width carries the sigma_8 information — at sigma(lnmu) ~ sigma_8^2 the profile fix's
+   +1.54% is **~0.75% in sigma_8**, a central-value shift not a widening, so state it in
+   the paper rather than absorbing it. (`subhalo_virial` and `halobias` add nothing
+   resolvable — both at floor.) Evidence:
+   `data/results/subhalo_profile_fix/report.md`, `docs/subhalo/subhalo_combining.md`.
+
+16. **`subhalo_virial` — JvdB14 virial convention (2026-07-28, C++ default OFF, but ON
+   in PRODUCTION_CONFIG).** JvdB14 sec. 2 defines haloes/subhaloes inside their VIRIAL
+   radii, so f_s and psi=m/M are M_vir quantities and the population extends to r_vir;
+   Green+21 normalizes the radial bias at r_vir. The engine's M is M_200c (`NFWlistf`:
+   200 rho_crit, `Az=E^2`) and `cons14` is DM14's **c200** relation. Only the bias SCALE
+   x0 was converted (`etaVirTo200` — verified vs an independent brentq to <=4e-16, and
+   two routes to M_vir/M_200 agree exactly; bracket safe since Delta_vir <= 18pi^2 < 200
+   always => eta>1). The EXTENT and MASS normalization were not => excess substructure
+   inside r_200 of **1.20/1.12/1.08/1.04 at z=0.1/0.5/1/5** (recomputed with the
+   CORRECTED profile; the earlier 1.49/1.28/1.18/1.09 used the wrong shape — do NOT
+   quote those). The flag sets psi -> m/M_vir, samples the profile to x = eta =
+   r_vir/r_200, and carves `M - Sum m_i/(M_vir/M_200)`. Gated to model 4/5 (0-3 reduce
+   the host with M_200-referred incomplete-Gamma/Wsub tables; throws). Legacy bitwise
+   (xmaxh=1, Mpsih=M => exact x1.0). Mechanism verified DIRECTLY by
+   `playground/subhalo_virial_probe.cpp` (production addClumps: M_vir table matches
+   mu(eta c)/mu(c) to 6 digits, r_max scales exactly as eta, <Sum m_i> tracks the
+   prediction to ~3%) — this is what distinguishes "works but does not matter" from
+   "silently inert". **PDF effect: AT THE SAMPLING FLOOR** on the corrected
+   profile baseline — z_s=0.5 reads +2.17+/-0.66 % (+3.3 sigma) at 480k rays/arm but
+   **+0.045+/-0.328 % (+0.1 sigma) at 2M**, i.e. the 3.3 sigma did NOT survive; z_s=1
+   +0.43+/-0.39 %, z_s=5 +0.11+/-0.20 %; JSD at floor throughout. Quote |dsigma/sigma|
+   <~0.7% at 2 sigma. ⚠⚠ **8-shard SEM yields 2-3 sigma FALSE POSITIVES** (SEM is a
+   chi^2 on 7 dof, ~27% uncertain; several quantities read across 3 z_s) — this bit twice
+   in one session (fil_bias -0.78% "2.2 sigma" -> -0.38%; virial +2.17% "3.3 sigma" ->
+   +0.045%). **Require a depth-doubling confirmation or >=5 sigma before calling a
+   sigma-ratio real.** ⚠ The analytic "excess inside r_200" is a population diagnostic,
+   NOT a predictor of the lensing response (clumps beyond r_200 still lens; rays sample
+   impact parameters outside r_200). **Decision
+   2026-07-28: ON in production** — the draft claims a JvdB14 population, and OFF
+   carries the LARGER forced-regeneration risk (population wrong by 4-20% vs the cited
+   source, versus only the ~1%-of-M carve sub-choice left open). The carve conversion is
+   OUR call, not settled by the sources. **Decision 2026-07-28 (user): KEEP
+   `M - Sum m_i/(M_vir/M_200)` and flag it for Ville with the bundle** — the smooth host
+   then keeps the same FRACTIONAL mass (1-f_s) in both apertures, where the literal
+   `M - Sum m_i` would strip ~10% more than f_s from the M_200 budget. They differ by
+   ~1% of M on the host. Ambiguous because the host NFW is untruncated and the clumps
+   now reach r_vir, so there is no single well-defined "total" to conserve. Evidence:
+   `docs/subhalo/virial_convention_note.md`, `tests/test_subhalo_virial.py`,
+   `data/results/subhalo_virial/`.
+
+17. **`halobias` q 0.75 -> 0.8 (2026-07-28, user decision: one (p,q) everywhere; NOT
+   bitwise, no flag).** `cosmology::halobias` used q = 0.75 while the HMF barrier
+   `cosmology::pFC` uses (p,q) = (0.3, 0.8), so b was NOT the peak-background split of
+   the code's own first-crossing barrier — and the draft's clustering section already
+   states "(p,q) = (0.3, 0.8)" for field halos, so the code contradicted the text.
+   `filbias` already mirrored `pFCfil` at q = 0.7, so this makes the pair consistent.
+   b rises ~1-3%, strengthening the clustering modulation lambda. **Effect NOT resolved:
+   +0.351+/-0.243 % (1.4 sigma) on clipped sigma(lnmu) at z_s=1, 2M rays/arm, JSD at
+   floor** — adopt on PBS consistency, not because it moves P(lnmu). **Broke
+   `tests/test_cosmology_params.py::test_backward_compat_bitwise`** — the test doing its
+   job on a deliberate physics change, NOT a regression. **RESOLVED 2026-07-28: reference
+   RE-BASELINED** (user decision); old vectors kept as
+   `tests/data/reference_lnmu_pre_halobias.npz`; 11/11 green.
+   ⚠ **Protocol before ANY re-baseline** (documented in
+   `tests/capture_reference_lnmu.py`): revert the suspected change ALONE and confirm the
+   old reference still passes, so the re-baseline cannot silently absorb other drift.
+   Done here — a build with only halobias reverted reproduced the 2026-07-08 reference
+   bit-for-bit at all 3 points, proving halobias was the sole cause and that the same-day
+   profile fix + `subhalo_virial` code are bitwise-clean on the default path. ⚠ halobias
+   is used on the DEFAULT path (`samp.bias = 1` is hardcoded in the ML entry points), so
+   this shifts every ray regardless of `subhalo`. Evidence:
+   `data/results/subhalo_profile_fix/halobias_only_n250000.json` + report sec. 3b.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

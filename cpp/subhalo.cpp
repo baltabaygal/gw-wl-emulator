@@ -20,6 +20,31 @@ namespace {
 constexpr double BIAS_X0_RVIR = 0.86;   // transition scale in r_vir units
 constexpr double BIAS_EXP     = 2.5;    // p = 5/2
 
+// ---------------------------------------------------------------------------
+// RADIAL SAMPLING CONVENTION -- read before touching any p3()/w below.
+//
+// Green+21 (arXiv:2103.01227) define the bias function as a ratio of VOLUME
+// number densities (their Sec. 3.2.1 and the Fig. 7 caption):
+//
+//     B(x) = (dN~/dx^3)_sub / (dN~/dx^3)_NFW   ->  1  when unbiased,
+//
+// so B multiplies the host DENSITY, not the shell count:
+//
+//     n_sub(x) = rho_NFW(x) * B(x)  ~  B(x) / [ x (1 + c x)^2 ] ,
+//     dN/dx    = 4 pi r^2 n_sub     ~  x B(x) / (1 + c x)^2 .
+//
+// i.e. the x^2 from the shell volume cancels ONE power of x against the NFW
+// 1/x cusp, leaving x^1 -- NOT x^2.
+//
+// FIXED 2026-07-28: all three sites below previously used x^2/(1+cx)^2 * B,
+// which is n_sub ~ B/(1+cx)^2, a CORED profile carrying an extra power of x of
+// central suppression on top of B (inner slope x^2.25 instead of x^1.25) and a
+// x^-2 rather than x^-3 outskirt falloff -- i.e. it contradicted both B(x)->1
+// "subhalos trace the host outside" and the Han+16 x^1.3 inner bias that B is
+// fitted to reproduce.  NOT bitwise-compatible with earlier runs: clumps move
+// inward, so sightlines near the host centre gain substructure.
+// ---------------------------------------------------------------------------
+
 inline double linfast(double y1, double y2, double x1, double x2, double x) {
     return y1 + (x - x1) / (x2 - x1) * (y2 - y1);
 }
@@ -87,7 +112,7 @@ inline double safeNFWGammaCore(double x, const std::array<double, 2> &Fg) {
     return 2.0 * Fg[1] / (x * x) - Fg[0];
 }
 
-ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
+ClumpAccum evalClumpRange(cosmology &C, int jz, double Mpsi, double Sigmac,
                           double rcos, double rsin, double r200,
                           const vector<double> &xcdf, int Nu,
                           double alpha, double beta, double omega,
@@ -98,14 +123,14 @@ ClumpAccum evalClumpRange(cosmology &C, int jz, double M, double Sigmac,
     const double pa_min = pow(psi_min, alpha);
     const double pa_max = pow(psi_max, alpha);
     const double inv_alpha = 1.0 / alpha;
-    const double log_M = std::log(M);
     for (int k = begin; k < end; k++) {
         double u = randomreal(0.0, 1.0, mt);
         double psi = pow(pa_min + u * (pa_max - pa_min), inv_alpha);
         // exact SHMF: thin the power-law proposal by the exponential cutoff.
         // Poisson(N_powerlaw) + thinning == Poisson(N_exact)  (Poisson thinning theorem).
         if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
-        double m = psi * M;
+        // psi is referred to Mpsi: M_200 in legacy mode, M_vir in virial mode (JvdB14)
+        double m = psi * Mpsi;
         double log_m = std::log(m);
 
         double ur = randomreal(0.0, 1.0, mt);
@@ -157,13 +182,15 @@ double Subhalo::sigma2Dclump(int jz, int jM, double s) const {
     const vector<double> &p2 = p2p[jz][jM];
     if (p2.empty()) return 0.0;
     const double r200 = r200h[jz][jM];
+    const double xmax = xmaxh[jz][jM];
     const double Rh = s / r200;
-    if (Rh >= 1.0) return 0.0;
+    if (Rh >= xmax) return 0.0;
     const int NR = static_cast<int>(p2.size());
-    double t = Rh * NR - 0.5;
+    // p2 spans Rhat in [0, xmax] over NR cells, so the cell index is (Rh/xmax)*NR - 0.5
+    double t = Rh / xmax * NR - 0.5;
     int i = static_cast<int>(std::floor(t));
     double p;
-    if (i < 0) p = p2[0] * (Rh * NR / 0.5);          // p2 ~ Rhat near 0
+    if (i < 0) p = p2[0] * (Rh / xmax * NR / 0.5);   // p2 ~ Rhat near 0
     else if (i >= NR - 1) p = p2[NR - 1];
     else p = p2[i] + (t - i) * (p2[i + 1] - p2[i]);
     return p / (2.0 * PI * std::max(Rh, 1e-12) * r200 * r200);
@@ -187,7 +214,9 @@ void Subhalo::buildRestrictedBin(cosmology &C, int jz, int jM) {
     const double c = chost[jz][jM];
     if (r200 <= 0.0) return;
 
-    const double psi_min = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);
+    const double Mpsi = Mpsih[jz][jM];               // M_200 legacy, M_vir in virial mode
+    const double xmax = xmaxh[jz][jM];               // 1 legacy, eta = r_vir/r_200 virial
+    const double psi_min = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / Mpsi);
     if (psi_min >= psi_max) return;
 
     // projected anti-biased clump surface density, identical construction to
@@ -196,14 +225,14 @@ void Subhalo::buildRestrictedBin(cosmology &C, int jz, int jM) {
     const double x0 = biasScaleR200(C, c, C.zlist[jz]);
     vector<double> p2(NR, 0.0);
     auto p3 = [&](double x) {
-        if (x <= 0.0 || x > 1.0) return 0.0;
+        if (x <= 0.0 || x > xmax) return 0.0;
         double B = 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0);
-        return x * x / pow(1.0 + c * x, 2.0) * B;
+        return x / pow(1.0 + c * x, 2.0) * B;   // dN/dx = 4 pi r^2 rho_NFW B
     };
     double p2norm = 0.0;
     for (int i = 0; i < NR; i++) {
-        double Rh = (i + 0.5) / NR;
-        double umax = sqrt(std::max(1.0 - Rh * Rh, 0.0));
+        double Rh = (i + 0.5) / NR * xmax;
+        double umax = sqrt(std::max(xmax * xmax - Rh * Rh, 0.0));
         double du = umax / (NUa - 1), acc2 = 0.0;
         for (int k = 0; k < NUa; k++) {
             double u = k * du;
@@ -211,17 +240,18 @@ void Subhalo::buildRestrictedBin(cosmology &C, int jz, int jM) {
             acc2 += w * p3(sqrt(Rh * Rh + u * u)) * Rh / (Rh * Rh + u * u);
         }
         p2[i] = acc2 * du;
-        p2norm += p2[i] / NR;
+        p2norm += p2[i] * xmax / NR;
     }
     if (p2norm <= 0.0) return;
-    for (int i = 0; i < NR; i++) p2[i] /= p2norm;     // int_0^1 p2 dRhat = 1
+    for (int i = 0; i < NR; i++) p2[i] /= p2norm;     // int_0^xmax p2 dRhat = 1
     p2p[jz][jM] = p2;
 
     // envelope: max of Sigma_n over the plane. The R->0 limit is finite (p2 ~ Rhat),
-    // so scan the cell centres and include that limit explicitly.
-    double smax = p2[0] * NR / (0.5 * 2.0 * PI * r200 * r200);   // Rhat -> 0
+    // so scan the cell centres and include that limit explicitly. The first cell centre
+    // sits at Rhat = 0.5 xmax/NR, hence the xmax in the limiting expression.
+    double smax = p2[0] * NR / (0.5 * xmax * 2.0 * PI * r200 * r200);   // Rhat -> 0
     for (int i = 0; i < NR; i++) {
-        double Rh = (i + 0.5) / NR;
+        double Rh = (i + 0.5) / NR * xmax;
         smax = std::max(smax, p2[i] / (2.0 * PI * Rh * r200 * r200));
     }
     if (!(smax > 0.0)) return;
@@ -237,7 +267,7 @@ void Subhalo::buildRestrictedBin(cosmology &C, int jz, int jM) {
     double acc = 0.0, prev = 0.0;
     for (int q = 0; q < Nq; q++) {
         double psi = std::exp(lp0 + q * dlp);
-        double D = clumpReach(C, jz, psi * M);
+        double D = clumpReach(C, jz, psi * Mpsi);
         double pcap = std::min(1.0, PI * D * D * smax);
         double lam = g * pow(psi, alpha) * pcap;
         if (q > 0) acc += 0.5 * (lam + prev) * dlp;    // trapezoid in dlnpsi
@@ -280,7 +310,7 @@ int Subhalo::addClumpsRestricted(cosmology &C, int jz, int jM, double M, double 
         // 2. SHMF exponential cutoff (Poisson thinning, exactly as model 4)
         if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
 
-        const double m = psi * M;
+        const double m = psi * Mpsih[jz][jM];        // M_200 legacy, M_vir in virial mode
         const double D = clumpReach(C, jz, m);
         if (!(D > 0.0)) continue;
 
@@ -343,6 +373,12 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappat
     rhos_sm.assign(Nz, vector<double>(NM, 0.0));
     r200h.assign(Nz, vector<double>(NM, 0.0));
     chost.assign(Nz, vector<double>(NM, 0.0));
+    // virial-convention tables. Legacy values (1.0 and M) make every expression below
+    // reduce EXACTLY to the pre-2026-07-28 form (multiplication by 1.0 is exact), so
+    // virial = false stays bitwise-identical.
+    xmaxh.assign(Nz, vector<double>(NM, 1.0));
+    Mpsih.assign(Nz, vector<double>(NM, 0.0));
+    Mgrid_.assign(Nz, vector<double>(NM, 0.0));
     gnorm.assign(Nz, vector<double>(NM, 0.0));
     invRad.assign(Nz, vector<vector<double>>(NM));
     muW.assign(Nz, vector<vector<double>>(NM));
@@ -427,21 +463,35 @@ void Subhalo::precompute(cosmology &C, double zs, double kappathr, double kappat
             double c = NFWf[2];
             chost[jz][jM] = c; r200h[jz][jM] = NFWf[0] * c;
 
+            // virial-convention scales. eta = r_vir/r_200 = c_vir/c_200 (same r_s), so
+            // M_vir/M_200 = mu(c_vir)/mu(c_200) with mu(y) = ln(1+y) - y/(1+y).
+            Mgrid_[jz][jM] = M;
+            if (virial) {
+                const double eta = etaVirTo200(C, c, z);
+                xmaxh[jz][jM] = eta;
+                Mpsih[jz][jM] = M * nfwMu(eta * c) / nfwMu(c);
+            } else {
+                Mpsih[jz][jM] = M;                 // psi = m/M_200, extent x <= 1
+            }
+            const double xmax = xmaxh[jz][jM];
+
             // inverse radial CDF x(u) for the anti-biased profile
-            //   dN/dshell ~ x^2/(1+c x)^2 * B(x),  B(x)=1/sqrt((x/x0)^-p + 1),
-            //   x = r/r_200; x0 converted from the r_vir-calibrated 0.54 per host.
+            //   dN/dshell ~ x/(1+c x)^2 * B(x),  B(x)=1/sqrt((x/x0)^-p + 1),
+            //   x = r/r_200; x0 converted from the r_vir-calibrated 0.86 per host.
+            // Sampled over x in [0, xmax]: r_200 in legacy mode, r_vir in virial mode
+            // (both JvdB14's f_s and Green+21's F_sub are virial-extent populations).
             const double x0 = biasScaleR200(C, c, z);
             const int Nx = 4000; vector<double> xs(Nx), cdf(Nx);
             double acc = 0.0;
             for (int i = 0; i < Nx; i++) {
-                xs[i] = static_cast<double>(i) / (Nx - 1);
+                xs[i] = static_cast<double>(i) / (Nx - 1) * xmax;
                 double x = xs[i];
                 double B = (x > 0.0) ? 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0) : 0.0;
-                double w = x * x / pow(1.0 + c * x, 2.0) * B;
+                double w = x / pow(1.0 + c * x, 2.0) * B;
                 if (i > 0) {
                     double xp = xs[i - 1];
                     double Bp = (xp > 0.0) ? 1.0 / sqrt(pow(xp / x0, -BIAS_EXP) + 1.0) : 0.0;
-                    double wp = xp * xp / pow(1.0 + c * xp, 2.0) * Bp;
+                    double wp = xp / pow(1.0 + c * xp, 2.0) * Bp;
                     acc += 0.5 * (w + wp) * (x - xp);
                 }
                 cdf[i] = acc;
@@ -506,7 +556,7 @@ void Subhalo::buildWsubBin(cosmology &C, double zs, int jz, int jM, double kappa
     auto p3 = [&](double x) {
         if (x <= 0.0 || x > 1.0) return 0.0;
         double B = 1.0 / sqrt(pow(x / x0, -BIAS_EXP) + 1.0);
-        return x * x / pow(1.0 + c * x, 2.0) * B;
+        return x / pow(1.0 + c * x, 2.0) * B;   // dN/dx = 4 pi r^2 rho_NFW B
     };
     double p2norm = 0.0;
     for (int i = 0; i < NR; i++) {
@@ -686,11 +736,15 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
     double g = gnorm[jz][jM];
     if (g <= 0.0) return 0;
 
+    // mass scale for psi: M_200 (== M) in legacy mode, M_vir in virial mode. Mpsih is
+    // filled with M when virial = false, so every use below is bitwise unchanged.
+    const double Mpsi = Mpsih[jz][jM];
+
     double psi_lo = 0.0;
     // model 4 resolves every subhalo down to the absolute floor, exactly like brute mode
     // (no dynamic r_thr floor); m_floor/M = M_min/M is the supervisor's psi_min choice.
     if (subhalo_brute || subhalo_model == 4) {
-        psi_lo = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / M);
+        psi_lo = (psi_min_fixed > 0.0) ? psi_min_fixed : (m_floor / Mpsi);
     } else {
         // dynamic floor: smallest clump whose reach r_thr(m) >= r, keyed to the HOST-CENTER
         // distance (MUST match lensing.cpp's f_s_res). This under-resolves clumps that land
@@ -702,7 +756,7 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
         const vector<double> &rth = r_thr[jz];
         int jlo = static_cast<int>(std::lower_bound(rth.begin(), rth.end(), r) - rth.begin());
         if (jlo >= C.NM) return 0;                       // nothing reaches kappa_thr at distance r
-        psi_lo = std::max(C.Mlist[jlo], C.Mmin) / M;
+        psi_lo = std::max(C.Mlist[jlo], C.Mmin) / Mpsi;
     }
     if (psi_lo >= psi_max) return 0;                 // no resolved clumps in this host
 
@@ -747,7 +801,7 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
             int begin = (Nc * t) / nthreads;
             int end = (Nc * (t + 1)) / nthreads;
             workers.emplace_back([&, t, begin, end]() {
-                accs[t] = evalClumpRange(C, jz, M, Sigmac, rcos, rsin, r200, xcdf, Nu,
+                accs[t] = evalClumpRange(C, jz, Mpsi, Sigmac, rcos, rsin, r200, xcdf, Nu,
                                          alpha, beta, omega, psi_lo, psi_max, log_Mmin,
                                          inv_dlogM, d_cut, begin, end, mts[t]);
             });
@@ -768,7 +822,7 @@ int Subhalo::addClumps(cosmology &C, int jz, int jM, double zl, double M, double
         double u = randomreal(0.0, 1.0, mt);
         double psi = pow(pa_lo + u * (pa_hi - pa_lo), inv_alpha);
         if (randomreal(0.0, 1.0, mt) > exp(-beta * pow(psi, omega))) continue;
-        double m = psi * M;
+        double m = psi * Mpsi;          // Mpsi = M_200 legacy, M_vir in virial mode
         double log_m = std::log(m);
         if (mass_out) *mass_out += m;   // realized resolved-clump mass carved from the host
 

@@ -18,7 +18,14 @@ PLANCK = dict(h=0.674, OmegaM=0.315, As=2.101e-9, OmegaB=0.0493, zeq=3402.0, ns=
 
 
 def test_backward_compat_bitwise():
-    """DEFAULT threshold path reproduces pre-change samples exactly.
+    """DEFAULT threshold path reproduces the reference samples exactly.
+
+    ⚠ The reference was RE-BASELINED 2026-07-28 after the deliberate
+    `cosmology::halobias` q 0.75 -> 0.8 change (see tests/capture_reference_lnmu.py for
+    the history and the verification protocol). It now anchors to post-halobias physics;
+    the pre-change vectors are kept in `tests/data/reference_lnmu_pre_halobias.npz`.
+    A failure here means the default path moved — treat it as a real regression unless
+    you know which intentional change caused it.
 
     The DEFAULT threshold is the legacy <N>=Nhalos rule again (reverted
     2026-07-10 from the 2026-07-09 flat-1e-3 default). The no-kwarg calls

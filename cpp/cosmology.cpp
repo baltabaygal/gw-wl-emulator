@@ -459,10 +459,17 @@ double rhokNFW(double k, double rs, double rhos, double c) {
 
 
 // halo bias, see Baumann (5.132)
+//
+// (p,q) = (0.3, 0.8) MATCH pFC (cosmology.cpp::pFC), so that b is the
+// peak-background split of the same ellipsoidal-collapse barrier that sets the
+// halo mass function -- exactly as filbias mirrors pFCfil at q = 0.7.
+// Changed 2026-07-28 from q = 0.75 (user decision: one (p,q) everywhere).
+// NOT bitwise-compatible with pre-2026-07-28 runs: b rises ~1-3% so the
+// clustering modulation lambda strengthens slightly.
 double cosmology::halobias(double z, double sigma) {
 
     double p = 0.3;
-    double q = 0.75;
+    double q = 0.8;
     double qnu2 = q*pow(deltac(z)/sigma,2.0);
 
     return 1.0 + (qnu2-1.0)/deltac0 + 2.0*p/(deltac0*(1.0+pow(qnu2, p)));

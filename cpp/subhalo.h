@@ -26,6 +26,35 @@ public:
     // <= 0 (default) keeps the existing m_floor/M behavior, bitwise unchanged.
     double psi_min_fixed = -1.0;
 
+    // --- virial-convention mode (subhalo_virial, 2026-07-28; default OFF) --------
+    // JvdB14 defines host haloes and subhaloes as spheres of mean density
+    // Delta_vir(z) rho_crit(z) INSIDE THEIR VIRIAL RADII (their sec. 2), so f_s and
+    // psi = m/M are M_vir quantities and the population extends to r_vir. Green+21,
+    // whose radial bias calibrates B(x), likewise normalizes "to unity at r_vir" with
+    // Bryan-Norman Delta_vir. The engine's grid mass M is M_200c (NFWlistf builds
+    // r200 from 200 rho_crit(z)) and the profile was sampled only to r_200, so the
+    // legacy path applies a virial-calibrated normalization over an r_200 aperture:
+    // it carries ~9% (z_s=5) to ~49% (z=0.1) too much substructure inside r_200.
+    // Only the radial-BIAS scale x0 was converted (etaVirTo200); the extent and the
+    // mass normalization were not. See data/results/subhalo_virial/report.md.
+    //
+    // virial = true fixes both: psi is referred to M_vir = M mu(c_vir)/mu(c_200) and
+    // the radial profile is sampled out to x = eta = r_vir/r_200. Gated to
+    // subhalo_model 4/5 (the production + reference path); throws otherwise.
+    bool virial = false;
+    vector<vector<double>> xmaxh;    // clump radial extent in r_200 units: 1 legacy, eta virial
+    vector<vector<double>> Mpsih;    // mass scale for psi = m/Mpsi: M legacy, M_vir virial
+
+    // M_vir/M_200 for the host bin (1.0 in legacy mode). lensing.cpp converts the
+    // realized clump mass to the M_200 scale with this before carving, so the smooth
+    // host keeps the same FRACTIONAL mass (1-f_s) in both apertures.
+    double virialRatio(int jz, int jM) const {
+        if (!virial || Mpsih.empty()) return 1.0;
+        double Mv = Mpsih[jz][jM];
+        return (Mv > 0.0) ? Mv / Mgrid_[jz][jM] : 1.0;
+    }
+    vector<vector<double>> Mgrid_;   // grid mass M per bin (for virialRatio)
+
     // built by precompute(); indexed [jz][jM]
     vector<vector<double>> fsub;     // resolved bound fraction f_s(M,z)
     vector<vector<double>> Nsub;     // mean clump count above m_floor

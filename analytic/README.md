@@ -88,6 +88,105 @@ consistent with the weak-band variance check (analytic/engine = 1.015 at
 z_s=5). The residual is intrinsic to the scalar reduction plus the mean
 convention, and no engine setting removes it.
 
+### Where the residual actually lives (2026-07-27)
+
+`test_composition.py` → `figures/composition_vs_zs.png`. κ and γ are **exactly
+additive** in both codes, so Campbell's theorem gives their variances from the
+jump measure with no scalar reduction anywhere: Var(κ) = ∫κ²dR,
+⟨|Σγ⃗|²⟩ = ∫γ²dR. Comparing those separates an error in R(ξ) from an error in
+the κ→μ composition.
+
+| z_s | N an/eng | Var(κ) an/MC | ⟨γ²⟩ an/MC, κ>κ_thr | ⟨γ²⟩ an/MC, full band | Var(lnμ) an/MC | σ_DL an/MC |
+|-----|-------|-------|-------|-------|-------|-------|
+| 0.5 | 1.017 | 1.030 | 1.030 | 1.068 | 1.027 | 1.013 |
+| 1   | 1.017 | 1.042 | 1.031 | 1.099 | 1.045 | 1.023 |
+| 2   | 1.016 | 1.050 | 1.030 | 1.149 | 1.051 | 1.027 |
+| 5   | 1.016 | 1.034 | 1.030 | 1.241 | 1.058 | 1.037 |
+| 7   | 1.018 | 1.045 | 1.033 | 1.279 | 1.068 | 1.044 |
+| 8   | 1.017 | 1.039 | 1.032 | 1.292 | 1.067 | 1.045 |
+| 10  | 1.017 | 1.039 | 1.031 | 1.309 | 1.070 | 1.048 |
+
+Three separate things were conflated in the earlier reading:
+
+1. **The jump measure R(ξ) is right, uniformly in z_s.** Lens count +1.7% and
+   like-for-like ⟨γ²⟩ +3.0–3.3% are *flat* from z_s=0.5 to 10. Var(κ) ≈ +4% is
+   just the count excess propagated (Var ∝ N for a Poisson sum). Nothing about
+   the analytic degrades at high z_s.
+2. **⚠ ENGINE finding — the sub-threshold arm has no shear.**
+   `lensing.cpp:779-781` fills the Gaussian background with
+   `kappa = PkappaW(mt)` but `gamma1 = gamma2 = 0`. Under the fixed-⟨N⟩=100
+   rule κ_thr grows with z_s (3.8e-5 → 1.4e-3 over z_s 0.5→10), so the omitted
+   band grows and the engine's ⟨γ²⟩ deficit reaches **31% at z_s=10**. This is
+   an engine approximation, not an analytic error — restricting the analytic
+   to κ>κ_thr collapses the ratio back to a flat 1.03. It barely moves P(lnμ)
+   because γ enters ξ only at O(γ²), which is why the ⟨N⟩ scan below shows
+   nothing, but it should be quoted if ⟨γ²⟩ is ever used directly.
+3. **The scalar reduction is real but small**: Var(lnμ) drifts +2.7% → +7.0%
+   over z_s 0.5 → 10, i.e. only ~3% on top of the flat additive floor, and it
+   **saturates by z_s ≈ 5** (the z_s = 5/7/8/10 ratio panels are essentially
+   identical). σ_DL likewise 1.3% → 4.8%.
+
+The large-looking ±20% swing in the ratio panels is pointwise, on a steep
+narrow distribution: about half is the mean-subtraction convention
+(mean-matching drops body |Δ| from 11–14% to 6.5–7.5%), the rest is the
+composition. No integrated quantity is off by more than 7%.
+
+### Closing the budget: the gap was mostly the ENGINE's grid (2026-07-27)
+
+Three targeted experiments, each isolating one candidate.
+
+**(a) Background shear — NOT the cause.** `test_background_shear.py` measures
+the shear the engine's weak arm omits, ⟨γ²_sub⟩ = ∫γ²dR(full) − ∫γ²dR(κ>κ_thr),
+and injects it back into the MC rays as a 2D Gaussian. It closes only
+**0.2 / 5.2 / 8.3%** of the Var(lnμ) gap at z_s = 1 / 5 / 10. Real but minor —
+γ enters ξ only at O(γ²).
+
+**(b) Scalar reduction, in isolation.** `test_scalar_reduction.py` draws BOTH
+compositions from the SAME realizations of the analytic chain's own lens
+population, so nothing else can differ. Var(scalar)/Var(vector):
+
+| z_s | 1 | 5 | 10 |
+|-----|---|---|----|
+| ratio | 1.0004 | 1.0144 | 1.0220 |
+
+So the scalar reduction is worth ~0% at z_s=1, +1.4% at z_s=5, +2.2% at z_s=10.
+(The mean rows in that script's output compare two *anchoring* conventions,
+not compositions — see the caveat there.)
+
+**(c) ⚠ The dominant term was the engine's (NM, Nz) grid, not the analytic.**
+At fixed κ_thr the engine's own expected lens count is still rising at its
+production resolution, while the analytic's is converged:
+
+| grid | engine ⟨N⟩ (z_s=5) | | analytic grid | analytic ⟨N⟩ |
+|------|------|---|------|------|
+| NM=Nz=100 (production) | 100.54 | | Nz=40, NM=48 | 102.18 |
+| NM=Nz=200 | 102.42 | | Nz=80, NM=96 | 102.02 |
+| NM=Nz=400 | 103.37 | | Nz=160, NM=160 | 101.98 |
+
+Re-running the MC on the finer grid moves it onto the analytic:
+
+| z_s | engine grid | Var(lnμ) an/MC | σ_DL an/MC | JSD | body \|Δ\| |
+|-----|------|------|------|------|------|
+| 1 | NM=Nz=100 | 1.045 | 1.023 | 3.5e-4 | 4.1% |
+| 1 | NM=Nz=400 | **1.008** | **1.005** | 2.8e-4 | 4.1% |
+| 5 | NM=Nz=100 | 1.058 | 1.037 | 2.3e-3 | 11.4% |
+| 5 | NM=Nz=400 | **1.024** | **1.021** | 2.2e-3 | 11.4% |
+
+**Final budget for the z_s=5 Var(lnμ) gap (+5.8% total):** engine grid
+resolution +3.4%, scalar reduction +1.4%, shear-free weak arm +0.3%,
+unexplained ~0.7%. At z_s=1 the gap collapses to +0.8% once the engine grid is
+converged — i.e. essentially all of it was the engine.
+
+Note the JSD and body |Δ| barely move under (a)–(c): the ratio-panel *shape*
+is set by the mean-subtraction convention, which is independent of every
+variance term above.
+
+**Implication for the wider project:** the production engine's Nz=NM=100 grid
+under-counts lenses by ~3% at z_s=5, worth ~2.7% in Var(κ) and ~1.6% in σ_DL.
+This refines CLAUDE.md item 12 ("Nz=100 converged") — the JSD verdicts there
+are unaffected (JSD moves only 2.3e-3 → 2.2e-3), but *variance-level* claims at
+z_s ≳ 5 carry this bias.
+
 ### Cost (z_s=1, engine mode, single core)
 
 | stage | time |

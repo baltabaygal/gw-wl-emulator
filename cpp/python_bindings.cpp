@@ -46,7 +46,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
            int subhalo_model, bool subhalo_brute, double subhalo_factor,
-           bool subhalo_carve,
+           bool subhalo_carve, bool subhalo_virial,
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double psi_min_fixed,
@@ -89,6 +89,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
             samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_virial = subhalo_virial;
             samp.subhalo_kappathr = subhalo_kappathr;
             samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.psi_min_fixed = psi_min_fixed;
@@ -132,6 +133,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
+        py::arg("subhalo_virial") = false,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("psi_min_fixed") = -1.0,
@@ -158,7 +160,7 @@ PYBIND11_MODULE(gwlensing, m) {
         "sample_lnmu_ml",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
-           bool subhalo_carve,
+           bool subhalo_carve, bool subhalo_virial,
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
@@ -208,6 +210,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
             samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_virial = subhalo_virial;
             samp.subhalo_kappathr = subhalo_kappathr;
             samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
@@ -245,6 +248,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
+        py::arg("subhalo_virial") = false,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
@@ -270,7 +274,7 @@ PYBIND11_MODULE(gwlensing, m) {
         "sample_lnmu_ml_with_diagnostics",
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj, bool strict_weak_lensing, double Mmin, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute, double subhalo_factor,
-           bool subhalo_carve,
+           bool subhalo_carve, bool subhalo_virial,
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
@@ -314,6 +318,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
             samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_virial = subhalo_virial;
             samp.subhalo_kappathr = subhalo_kappathr;
             samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
@@ -359,6 +364,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
+        py::arg("subhalo_virial") = false,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
@@ -385,7 +391,7 @@ PYBIND11_MODULE(gwlensing, m) {
         [](double z, double h, double OmegaM, double sigma8, int nsamples, py::object seed_obj,
            bool filaments, bool bias, bool ell, int Nhalos, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute,
-           double subhalo_factor, bool subhalo_carve, double subhalo_kappathr, double subhalo_kappathr_factor, double custom_kappathr, double kappathr_flat, double Mmin,
+           double subhalo_factor, bool subhalo_carve, bool subhalo_virial, double subhalo_kappathr, double subhalo_kappathr_factor, double custom_kappathr, double kappathr_flat, double Mmin,
            double As, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
@@ -434,6 +440,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cfg.subhalo_brute = subhalo_brute;
             cfg.subhalo_factor = subhalo_factor;
             cfg.subhalo_carve = subhalo_carve;
+            cfg.subhalo_virial = subhalo_virial;
             cfg.subhalo_kappathr = subhalo_kappathr;
             cfg.subhalo_kappathr_factor = subhalo_kappathr_factor;
             cfg.custom_kappathr = custom_kappathr;
@@ -491,6 +498,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
+        py::arg("subhalo_virial") = false,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("custom_kappathr") = -1.0,
@@ -528,6 +536,7 @@ PYBIND11_MODULE(gwlensing, m) {
             d["subhalo_brute"] = false;
             d["subhalo_factor"] = 1.0e-2;
             d["subhalo_carve"] = true;
+            d["subhalo_virial"] = false;   // JvdB14 virial convention (psi=m/M_vir, profile to r_vir); model 4/5 only
             d["subhalo_kappathr"] = -1.0;        // model 5 only: <= 0 -> factor * host kappa_thr
             d["subhalo_kappathr_factor"] = 0.1;  // model 5 only
             d["kappathr_flat"] = -1.0;
@@ -581,7 +590,7 @@ PYBIND11_MODULE(gwlensing, m) {
            bool fast, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold,
            int subhalo_model, bool subhalo_brute, double subhalo_factor,
-           bool subhalo_carve,
+           bool subhalo_carve, bool subhalo_virial,
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
@@ -617,6 +626,7 @@ PYBIND11_MODULE(gwlensing, m) {
             samp.subhalo_brute = subhalo_brute;
             samp.subhalo_factor = subhalo_factor;
             samp.subhalo_carve = subhalo_carve;
+            samp.subhalo_virial = subhalo_virial;
             samp.subhalo_kappathr = subhalo_kappathr;
             samp.subhalo_kappathr_factor = subhalo_kappathr_factor;
             samp.kappathr_flat = kappathr_flat;
@@ -660,6 +670,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
+        py::arg("subhalo_virial") = false,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,

@@ -4,8 +4,12 @@ Purpose: for any paper section/equation, find the implementation fast (and vice
 versa). The .tex itself is NOT in this repo (Overleaf); `paper_prod/` holds plot
 style, figure scripts, and memos. Line numbers are as of 2026-07-20 — they drift,
 so function names are authoritative; `grep -n` the name if a line is off.
-Companion: `paper_prod/draft_comments_memo.md` (2026-07-20) = per-comment
-resolutions of Ville's \R{} notes + ready LaTeX + known draft↔code mismatches.
+Companions: `paper_prod/draft_comments_memo.md` (2026-07-20) = per-comment
+resolutions of Ville's \R{} notes + ready LaTeX + known draft↔code mismatches;
+**`paper_prod/paper_writer.md` (2026-07-28) = the WRITING contract** — file
+ownership, the `\B{}` = "differs from production.tex" convention, prose style
+(synthesis of Vaskonen 2026 + Baltabay+ 2026 arXiv:2607.01333), the verification
+contract, and the standing claim rules. Read it before writing paper text.
 
 Update this file when the paper or the touched code changes (same living-document
 rule as CLAUDE.md; date your edits).
@@ -16,7 +20,7 @@ rule as CLAUDE.md; date your edits).
 |---|---|
 | cosmology tables: grids (M 1e7–1e17 ×100, z 0.01–10.01 ×100), σ(M) smooth-k window, δ_c(z), D_g(z), d_c(z), EH98 T(k), P(k) normalization (σ8- and A_s-mode) | `cpp/cosmology.{h,cpp}`; A_s-mode `initialize_normalization` in `cosmology.h` |
 | HMF (ellipsoidal first-crossing p=0.3, q=0.8) | `cosmology.cpp::pFC` (:190), `HMFlistf` (:206) |
-| halo bias b(M,z) (ST99, p=0.3, q=0.75) | `cosmology.cpp::halobias` (:462) |
+| halo bias b(M,z) (ST99, **p=0.3, q=0.8** — changed from q=0.75 on 2026-07-28 to match the `pFC` barrier; not bitwise) | `cosmology.cpp::halobias` (:462) |
 | concentration c200(M,z) (Dutton–Macciò 14) | `cosmology.cpp::cons14` (:365); NFW rs/ρs/c tables at 200ρ_c(z): `NFWlistf` (:419, r200 = c·rs) |
 | NFW lensing kernels κ0, Fg, pseudo-elliptical κ/γ | `lensing.cpp`: `kappa0NFW` (:45), `FgNFW` (:28), `kappagammaNFWeps` (:56); ellipticity ε(M,z) Allgood+06: `epsilonNFW` (:50) |
 | Python mirror of all of the above (numpy-only; use when the C++ build is unavailable, e.g. Linux sandbox — validated vs gwlensing helpers) | `scripts/convergence/bias_field_prototype.py::Cosmo` |
@@ -141,10 +145,15 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
 - Eq. (reducedhost) host reduction: model 1 (resolved-only f_s_res, dynamic
   floor) `lensing.cpp` (:848–881); model 3 (FULL f_s,b) (:882–894); reduced-host
   NFW at (1−f_s)M `subhalo.cpp` (:195–197).
-- Eq. (radial) anti-biased profile x²/(1+cx)²·[1+(x/0.54)^{−5/2}]^{−1/2}:
+- Eq. (radial) anti-biased profile — **dN/dx ∝ x/(1+cx)²·B(x), NOT x²
+  (SHAPE FIX 2026-07-28, not bitwise; see CLAUDE.md item 15)**; B multiplies
+  ρ_NFW because Green+21 define it as a ratio of volume number densities, so the
+  shell x² cancels one power against the NFW cusp:
   inverse-CDF table `precompute` (:202–227); same B(x) in `buildWsubBin` p3
-  (:268–272). c200/r200 of host from NFWlist: (:198–200). ⚠ provenance of
-  (0.54, 5/2) unconfirmed — see draft_comments_memo R6 before citing.
+  (:268–272); third site `buildRestrictedBin`. c200/r200 of host from NFWlist:
+  (:198–200). Transition scale is `BIAS_X0_RVIR = 0.86` in **r_vir** units
+  (converted to r_200 via `etaVirTo200`), not the 0.54 that older text and
+  `production.tex` still carry — see draft_comments_memo R6 before citing.
 - Resolution ε_sub (= `subhalo_factor`, default 1e-2): clump-reach table r_thr
   `precompute` (:130–139); dynamic floor `addClumps` (:418–433); host-side
   mirror (:856–864).
@@ -238,6 +247,18 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   `get_simulator_config`).
 - Tail/edge/flux facts for the text: `docs/edge_tail_flux_note.md` (μ⁻² tail,
   empty-beam edge, flux calibration target).
+- **§II.B rewritten 2026-07-28** (shape rationale in `paper_writer.md` §5): four
+  paragraphs — synthesis+estimator, low-μ edge, μ⁻² tail, flux sum rule — each
+  feature handed forward to §III as an imposed constraint; evidence in the new
+  appendix `app:edge_tail`. **Plane = IMAGE throughout.** ⚠ Two conventions coexist
+  in the repo: `Plnmuf` (:1396) applies the 1/μ source-plane conversion, whereas
+  `sample_lnmu` (used by the figure script AND the ML pipeline) is image-plane.
+  ⚠ `fig:magpdf_ingredients` DELETED — the ingredient decomposition moved to
+  `fig:variance_DL` (Vaskonen Fig. 3 style), which has no generating script yet and
+  now needs three cumulative curves.
+  ⚠ Do NOT impose ⟨1/μ⟩=1 on the emulator: the constraint is plane-invariant
+  (⟨μ⟩_S = 1/⟨1/μ⟩_I exactly), it was tried (KL 0.50 vs 0.0034), and the sim does
+  not satisfy it on certified support. Target `F_trim(ctx)`.
 - Figs. `fig:magpdf_zs` / `fig:magpdf_ingredients` (added 2026-07-24, Sec. II.B):
   dP/dμ vs μ for z_s=0.5/1/2/5/10 (full config), and dP/dμ at z_s=5 for
   baseline/+subhalos/+clustering. Generator
