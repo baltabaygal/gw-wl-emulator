@@ -44,33 +44,86 @@ from scripts.subhalo_gate.subhalo_factor_proxy_check import (  # noqa: E402
 from playground.dgate.subhalo_factor_dgate_area_scan import host_rmax  # noqa: E402
 
 
-def projected_profile(c_host: float, r200: float, n_grid: int = 2048):
+# --------------------------------------------------------------------------------
+# Radial-profile conventions -- MUST match cpp/subhalo.cpp (see its RADIAL SAMPLING
+# CONVENTION block).  Three things have to agree, and historically only the first did:
+#
+#   1. shape      dN/dx ~ x B(x)/(1+cx)^2          (corrected 2026-07-28 from x^2)
+#   2. bias scale B(x) = [1+(x/x0)^-p]^-1/2 with x0 calibrated in r_VIR units
+#      (BIAS_X0_RVIR = 0.86, refit to the Klypin+11 Bolshoi points), so in the
+#      x = r/r_200 variable the code samples, x0 -> 0.86 * eta(c200, z).
+#   3. extent     x <= 1 (legacy) or x <= eta with psi = m/M_vir (subhalo_virial,
+#      which PRODUCTION_CONFIG turns ON).
+#
+# The defaults below (x0 = 0.54 in r_200 units, xmax = 1) are the LEGACY values and
+# are kept only so the older playground scripts that call this helper keep their
+# published numbers.  Anything being compared against the production engine must pass
+# production_profile_params() explicitly.
+# --------------------------------------------------------------------------------
+BIAS_X0_RVIR = 0.86
+BIAS_EXP = 2.5
+LEGACY_X0_R200 = 0.54
+
+
+def _nfw_mu(y):
+    return np.log(1.0 + y) - y / (1.0 + y)
+
+
+def eta_vir_to_200(c200: float, z: float) -> float:
+    """r_vir/r_200 = c_vir/c_200. Mirrors cpp/subhalo.cpp::etaVirTo200."""
+    from scripts.subhalo_gate.subhalo_factor_proxy_check import dvir
+    target = 200.0 * c200**3 / _nfw_mu(c200) / dvir(z)
+    lo, hi = c200, 3.0 * c200
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if mid**3 / _nfw_mu(mid) < target:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi) / c200
+
+
+def production_profile_params(c_host: float, z: float, virial: bool = True):
+    """(x0, xmax) in x = r/r_200 units, matching cpp/subhalo.cpp::precompute."""
+    eta = eta_vir_to_200(c_host, z)
+    return BIAS_X0_RVIR * eta, (eta if virial else 1.0)
+
+
+def projected_profile(c_host: float, r200: float, n_grid: int = 2048,
+                      x0: float = LEGACY_X0_R200, xmax: float = 1.0,
+                      shape_exp: float = 1.0):
     """Projected (2D) surface pdf sigma(R) of the anti-biased subhalo profile.
 
-    3D radial pdf (per sample_biased_radii): p3(x) ~ x^2/(1+cx)^2 * bias(x),
-    x = r3d/r200 on [0,1].  Isotropic projection: R = r3d*sin(theta) with
-    cos(theta) uniform, so  p2(R) = int_R^r200 p3(r) * R/(r*sqrt(r^2-R^2)) dr.
+    3D radial pdf: p3(x) ~ x/(1+cx)^2 * bias(x), x = r3d/r200 on [0, xmax].
+    Isotropic projection: R = r3d*sin(theta) with
+    cos(theta) uniform, so  p2(R) = int_R^{xmax} p3(r) * R/(r*sqrt(r^2-R^2)) dr.
     Returns sigma(R) = p2(R)/(2 pi R)  (surface density, normalized so that
     int sigma 2 pi R dR = 1) as an interpolator plus the R grid.
+
+    x0/xmax default to the LEGACY convention; pass production_profile_params() to
+    match the engine.
     """
-    x = np.linspace(1.0e-6, 1.0, n_grid)
-    bias = 1.0 / np.sqrt((x / 0.54) ** (-2.5) + 1.0)
+    x = np.linspace(1.0e-6, xmax, n_grid)
+    bias = 1.0 / np.sqrt((x / x0) ** (-BIAS_EXP) + 1.0)
     # dN/dx = 4 pi r^2 rho_NFW(x) B(x) ~ x/(1+c x)^2 B(x); corrected 2026-07-28
     # from x^2/(1+c x)^2 -- see cpp/subhalo.cpp RADIAL SAMPLING CONVENTION.
-    w3 = x / (1.0 + c_host * x) ** 2 * bias
+    # shape_exp = 1 is the CORRECT dN/dx (B multiplies rho_NFW, so the x^2 shell factor
+    # cancels one power against the 1/x cusp); shape_exp = 2 reproduces the pre-
+    # 2026-07-28 error and exists only for attribution runs.
+    w3 = x**shape_exp / (1.0 + c_host * x) ** 2 * bias
     w3 /= np.trapezoid(w3, x)                      # p3(x), x = r/r200
 
     def p3_interp(q: np.ndarray) -> np.ndarray:
         return np.interp(q, x, w3, left=w3[0], right=0.0)
 
-    # p2(R) = int_R^1 p3(r) R/(r sqrt(r^2-R^2)) dr.  The integrand has an
+    # p2(R) = int_R^{xmax} p3(r) R/(r sqrt(r^2-R^2)) dr.  The integrand has an
     # integrable 1/sqrt(r-R) singularity at r=R; substitute u = sqrt(r^2-R^2)
     # (r = sqrt(R^2+u^2), dr = u du / r) which removes it exactly:
-    # p2(R) = int_0^{sqrt(1-R^2)} p3(sqrt(R^2+u^2)) * R/(R^2+u^2) du
-    R = np.linspace(1.0e-6, 1.0 - 1.0e-9, n_grid)  # units of r200
+    # p2(R) = int_0^{sqrt(xmax^2-R^2)} p3(sqrt(R^2+u^2)) * R/(R^2+u^2) du
+    R = np.linspace(1.0e-6, xmax - 1.0e-9, n_grid)  # units of r200
     p2 = np.empty_like(R)
     for i, Ri in enumerate(R):
-        umax = np.sqrt(max(1.0 - Ri**2, 0.0))
+        umax = np.sqrt(max(xmax**2 - Ri**2, 0.0))
         if umax <= 0.0:
             p2[i] = 0.0
             continue

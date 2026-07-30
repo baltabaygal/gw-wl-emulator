@@ -1,11 +1,12 @@
 # Magnification-PDF figures — run guide
 
-Generates the two `dP/dmu` figures for **Sec. II.B (Magnification PDF)**:
+Rewritten 2026-07-28. Generates the paper's magnification-PDF figures:
 
-| output (in `paper_prod/plots/figures/`) | what it shows |
-|---|---|
-| `fig_magnification_pdf_zs.{pdf,png}` | `dP/dmu` vs `mu` for `z_s = 0.5, 1, 2, 5, 10` at the full production config (Vaskonen 2026 Fig. 2 analog) |
-| `fig_magnification_pdf_ingredients.{pdf,png}` | `dP/dmu` at fixed `z_s = 5` for baseline / `+`subhalos / `+`clustering (what the paper's two new ingredients do) |
+| output (in `paper_prod/plots/figures/`) | slot | what it shows |
+|---|---|---|
+| `fig_magnification_pdf_zs.{pdf,png}` | `fig:magpdf_zs`, Sec. II.B | body of `dP/dmu` vs `mu`, linear `mu`, `z_s = 0.2 … 10` at the production config (the Vaskonen 2026 Fig. 2 analog) |
+| `fig_magnification_pdf_tail.{pdf,png}` | `fig:magpdf_tail`, App. `edge_tail` | **compensated** tail `mu^2 dP/dmu` vs `mu`, `z_s = 2,3,5,7,10`, flat-if-`mu^-2` |
+| `fig_magnification_pdf_ingredients.{pdf,png}` | — | baseline / `+`subhalos / `+`clustering at one `z_s`. ⚠ **Not currently a paper figure**: the ingredient decomposition moved to `fig:variance_DL` (2026-07-28), and the arms are not one-variable-at-a-time (see §5). Kept as a diagnostic. |
 
 Script: `paper_prod/scripts/plot_fig_magnification_pdf.py`.
 The Monte Carlo is the expensive part. **Smoothness is bought with realizations** —
@@ -22,127 +23,146 @@ The system `python3` (3.13) will not import `gwlensing`.
 PY=/Users/baltabay/miniforge3/envs/test/bin/python
 ```
 
-Requirement: the `gwlensing` module must be the **post-2026-07-23 Mac build**
-(`make build`) that includes `subhalo_model=4` + the mass-conserving carve. If
-`sample_lnmu(..., subhalo_model=4)` throws, rebuild first with `make build`.
-
 Run everything from the repo root (`/Users/baltabay/Desktop/gw-wl-emulator`).
+
+⚠ **Requires a rebuild first.** The production config is imported from
+`ml/params.py::PRODUCTION_CONFIG` (hash `0d50caf91c75`) and uses
+`subhalo_model=5` + `subhalo_virial=True`. `make build` must postdate the
+2026-07-28 `halobias` and subhalo-radial-profile changes, or the figures will
+show pre-fix physics.
 
 ---
 
 ## 1. Quick smoke test (seconds–minutes, noisy)
 
-Confirms the configs run and the plots render before you commit to a long job.
-
 ```bash
 $PY paper_prod/scripts/plot_fig_magnification_pdf.py --nreal 50000 --tag test
 ```
 
-The curves will be jagged in the tail at 50k — that is expected. If this works,
-scale up.
+The tail will be jagged at 50k — expected. If this renders, scale up.
 
 ---
 
-## 2. The smooth run
+## 2. The production run
 
-### Option A — one big single-process run (simplest)
-
-```bash
-$PY paper_prod/scripts/plot_fig_magnification_pdf.py --nreal 3000000 --tag run1
-```
-
-`3e6` realizations per series gives a smooth body and a clean `mu^-2` tail out to
-`mu ~ 1.8`. Go higher (`5e6`–`1e7`) if you want the tail smoother. There are 7
-series total (5 `z_s` for figure 1 + `base`/`subh` for figure 2; the `z_s=5` full
-curve is reused), so wall-time is `7 x (per-series MC)`.
-
-### Option B — shard over seeds, then combine (recommended for speed)
-
-Histograms just add, so independent seeds combine exactly. Run 8 shards in
-parallel (process-level parallelism is the efficient lever — see CLAUDE.md item 11),
-then sum them.
+`--nreal` defaults to **4e6 per series** (decision 2026-07-28). Shard it:
 
 ```bash
 for s in 1 2 3 4 5 6 7 8; do \
   $PY paper_prod/scripts/plot_fig_magnification_pdf.py \
-      --nreal 1000000 --seed $s --tag shard$s --no-plot & \
+      --nreal 500000 --seed $s --tag shard$s --no-plot & \
 done; wait
 
 $PY paper_prod/scripts/plot_fig_magnification_pdf.py \
     --combine "paper_prod/plots/data/magpdf_shard*.npz" --tag combined
 ```
 
-That is `8e6` realizations per series total, produced ~`min(8, ncores)x` faster
-than Option A. The `--combine` call writes the merged cache and renders the
-figures. Adjust the number of shards / `--nreal` to your core count and patience.
+Histograms add exactly across seeds, so shards combine without approximation.
+There are 10 series (8 `z_s` + `base`/`subh` at `z_s=5`; the `z_s=5` full curve
+is reused).
 
-> Do **not** try to parallelize a single `sample_lnmu` call with `subhalo_threads`
-> — that is intra-host only and is slower at production configs. Parallelize over
-> seeds (separate processes), as above.
+Why 4e6: it puts the worst compensated-tail bin at 5–7 % for `z_s >= 5` and
+11–17 % at `z_s = 2–3`, against the factor-12.5 effect that distinguishes
+`mu^-2` from `mu^-3` over a decade. At the old 4.8e5 those bins were 13–33 %.
+
+> Do **not** parallelize a single `sample_lnmu` call with `subhalo_threads` —
+> that is intra-host only and slower at production configs. Parallelize over
+> seeds, as above.
 
 ---
 
-## 3. Re-plot / restyle without re-running the MC
-
-Every MC run caches tiny histograms to `paper_prod/plots/data/magpdf_<tag>.npz`,
-so tweaking axis ranges, colors, or smoothing is instant:
+## 3. Re-plot without re-running the MC
 
 ```bash
-$PY paper_prod/scripts/plot_fig_magnification_pdf.py --replot --tag run1 \
-    --mu-range 0.6 1.8 --ylim 1e-2 3e1 --rebin 8
+$PY paper_prod/scripts/plot_fig_magnification_pdf.py --replot --tag combined
 ```
 
-Useful display knobs (all optional):
+Display knobs (defaults are the settled paper values):
 
-- `--mu-range LO HI`  x-axis window (default `0.6 1.8`, matches Vaskonen Fig. 2).
-- `--ylim LO HI`      y-axis (log) range (default `1e-2 3e1`).
-- `--rebin N`         merge `N` stored fine bins per display bin (default `8`,
-  i.e. ~250 display bins from the 2000 stored). Larger `N` = smoother, coarser.
-- `--smooth W`        odd Savitzky–Golay window on `log10(dP/dmu)` for display
-  (default `0` = off). **Prefer more `--nreal` over cosmetic smoothing.**
-- `--zs-ingredients Z` fixed `z_s` for figure 2 (default `5`).
+- `--mu-range 0.5 2.5` — body x-window. Set from the data: `dP/dmu` stays above
+  the y-floor out to `mu = 2.78` at `z_s = 10`.
+- `--ylim 2e-2 110` — body y-range; the `z_s=0.2` peak reaches ~50–100.
+- `--body-zs 0.2 0.5 1 2 5 10` — which of `ZS_LIST` to **draw**. All of
+  `ZS_LIST` is still simulated; `3` and `7` are omitted from the body for
+  legibility but are used by the tail figure.
+- `--rebin 0` — `0` means choose the factor **per curve** from its own
+  `sigma(lnmu)`. Necessary because `sigma` runs 0.009 (`z_s=0.2`) to 0.28
+  (`z_s=10`): a single factor either shreds the wide curves or collapses the
+  narrow ones onto ~4 bins, which reads as a truncated spike.
+- `--min-counts 8` — also the target for **wing binning**: display bins are
+  merged outward from the core until each holds this many rays, so the curve
+  follows the density to the edge of support instead of being clipped where
+  fine bins run thin.
+- `--edge-q 0` — off. `0.001` restores the low-`mu` edge ticks.
+- `--logx` — log-log body panel. **Not recommended**; see §5.
+- `--tail-zs`, `--tail-mu 2 100`, `--tail-nbins 7`, `--tail-fit-mu 8`,
+  `--tail-mu3` — compensated tail figure.
+- `--smooth W` — Savitzky–Golay on `log10(dP/dmu)`. Prefer more `--nreal`.
 
 ---
 
 ## 4. What is actually being simulated
 
-Fiducial cosmology = Planck 2018 (`OmegaM=0.315, sigma8=0.811, h=0.674`), the
-Vaskonen 2026 benchmark.
+Fiducial cosmology = Planck 2018 (`OmegaM=0.315, sigma8=0.811, h=0.674`).
 
-| curve | config |
+| arm | config |
 |---|---|
-| **baseline** (Vaskonen 2026) | legacy iid clustering (`bias_model=0`), no subhalos |
-| **+ subhalos** | baseline + `subhalo_model=4` (every subhalo to `m_floor=1e7`, host carved) |
-| **+ clustering (full)** | correlated field `bias_model=1`, `bias_window=1` (top-hat), `bias_Rperp=20000` (R_s=20 Mpc), `bias_weak=True`, `fil_bias=True`, + subhalos |
+| **full** | `ml/params.py::PRODUCTION_CONFIG`, imported, not restated |
+| **baseline** | legacy iid clustering (`bias_model=0`), no subhalos |
+| **+ subhalos** | baseline + the `subhalo*` keys of `PRODUCTION_CONFIG` |
 
-Figure 1 uses the **full** config at every `z_s`. Figure 2 stacks the three
-configs at one `z_s`.
-
-Flux anchor is `kappa_anchor=1` (robust `<kappa>=0` over rays with `kappa<=1`),
-which avoids the monster-ray batch-mean shift. This is the physically clean choice
-for the simulator PDF.
+Before 2026-07-28 the full arm hard-coded `subhalo_model=4` and omitted
+`subhalo_virial` and `subhalo_kappathr_factor`, i.e. it plotted a different
+subhalo population from the one the draft describes. Importing
+`PRODUCTION_CONFIG` is what prevents that recurring — do not paste the flags
+back in.
 
 ---
 
 ## 5. Honest caveats (read before quoting anything off these plots)
 
-- The plotted window stops at `mu ~ 1.8`. That is deliberate. The **far tail**
-  (`mu` well above ~2, `q>99.9` at `z_s>=5`) is not certified in this method class
-  (needs N-body) — do not extend the x-range and read numbers off the extreme tail.
-  The `mu^-2` slope shown in the plotted range **is** verified (Hill fit 1.95–2.03).
-- These are **raw simulator** PDFs, not the emulated `dP/dmu`. An emulator-vs-simulator
-  overlay belongs in Sec. III, not here.
-- If you change `z_s` for figure 2 to a value not in `{0.5,1,2,5,10}`, the script
-  runs an extra `full` MC at that `z_s` (one more series).
+- **The body and the tail cannot share a panel.** The 1–99 % mass spans 0.07
+  decades at `z_s=0.2` and 0.61 at `z_s=10`, against the ~2 decades a tail panel
+  needs. That is why there are two figures and why `--logx` is not the default:
+  on one log-log panel the low-`z_s` bodies degenerate into vertical spikes.
+- **The tail is unsampled below `z_s ~ 2`,** and no realization count fixes it:
+  `S(mu>5) = 2e-6` at `z_s=0.5`, so `mu>8` holds ~1 ray in 4.8e5 and ~20 in 1e7.
+  The tail figure omits `z_s <= 1` and says so in its caption.
+- The `mu^-2` **exponent** is verified (Hill 1.95–2.03; Poisson likelihood
+  favours it over `mu^-3` by 1400–6800 nats above `mu=8`). The **absolute
+  normalization** of the far tail is not certified in this method class.
+- The compensated estimator was validated on exact samples: flat to 0.8 % on a
+  true `mu^-2` draw, slope `-1.01` on a true `mu^-3` draw.
+- These are **raw simulator** PDFs, not the emulated `dP/dmu`.
+- ⚠ **The ingredient arms are not one-variable-at-a-time.** `CONFIG_SUBH` uses
+  `bias_model=0` while `CONFIG_FULL` uses the correlated field, so the two
+  differ in more than one ingredient and the effects do not add — at `z_s=5`
+  the decomposition currently reads as clustering *reducing* the scatter. Fix
+  the arm definitions before using `fig_magnification_pdf_ingredients` or
+  `fig:variance_DL` for anything quantitative.
 
 ---
 
-## 6. Outputs
+## 6. Cache format and compatibility
 
-- Figures: `paper_prod/plots/figures/fig_magnification_pdf_{zs,ingredients}.{pdf,png}`
-- Cache:   `paper_prod/plots/data/magpdf_<tag>.npz` (histograms + counts; a few kB)
+`paper_prod/plots/data/magpdf_<tag>.npz` holds per-series bin counts, the total
+ray count, and under/overflow counts, on `STORE_EDGES` = **4000 log-spaced bins
+over `mu` in [0.05, 200]** (`dlnmu = 2.1e-3`).
 
-The `\begin{figure}` blocks are already wired into Sec. II.B of
-`draft_revised_2026-07-20.tex`, referencing `plots/fig_magnification_pdf_zs.pdf`
-and `plots/fig_magnification_pdf_ingredients.pdf`. Copy the generated PDFs into the
-Overleaf `plots/` directory (same as the other figures).
+⚠ **Pre-2026-07-28 caches are not reusable.** They carry 2000 *linear* bins over
+`mu` in [0.4, 5] — no tail window, no under/overflow — and were run with the old
+subhalo config and pre-fix physics. `--combine` refuses to mix grids; `--replot`
+on an old cache works (plotting uses the cache's own edges) but the tail figure
+auto-skips with a warning.
+
+---
+
+## 7. Outputs
+
+- Figures: `paper_prod/plots/figures/fig_magnification_pdf_{zs,tail,ingredients}.{pdf,png}`
+- Cache:   `paper_prod/plots/data/magpdf_<tag>.npz`
+
+The `\begin{figure}` blocks are wired into `draft_revised_2026-07-20.tex`:
+`fig:magpdf_zs` in Sec. II.B and `fig:magpdf_tail` in App. `edge_tail`, both
+referencing `plots/fig_magnification_pdf_*.pdf`. Copy the generated PDFs into
+the Overleaf `plots/` directory alongside the other figures.

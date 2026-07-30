@@ -62,9 +62,13 @@ PRODUCTION_CONFIG = dict(
     # Population floor psi_min = m_floor/M. Converged: flat over 1e7 -> 1e8.
     m_floor=1e7,
     # Render clumps above 0.1 x the host kappa_thr. Population-weighted sigma
-    # loss 0.084/0.111/0.210% at z_s = 0.5/1/5 for a 1.9e4/1.3e4/4.1e3x clump
+    # loss 0.059/0.078/0.152% at z_s = 0.5/1/5 for a 1.9e4/1.3e4/4.2e3x clump
     # reduction. The cost battle is already won at 0.1, so the extra decade
-    # (factor 1.0) buys nothing measurable and costs 0.24/0.41/1.29%.
+    # (factor 1.0) buys nothing measurable and costs 0.190/0.333/1.123%.
+    # ⚠ Re-derived 2026-07-28 on the CORRECTED radial profile (shape fix +
+    # bias x0 in r_vir units + virial extent); the pre-2026-07-28 numbers were
+    # 0.084/0.111/0.210% and 0.240/0.408/1.293%. Verdict unchanged, loss ~30%
+    # smaller. See data/results/subkappathr_population/report.md (REVISED).
     subhalo_kappathr_factor=0.1,
     # JvdB14 virial convention (2026-07-28). JvdB14 sec. 2 defines f_s and
     # psi = m/M inside R_vir (mean density Delta_vir(z) rho_crit(z)) and Green+21
@@ -111,6 +115,54 @@ PRODUCTION_CONFIG = dict(
 PRODUCTION_CONFIG_HASH = hashlib.md5(
     json.dumps(PRODUCTION_CONFIG, sort_keys=True).encode()
 ).hexdigest()[:12]
+
+# --- legacy baseline ----------------------------------------------------------
+# The C++ defaults BEFORE the 2026-07-29 paper-default flip. Since that flip the
+# compiled-in defaults ARE PRODUCTION_CONFIG, so this is the dict to splat when you
+# want the old behaviour -- the reference arm of an A/B, or a reproduction of a
+# pre-flip result.
+#
+# ⚠ Splat the WHOLE dict, do not flip one flag. The paper defaults are a COUPLED
+# set with guards between them, so a single-flag override can now THROW:
+#   sample(..., bias_model=0)     -> "bias_weak requires bias_model = 1"
+#   sample(..., subhalo_model=3)  -> "subhalo_virial requires subhalo_model 4 or 5"
+# Before the flip these were harmless because the partners defaulted off. Use
+# `legacy_config(bias_model=1)` to vary one setting against the legacy baseline.
+LEGACY_CONFIG = dict(
+    subhalo=False,
+    subhalo_model=3,
+    subhalo_carve=True,        # unchanged by the flip
+    m_floor=1e7,               # unchanged by the flip
+    subhalo_kappathr_factor=0.1,   # unchanged by the flip
+    subhalo_virial=False,
+    bias_model=0,
+    bias_window=0,
+    bias_Rperp=8441.0,
+    bias_weak=False,
+    fil_bias=False,
+    kappa_anchor=0,
+    kappa_anchor_cut=1.0,      # unchanged by the flip
+)
+
+assert set(LEGACY_CONFIG) == set(PRODUCTION_CONFIG), \
+    "LEGACY_CONFIG and PRODUCTION_CONFIG must cover the same keys"
+
+
+def legacy_config(**overrides):
+    """LEGACY_CONFIG with `overrides` applied -- the safe way to vary one setting
+    against the pre-2026-07-29 baseline without tripping the coupling guards."""
+    bad = set(overrides) - set(LEGACY_CONFIG)
+    if bad:
+        raise KeyError(f"not physics-config keys: {sorted(bad)}")
+    return {**LEGACY_CONFIG, **overrides}
+
+
+def production_config(**overrides):
+    """PRODUCTION_CONFIG with `overrides` applied (same guard-safe pattern)."""
+    bad = set(overrides) - set(PRODUCTION_CONFIG)
+    if bad:
+        raise KeyError(f"not physics-config keys: {sorted(bad)}")
+    return {**PRODUCTION_CONFIG, **overrides}
 
 # In-distribution prior box (training/inference support).
 PRIOR_6D = dict(

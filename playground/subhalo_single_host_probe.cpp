@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
     double m_floor = (argc > 5) ? std::atof(argv[5]) : 1.0e7;
     uint64_t seed  = (argc > 6) ? std::stoull(argv[6]) : 20260723ULL;
     std::string out = (argc > 7) ? argv[7] : "tmp/subhalo_single_host_probe.csv";
+    bool virial    = (argc > 8) ? (std::atoi(argv[8]) != 0) : false;
 
     cosmology C;
     C.OmegaM = 0.315; C.OmegaB = 0.0493; C.zeq = 3402.0;
@@ -50,6 +51,7 @@ int main(int argc, char **argv) {
 
     Subhalo sub;
     sub.m_floor = m_floor;
+    sub.virial = virial;      // JvdB14 virial convention (ON in PRODUCTION_CONFIG)
     // kappathr feeds only the r_thr table, which the model-4 floor never consults;
     // pass the production-scale value so precompute follows the standard path.
     sub.precompute(C, zs, 1.0e-2, 0.0);
@@ -83,7 +85,9 @@ int main(int argc, char **argv) {
     f << "# M=" << M << " zl=" << zl << " zs=" << zs << " r200=" << r200
       << " c_host=" << sub.chost[jz][jM] << " fs_jvdb14=" << sub.fsub[jz][jM]
       << " gnorm=" << sub.gnorm[jz][jM] << " psi_min=" << psi_min
-      << " Sigmac=" << Sigmac << " Nreal=" << Nreal << " seed=" << seed << "\n";
+      << " Sigmac=" << Sigmac << " Nreal=" << Nreal << " seed=" << seed
+      << " virial=" << (virial ? 1 : 0)
+      << " xmax=" << sub.xmaxh[jz][jM] << " Mpsi=" << sub.Mpsih[jz][jM] << "\n";
     f << "x_r200,mean_host,mean_sub,mean_tot,sig_host,sig_sub,sig_tot,"
          "cov_hs,mean_Msum,sig_Msum,mean_Nc\n";
 

@@ -61,11 +61,20 @@ def test_parallel_dataset_generation():
             assert phys["config_hash"] == PRODUCTION_CONFIG_HASH
             for k, v in PRODUCTION_CONFIG.items():
                 assert phys[k] == v, f"{k}: {phys[k]} != {v}"
-            # Guard against the pin silently becoming a no-op: at least one
-            # production setting must differ from the shipped default.
+            # ⚠ INVERTED 2026-07-29. This used to assert that at least one
+            # production setting DIFFERED from the shipped default, guarding
+            # against the pin silently becoming a no-op while the defaults were
+            # staged legacy values. Since the paper-default flip the defaults ARE
+            # the paper config, so the invariant is now agreement: the recorded
+            # defaults must match the pin exactly. That catches the two failures
+            # that actually matter now -- a C++ default drifting away from the
+            # paper config, and get_simulator_config reporting stale literals
+            # instead of the compiled-in struct (which it did, until 2026-07-29).
             defaults = f["metadata/simulator_defaults"].attrs
-            assert any(defaults[k] != v for k, v in PRODUCTION_CONFIG.items()
-                       if k in defaults)
+            for k, v in PRODUCTION_CONFIG.items():
+                assert k in defaults, f"{k} missing from simulator_defaults"
+                assert defaults[k] == v, \
+                    f"compiled-in default {k}={defaults[k]} != paper config {v}"
 
 
     # Cleanup

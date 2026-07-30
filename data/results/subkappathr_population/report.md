@@ -2,6 +2,109 @@
 
 **2026-07-27. Step 1 of the model-4 cost plan. Analytic only, zero MC.**
 
+> ## ⚠ REVISED 2026-07-28 — re-derived on the corrected radial profile
+>
+> **Verdict: `subhalo_kappathr_factor = 0.1` stands, with a SMALLER σ loss than
+> originally certified. Nothing downstream is blocked.**
+>
+> The 2026-07-27 numbers below were computed with an analytic radial profile that
+> disagreed with `cpp/subhalo.cpp` in **three** ways, not one:
+>
+> | | analytic (old) | production C++ |
+> |---|---|---|
+> | shape | `dN/dx ~ x² B/(1+cx)²` | `dN/dx ~ x B/(1+cx)²` (fixed 2026-07-28, CLAUDE.md §15) |
+> | bias scale | `x0 = 0.54`, read as **r₂₀₀** units | `x0 = BIAS_X0_RVIR(0.86)·η(c,z)` in r₂₀₀ units (refit, commit `6bf0633`) |
+> | extent / ψ | `x ≤ 1`, `ψ = m/M₂₀₀` | `x ≤ η`, `ψ = m/M_vir` under `subhalo_virial` (**ON** in `PRODUCTION_CONFIG`) |
+>
+> Only the shape was flagged in CLAUDE.md §15. The bias-scale and virial mismatches were
+> independent and were never part of the profile-fix A/B. Combined, the stale convention
+> carried a **~30% radius-dependent tilt** in ⟨κ_sub⟩(y) against the engine.
+>
+> Fixed in `subhalo_factor_analytic_deficit.py::projected_profile` (now takes explicit
+> `x0`/`xmax`/`shape_exp`, with `production_profile_params()` mirroring the C++) and
+> `sigma_vs_subkappathr.py::run_kthr` (new `virial=` argument; ψ referred to M_vir for
+> clump lensing, to M₂₀₀ for the carve response, matching `Mpsih` / `virialRatio`).
+>
+> **Validated against production C++, not asserted.** `playground/subhalo_single_host_probe.cpp`
+> (gained a `virial` argv) runs the production `precompute` + `addClumps` + carve;
+> `scripts/convergence/check_analytic_vs_probe.py` compares. Analytic/engine median ratios:
+>
+> | | ⟨N_c⟩ | ⟨κ_sub⟩ | σ_sub | κ_total |
+> |---|---|---|---|---|
+> | virial OFF | 1.0153 | 1.0193 | 1.0434 | 1.0065 |
+> | **virial ON (production)** | **1.0153** | **1.0138** | **1.0081** | **1.0229** |
+>
+> The virial jump is reproduced exactly — engine ⟨N_c⟩ ×1.0997, analytic ×1.0998. The
+> residual ~1.5% on ⟨N_c⟩ is mass-grid quadrature, is radius-independent, and **cancels in
+> the σ ratios this sweep quotes**.
+>
+> **Attribution is clean.** Rerunning with `--legacy-profile` reproduces the 2026-07-27
+> table below to every published digit (78.47 / 84.9 / 102 clumps/ray, 0.084 / 0.111 /
+> 0.210% loss), so the whole difference is the profile convention and not a pipeline change.
+>
+> ### Revised result — production convention (`subhalo_virial=True`)
+>
+> | z_s | mult | κ_thr,sub | clumps/ray | reduction | loss % (new) | loss % (old) |
+> |---|---|---|---|---|---|---|
+> | 0.5 | 0.01 | 3.79e-7 | 549.6 | 3.03e3× | 0.030 | 0.045 |
+> | | **0.1** | **3.79e-6** | **88.5** | **1.88e4×** | **0.059** | 0.084 |
+> | | 1.0 | 3.79e-5 | 9.62 | 1.73e5× | 0.190 | 0.240 |
+> | 1.0 | 0.01 | 1.28e-6 | 583.7 | 2.12e3× | 0.035 | 0.054 |
+> | | **0.1** | **1.28e-5** | **93.6** | **1.33e4×** | **0.078** | 0.111 |
+> | | 1.0 | 1.28e-4 | 9.91 | 1.25e5× | 0.333 | 0.408 |
+> | 5.0 | 0.01 | 9.04e-6 | 672.0 | 671× | 0.041 | 0.068 |
+> | | **0.1** | **9.04e-5** | **108.6** | **4.16e3×** | **0.152** | 0.210 |
+> | | 1.0 | 9.04e-4 | 10.2 | 4.42e4× | 1.123 | 1.293 |
+>
+> The full population grew ~10% (1.11e6 → 1.24e6 clumps/ray at z_s=1) — the virial ψ
+> scale — and the σ loss at f=0.1 **fell ~30%** (0.111% → 0.078% at z_s=1). Both the
+> accuracy and the cost arguments therefore get *better*, not worse: 93.6 clumps/ray ×
+> 40.6 ns = 3.8 µs, still ~3% of the 0.108 ms/ray fixed overhead. The gap between
+> f=0.1 and f=1.0 widens slightly (0.078% vs 0.333% at z_s=1), which if anything
+> strengthens the original recommendation.
+>
+> ### Model-4/5 gate, re-run on the corrected profile at the production convention
+>
+> `scripts/convergence/subhalo_model5_gate.py --virial --factor 0.1`, **fresh outdir**
+> (`tmp/m5gate_newprof_zs*`), 96k rays/arm at z_s=1 and 64k at z_s=0.5/5 — 8× and 5×
+> deeper than the 2026-07-27 run.
+>
+> | z_s | rays/arm | JSD(m4,m5) | floor m4 | floor m5 | verdict | clipped sd ratio (shard-resolved) |
+> |---|---|---|---|---|---|---|
+> | 0.5 | 64k | 2.67e-4 | 5.05e-4 | 5.10e-4 | **AT FLOOR** | +0.157 ± 1.877 % (+0.08σ) |
+> | 1.0 | 96k | 2.40e-4 | 4.39e-4 | 4.38e-4 | **AT FLOOR** | +0.581 ± 0.971 % (+0.60σ) |
+> | 5.0 | 64k | 5.11e-4 | 8.94e-4 | 1.04e-3 | **AT FLOOR** | −0.024 ± 0.231 % (−0.10σ) |
+>
+> All three σ ratios are consistent with zero and with the predicted sub-0.1% loss. The
+> SEM ordering (1.88 / 0.97 / 0.23 %) is the fixed ±1 clip doing different jobs at
+> different z_s — it is ~30σ at z_s=0.5 and trims nothing, but 4.4σ at z_s=5 where it
+> genuinely removes the heavy tail. The gate resolution is therefore **worst where the
+> predicted effect is smallest**, which is why this gate can only exclude gross error.
+>
+> ⚠⚠ **Two traps this re-run hit — both now guarded in the script.**
+>
+> 1. **Stale shard cache.** `run_shards` skips any `.npy` that already exists, and the
+>    default outdir still held 2026-07-27 arrays generated with the OLD profile. Rerunning
+>    without a fresh `--outdir` would have silently compared old-profile model 4 against
+>    new-profile model 5 and reported a confident, meaningless number. **Always pass a
+>    fresh `--outdir` after any physics change.**
+> 2. **`1/sqrt(2N)` is the wrong SEM here.** The pooled z_s=1 ratio reads +0.55%, and
+>    `1/sqrt(2·96000)` = 0.23% would make that "+2.4σ" — a false positive of exactly the
+>    kind CLAUDE.md §16 documents. The clipped sd is heavy-tail dominated, so its effective
+>    sample size is far below the ray count; the **shard-resolved** SEM is 0.97%, giving
+>    0.6σ. The script now computes, prints and stores the shard SEM and marks it as the
+>    number to use.
+>
+> Data: `playground/analytic/subkappathr_population.json` (production),
+> `subkappathr_population_legacy.json` (attribution),
+> `gate_zs*_f0.1_virial.json`. Driver gained `--legacy-virial` and `--legacy-profile`;
+> `subhalo_single_host_probe.cpp` gained a `virial` argv.
+> Regression suite after the rebuild: 41/41 pass (`test_cosmology_params.py` incl.
+> `test_backward_compat_bitwise`, `test_subhalo_virial.py`, `test_subhalo_model4.py`,
+> `test_subhalo_carve.py`).
+
+
+
 ## Question
 
 The supervisor prefers `subhalo_model=4` (brute force, every subhalo explicitly

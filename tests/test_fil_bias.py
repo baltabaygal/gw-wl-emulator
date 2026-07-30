@@ -36,25 +36,33 @@ def raw(**kw):
     return np.asarray(gw.sample_lensing_raw_ml(**BASE, **kw)["kappa"])
 
 
-def test_default_is_fil_bias_off():
-    """The default path must keep the halo modulation on filaments, bit-for-bit."""
+def test_default_is_fil_bias_on():
+    """The default path uses the filament bias, bit-for-bit (paper default since
+    2026-07-29; the draft states the (p,q) = (0, 0.7) filament barrier, so with the
+    flag off that sentence was false in the code). Was OFF before the flip."""
     for extra in (dict(bias_model=1),
                   dict(bias_model=1, bias_weak=True),
                   dict(bias_model=1, bias_window=1, bias_Rperp=20000.0),
                   PROD_BIAS):
         a = raw(**extra)
-        b = raw(fil_bias=False, **extra)
-        assert np.array_equal(a, b), f"default != explicit fil_bias=False for {extra}"
+        b = raw(fil_bias=True, **extra)
+        assert np.array_equal(a, b), f"default != explicit fil_bias=True for {extra}"
 
 
 def test_config_reports_fil_bias():
-    assert gw.get_simulator_config()["fil_bias"] is False
+    assert gw.get_simulator_config()["fil_bias"] is True
 
 
 def test_noop_in_legacy_bias_layer():
-    """bias_model=0 has no correlated field, so fil_bias must be inert there."""
-    a = raw(bias_model=0, fil_bias=False)
-    b = raw(bias_model=0, fil_bias=True)
+    """bias_model=0 has no correlated field, so fil_bias must be inert there.
+
+    ⚠ bias_weak AND bias_window must both be turned off explicitly: both default
+    to the correlated-layer values since 2026-07-29 and both throw against
+    bias_model=0, so a single-flag override raises instead of testing the invariant.
+    This is the coupling that ml.params.LEGACY_CONFIG exists to splat in one go."""
+    legacy_layer = dict(bias_model=0, bias_weak=False, bias_window=0)
+    a = raw(**legacy_layer, fil_bias=False)
+    b = raw(**legacy_layer, fil_bias=True)
     assert np.array_equal(a, b), "fil_bias changed the legacy iid layer"
 
 

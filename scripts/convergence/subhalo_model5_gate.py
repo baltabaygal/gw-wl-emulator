@@ -127,10 +127,28 @@ def main():
     r["jsd_floor_m5"] = f5
     r["sd_ratio"] = r["model5"]["clip_sd"] / r["model4"]["clip_sd"]
 
+    # Shard-level SEM of the sd ratio. The pooled ratio alone invites a false positive:
+    # the clipped sd is heavy-tail dominated, so its effective sample size is FAR below
+    # the ray count and 1/sqrt(2N) badly understates the scatter (at z_s=1, 96k rays,
+    # 1/sqrt(2N) says 0.23% while the shards say 0.97%). CLAUDE.md sec.16: an 8-shard SEM
+    # is itself a chi^2 on 7 dof, so require a depth doubling or >=5 sigma before calling
+    # any sd ratio real.
+    sd4 = np.array([clipped_moments(a)[1] for a in m4])
+    sd5 = np.array([clipped_moments(a)[1] for a in m5])
+    ratios = sd5 / sd4
+    sem = float(ratios.std(ddof=1) / np.sqrt(len(ratios)))
+    r["sd_ratio_shard_mean"] = float(ratios.mean())
+    r["sd_ratio_shard_sem"] = sem
+    r["sd_ratio_sigma"] = float((ratios.mean() - 1.0) / sem) if sem > 0 else float("nan")
+    r["sd_ratio_shards"] = ratios.tolist()
+
     print(f"\n  JSD(model4, model5) = {cross:.3e}")
     print(f"  floors: model4 split {f4:.3e}   model5 split {f5:.3e}")
-    print(f"  clipped sd ratio m5/m4 = {r['sd_ratio']:.5f} "
-          f"(predicted loss at factor {args.factor}: see report)")
+    print(f"  clipped sd ratio m5/m4 = {r['sd_ratio']:.5f} (pooled)")
+    print(f"    shard-resolved: {100*(ratios.mean()-1):+.3f} +/- {100*sem:.3f} %  "
+          f"({r['sd_ratio_sigma']:+.2f} sigma)  <-- USE THIS, not the pooled ratio")
+    print(f"    predicted loss at factor {args.factor}: see report "
+          f"(far below this resolution -- the gate bounds gross error only)")
     verdict = "AT FLOOR" if cross <= max(f4, f5) else f"{cross/max(f4,f5):.2f}x floor"
     r["verdict"] = verdict
     print(f"  VERDICT: JSD is {verdict}")

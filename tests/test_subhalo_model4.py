@@ -6,10 +6,11 @@ M_u/kappa_u/Wsub, no dynamic floor, no subhalo_factor). It is by construction th
 same computation as model 1 + subhalo_brute + subhalo_carve, exposed as one named
 model; the defining invariant gated here is bitwise equality with that flag combo.
 
-STAGED: the shipped default stays subhalo_model=3 until supervisor sign-off; these
-tests also gate that the default is unchanged. The whole module skips cleanly on a
-pre-2026-07-23 .so (which rejects subhalo_model=4), so pytest stays green until the
-Mac rebuild lands.
+Model 4 is the REFERENCE, not the default. The 2026-07-29 paper-default flip made
+subhalo_model=5 the shipped default -- same population, 217x cheaper, because only
+clumps whose kappa at the ray clears the threshold are rendered. Model 4 stays as the
+brute truth that model 5 is gated against. The whole module skips cleanly on a
+pre-2026-07-23 .so (which rejects subhalo_model=4).
 """
 import os
 import sys
@@ -46,16 +47,23 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_default_model_unchanged():
-    """STAGED: the shipped default must remain model 3 until the sign-off flip."""
-    assert gw.get_simulator_config()["subhalo_model"] == 3
+def test_default_model_is_five_not_four():
+    """Model 4 is the REFERENCE, not the default. The 2026-07-29 paper-default flip
+    made model 5 the default -- same population, 217x cheaper (only clumps whose
+    kappa at the ray clears the threshold are rendered)."""
+    assert gw.get_simulator_config()["subhalo_model"] == 5
 
 
 def test_model4_equals_model1_brute_carve():
     """Defining invariant: model 4 == model 1 + brute + carve, bit-for-bit
     (kappa AND the paired no-substructure baseline)."""
-    a = rawdict(subhalo=True, subhalo_model=4)
-    b = rawdict(subhalo=True, subhalo_model=1, subhalo_brute=True, subhalo_carve=True)
+    # subhalo_virial pinned OFF on BOTH arms: it defaults ON since 2026-07-29, it
+    # throws on model 1, and leaving arm `a` on the default would compare a virial
+    # model 4 against an M_200 model 1 and fail. The invariant under test is the
+    # carve equivalence, not the virial convention.
+    a = rawdict(subhalo=True, subhalo_model=4, subhalo_virial=False)
+    b = rawdict(subhalo=True, subhalo_model=1, subhalo_virial=False,
+                subhalo_brute=True, subhalo_carve=True)
     assert np.array_equal(np.asarray(a["kappa"]), np.asarray(b["kappa"]))
     assert np.array_equal(np.asarray(a["kappa_nosub"]), np.asarray(b["kappa_nosub"]))
 

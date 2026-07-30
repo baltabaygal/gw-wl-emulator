@@ -26,16 +26,19 @@ def raw(**kw):
     return np.asarray(gw.sample_lensing_raw_ml(**BASE, **kw)["kappa"])
 
 
-def test_default_is_disk_window():
-    """The default path must be the legacy disk window, bit-for-bit."""
+def test_default_is_tophat_window():
+    """The default path is the real-space spherical top-hat (paper default since
+    2026-07-29; the draft states "we use the real-space top-hat window function and
+    fix R_s = 20 Mpc"). Was the legacy disk window before the flip."""
     for extra in (dict(), dict(bias_weak=True), dict(bias_Rperp=3000.0)):
         a = raw(bias_model=1, **extra)
-        b = raw(bias_model=1, bias_window=0, **extra)
-        assert np.array_equal(a, b), f"default != explicit bias_window=0 for {extra}"
+        b = raw(bias_model=1, bias_window=1, **extra)
+        assert np.array_equal(a, b), f"default != explicit bias_window=1 for {extra}"
 
 
 def test_config_reports_bias_window():
-    assert gw.get_simulator_config()["bias_window"] == 0
+    assert gw.get_simulator_config()["bias_window"] == 1
+    assert gw.get_simulator_config()["bias_Rperp"] == 20000.0
 
 
 @pytest.mark.parametrize("window", [1, 2])
@@ -64,8 +67,13 @@ def test_deterministic_and_finite(window, weak):
 
 @pytest.mark.parametrize("window", [1, 2])
 def test_window_is_not_inert(window):
-    """A selector that silently did nothing would pass every gate above."""
-    assert not np.array_equal(raw(bias_model=1), raw(bias_model=1, bias_window=window))
+    """A selector that silently did nothing would pass every gate above.
+
+    Referenced against window 0 explicitly: since the 2026-07-29 flip the DEFAULT
+    is window 1, so comparing against the bare default would compare 1 against 1
+    and pass vacuously for window=1."""
+    assert not np.array_equal(raw(bias_model=1, bias_window=0),
+                              raw(bias_model=1, bias_window=window))
 
 
 @pytest.mark.parametrize("window", [1, 2])

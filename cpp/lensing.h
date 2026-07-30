@@ -75,12 +75,12 @@ struct LensingConfig {
   bool strict_weak_lensing = false;
 
   // subhalo substructure (OFF by default -> existing pipeline unchanged)
-  bool subhalo = false;
+  bool subhalo = true;
   double m_floor = 1.0e7;
   int subhalo_threads = 1;
   int subhalo_parallel_threshold = 200000;
   LensingProfile *profile = nullptr;
-  int subhalo_model = 3;       // 0 = gslope removal (legacy), 1 = reduced-host resolved-only,
+  int subhalo_model = 5;       // 0 = gslope removal (legacy), 1 = reduced-host resolved-only,
                                // 2 = diagnostic bare clumps, 3 = reduced-host + Wsub term
                                // (mu_unres(y) + Gaussian; exact mean/variance at any factor;
                                // DEFAULT since 2026-07-09, see docs/subhalo/wsub_gaussian_term_derivation.md),
@@ -135,7 +135,7 @@ struct LensingConfig {
   // the carve converts the realized clump mass back to the M_200 scale (divide by M_vir/M_200)
   // so the smooth host keeps the same FRACTIONAL mass in both apertures.
   // Gated to subhalo_model 4/5 (production + reference); throws otherwise.
-  bool subhalo_virial = false;
+  bool subhalo_virial = true;
   // Diagnostic override (2026-07-23): > 0 fixes psi_min everywhere the subhalo module would
   // otherwise use m_floor/M (buildWsubBin, unresolvedMass, addClumps' subhalo_brute path).
   // E.g. psi_min_fixed = 1e-4 = psi_res tests "no extrapolation below the SHMF's own
@@ -154,28 +154,30 @@ struct LensingConfig {
   // kappa >> 1 monster ray shift the WHOLE batch by -2*kappa/n; see
   // docs/convergence_mmin_nz_note.md Addendum and
   // data/results/floor_permutation_null/report.md).
-  //   0 = legacy: empirical mean over ALL rays (default; bit-identical to the
-  //       pre-2026-07-13 behavior, seed-for-seed).
+  //   0 = legacy: empirical mean over ALL rays (bit-identical to the
+  //       pre-2026-07-13 behavior, seed-for-seed). NO LONGER THE DEFAULT.
   //   1 = robust: empirical mean over rays with kappa <= kappa_anchor_cut only
-  //       (recommended fix; kappa > 1 rays are outside weak-lensing validity
+  //       (DEFAULT since 2026-07-29; kappa > 1 rays are outside weak-lensing validity
   //       and already tracked by InvalidSampleStats). Residual coupling
   //       O(kappa_anchor_cut/n). Falls back to mode 0 if every ray exceeds
   //       the cut (pathological).
   //   2 = external: use kappa_anchor_value directly (e.g. an analytically
   //       derived <kappa>, or 0.0 for no compensation). The only mode with
   //       exactly independent realizations within one call.
-  int kappa_anchor = 0;
+  int kappa_anchor = 1;
   double kappa_anchor_cut = 1.0;
   double kappa_anchor_value = 0.0;
 
   // Bias (clustering) layer model (2026-07-16, docs/bias_field_design_note.md):
   //   0 = legacy: independent log-normal count modulation per (jz,jM) cell with
   //       sigma_b = Dg(z) b(M,z) sigma(M_b) keyed to the tube-segment mass M_b
-  //       (default; bit-identical to the pre-change behavior, seed-for-seed).
+  //       (bit-identical to the pre-change behavior, seed-for-seed). This is the
+  //       layer the paper says it REPLACES; NO LONGER THE DEFAULT.
   //       Known pathology: no continuum limit — refining Nz (or raising
   //       kappa_thr via rmax) makes the iid draws wilder without bound
   //       (docs/nz_bias_convergence_note.md).
-  //   1 = correlated 1D field: ONE Gaussian delta_1D(chi) along the LOS
+  //   1 = correlated 1D field (DEFAULT since 2026-07-29; the model described in
+  //       the draft, sec. II.A): ONE Gaussian delta_1D(chi) along the LOS
   //       (KP91 pencil projection of the code's own linear P(k) through a
   //       transverse disk window of comoving radius bias_Rperp), periodic mode
   //       spectrum with L = 1.05 chi(z_s), modes k_n = 2 pi n / L up to
@@ -184,9 +186,12 @@ struct LensingConfig {
   //       field via b(M,z) Dg(z); lambda = exp(bDg dbar - (bDg)^2 sig2/2) keeps
   //       <N> = Nbar exact. Realized via the exact shell-covariance Cholesky
   //       (equal in law to the mode sum).
-  int bias_model = 0;
-  // Comoving transverse window radius, kpc; only used when bias_model = 1.
-  // Default = R_L(1e14 Msun) at the fiducial cosmology (2026-07-16 decision):
+  int bias_model = 1;
+  // Comoving smoothing radius R_s, kpc; only used when bias_model = 1.
+  // DEFAULT = 20 Mpc since 2026-07-29 (the draft's R_s, confirmed by Ville).
+  // A Lagrangian radius is not a smoothing scale, and 20 Mpc is the larger,
+  // PBS-cleaner choice: sigma_TH(point) 0.972 (8.44 Mpc) -> 0.530 (20 Mpc).
+  // HISTORICAL (the previous default, 8441.0 = R_L(1e14 Msun), 2026-07-16):
   // the clustering-variance-weighted signal scale at z_s <= 1 (where the
   // clustering share of Var(kappa) and the GW source population sit), PBS-
   // valid for the median signal-carrying cell; turboGL's calibrated
@@ -195,15 +200,16 @@ struct LensingConfig {
   // Deliberately NOT chosen by matching the legacy layer (it
   // happens to agree with legacy at z_s = 1 — observation, not criterion).
   // Fixed number, NOT recomputed per cosmology (predictability).
-  double bias_Rperp = 8441.0;
+  double bias_Rperp = 20000.0;
 
   // Smoothing window shape of the bias field (2026-07-20,
   // docs/bias_window_design_plan.md); only used when bias_model = 1:
   //   0 = transverse disk, W(x) = 2 J1(x)/x with x = k_perp bias_Rperp — the
   //       window acts on k_perp ALONE, so LOS power is suppressed only by the
   //       numerical mode cutoff k_max = 2 pi / bias_Rperp (legacy; bitwise
-  //       default).
-  //   1 = spherical top-hat, W(x) = 3 (sin x - x cos x) / x^3, and
+  //       vs the pre-2026-07-20 behavior). NO LONGER THE DEFAULT.
+  //   1 = spherical top-hat, W(x) = 3 (sin x - x cos x) / x^3 (DEFAULT since
+  //       2026-07-29; the real-space top-hat the draft states), and
   //   2 = Gaussian,          W(x) = exp(-x^2/2),
   //       both acting on the FULL modulus x = |k| bias_Rperp,
   //       |k| = sqrt(k_par^2 + k_perp^2): isotropic smoothing, as the
@@ -215,7 +221,7 @@ struct LensingConfig {
   // (expect R_G ~ 0.4-0.5 R_TH).
   // The mode convention (N_max = L/bias_Rperp floored at 4, L = 1.05 chi(z_s))
   // is UNCHANGED for all windows. Nonzero requires bias_model = 1 (throws).
-  int bias_window = 0;
+  int bias_window = 1;
 
   // Weak (sub-threshold) arm of the correlated field (2026-07-16): when true,
   // the background kappa_W is drawn CONDITIONALLY on the same per-shell field
@@ -228,10 +234,11 @@ struct LensingConfig {
   // S_i = sum_M m(lambda-1), V_i = sum_M v lambda (per-shell delta tables).
   // Adds the 2-halo variance of the weak layer + the weak<->count covariance
   // (both read the same realized field). Requires bias_model = 1 (throws
-  // otherwise); no-op when bias = 0. Default OFF: bias_model=1 alone stays
-  // the counts-only field model, stream-for-stream. NFW halos only (same
+  // otherwise); no-op when bias = 0. DEFAULT ON since 2026-07-29 (the draft's
+  // "sub-threshold background contribution"); false leaves bias_model=1 as the
+  // counts-only field model, stream-for-stream. NFW halos only (same
   // scope as the legacy weak Gaussian) — filaments carry no weak arm.
-  bool bias_weak = false;
+  bool bias_weak = true;
 
   // Filament clustering bias (2026-07-23, docs/filament_bias_note.md). When true,
   // the filament population is modulated by the filament bias b_fil(M,z) =
@@ -242,10 +249,11 @@ struct LensingConfig {
   // filament counts. filbias < halobias at every mass (lower, flatter barrier), so
   // filaments cluster more weakly. Requires the correlated field (bias_model = 1);
   // in the legacy iid layer (bias_model = 0) this flag is a no-op and filaments keep
-  // the halo modulation. Default OFF: bias_model = 1 alone reproduces the pre-change
-  // behavior (filaments ride the halo bias), stream-for-stream. Orientation of the
+  // the halo modulation. DEFAULT ON since 2026-07-29 (the draft states the (0,0.7)
+  // filament barrier); false reproduces the pre-change behavior (filaments ride the
+  // halo bias), stream-for-stream. Orientation of the
   // filaments is unchanged (isotropic) — this flag is a number-density bias only.
-  bool fil_bias = false;
+  bool fil_bias = true;
 };
 
 

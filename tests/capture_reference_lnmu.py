@@ -5,6 +5,15 @@ when the physics of the DEFAULT sampler path intentionally changes.
 
 Re-baseline history:
   2026-07-08  original capture (pre-1+6d parameterization).
+  2026-07-29  re-captured after the PAPER-DEFAULT FLIP: the compiled-in defaults are
+              now the config the draft describes (subhalo=true, subhalo_model=5,
+              subhalo_virial=true, bias_model=1, bias_window=1, bias_Rperp=20000,
+              bias_weak=true, fil_bias=true, kappa_anchor=1). Old file kept as
+              `reference_lnmu_pre_paper_defaults.npz`, and it is still guarded --
+              `test_legacy_physics_bitwise` pins it via ml.params.LEGACY_CONFIG.
+              Verified before re-baselining: with the flip in place, passing
+              LEGACY_CONFIG explicitly reproduced the old reference bit-for-bit at all
+              three points, proving the flip moved DEFAULTS ONLY and no physics.
   2026-07-28  re-captured after `cosmology::halobias` q 0.75 -> 0.8 (b is now the
               peak-background split of pFC's own (0.3, 0.8) barrier). halobias is on
               the DEFAULT path (`samp.bias = 1` is hardcoded), so this shifts every

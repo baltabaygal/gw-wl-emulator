@@ -38,6 +38,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy import integrate
+from scipy.special import gammaincc, gamma as gamma_fn
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -132,6 +133,7 @@ RS_H, RHOS_H, R200, C_H = nfw_params(M_HOST, ZL)
 ALPHA, BETA, OMEGA = -0.82, 50.0, 4.0
 PSI_MAX = 1.0
 PSI_MIN = 1.0e7 / M_HOST                        # = m_floor / M  (supervisor's floor)
+PSI_RES = 1.0e-4                                 # JvdB14 resolved band, f_s is defined here
 F_B = 0.14                                       # JvdB14 bound fraction for this host (representative)
 
 
@@ -139,11 +141,26 @@ def dN_dpsi(psi):
     return psi**(ALPHA - 1.0) * np.exp(-BETA * psi**OMEGA)
 
 
-mass_int = integrate.quad(lambda p: p * dN_dpsi(p), PSI_MIN, PSI_MAX)[0]
-GAMMA = F_B / mass_int
+# SHMF normalization -- MUST follow cpp/subhalo.cpp::precompute, which sets
+#   gam = omega beta^s / gden * f_s,   s = (1+alpha)/omega,
+#   gden = Gamma_inc(s, beta psi_res^omega) - Gamma_inc(s, beta psi_max^omega),
+# i.e. JvdB14's f_s is the bound mass fraction over the RESOLVED band
+# [psi_res = 1e-4, 1], NOT over [psi_min, 1].  Normalizing over [psi_min, 1] (as this
+# script did before 2026-07-28) spreads the same f_s over three extra decades of the
+# psi^-1.82 SHMF and under-populates the host: 3476 clumps instead of the engine's
+# 3660 at the grid host nearest 1e13, i.e. sigma_sub low by ~2.6%.
+# Verified against the production sampler by paper_prod/scripts/check_fig4_vs_probe.py.
+_S_EXP = (1.0 + ALPHA) / OMEGA
+_GDEN = gamma_fn(_S_EXP) * (gammaincc(_S_EXP, BETA * PSI_RES**OMEGA)
+                            - gammaincc(_S_EXP, BETA * PSI_MAX**OMEGA))
+GAMMA = OMEGA * BETA**_S_EXP / _GDEN * F_B
 N_ALL = integrate.quad(lambda p: GAMMA * dN_dpsi(p), PSI_MIN, PSI_MAX)[0]
-print(f"M={M_HOST:.0e} R200={R200:.0f} kpc c_host={C_H:.2f} f_b={F_B} "
-      f"psi_min={PSI_MIN:.1e} N_all={N_ALL:.3e} Sigma_c={SIGMA_C:.3e}")
+# Mean carved mass fraction over the FULL sampled band [psi_min, 1]; this exceeds F_B
+# because f_s only counts the resolved band. This is what the carve removes on average.
+F_TOT = integrate.quad(lambda p: GAMMA * p * dN_dpsi(p), PSI_MIN, PSI_MAX)[0]
+print(f"M={M_HOST:.0e} R200={R200:.0f} kpc c_host={C_H:.2f} f_s={F_B} "
+      f"f_tot(carved)={F_TOT:.4f} psi_min={PSI_MIN:.1e} N_all={N_ALL:.3e} "
+      f"Sigma_c={SIGMA_C:.3e}")
 
 # psi inverse-CDF sampler over the full band
 _pg = np.logspace(np.log10(PSI_MIN), np.log10(PSI_MAX), 6000)
@@ -249,7 +266,7 @@ for i, r in enumerate(RGRID):
     cov_mk[i] = N_ALL * (kc * m_pool).mean()
 
 # carved-host mean and dkappa/dM (numerical) at each r
-Mred = (1.0 - F_B) * M_HOST
+Mred = (1.0 - F_TOT) * M_HOST      # carve removes the FULL sampled band, not just f_s
 mu_host = kappa_nfw_M(Mred, RGRID)
 dM = 1e-3 * Mred
 dkdM = (kappa_nfw_M(Mred + dM, RGRID) - kappa_nfw_M(Mred - dM, RGRID)) / (2 * dM)
@@ -321,9 +338,25 @@ ax_s.set_xlim(0, 1)
 save(fig_s, 'scatter')
 
 # console summary at a few radii
-print("\n r/r200   <k>_tot   <k>_host  <k>_sub   sig_tot   sig_host  sig_sub   sub/tot(var)")
+print("\n r/r200   <k>_tot   <k>_host  <k>_sub   sig_tot   sig_host  sig_sub   sub/tot(var)"
+      "  sub/tot(mean)")
 for xi in (0.1, 0.3, 0.6, 0.9):
     i = np.argmin(np.abs(xr - xi))
     frac = var_sub_s[i] / var_tot[i]
     print(f"  {xr[i]:.2f}   {mu_tot[i]:.4e} {mu_host[i]:.4e} {mu_sub[i]:.4e}  "
-          f"{sig_tot[i]:.3e} {sig_host[i]:.3e} {sig_sub[i]:.3e}   {frac:.3f}")
+          f"{sig_tot[i]:.3e} {sig_host[i]:.3e} {sig_sub[i]:.3e}   {frac:.3f}"
+          f"       {mu_sub[i]/mu_tot[i]:.3f}")
+
+# claim checks for the paper captions -- these are quoted in the draft, so they must be
+# re-verified whenever the profile or the SHMF normalization changes.
+share = mu_sub / mu_tot
+_cross = np.where(sig_sub > sig_host)[0]
+print(f"\n caption checks (re-verify these whenever the profile or SHMF norm changes):")
+print(f"   <k>_sub/<k>_tot: min {share.min():.3f} at r/r200={xr[share.argmin()]:.2f}, "
+      f"max {share.max():.3f} at r/r200={xr[share.argmax()]:.2f}")
+print(f"   sigma_sub > sigma_host from r/r200 = "
+      f"{xr[_cross[0]]:.3f}" if len(_cross) else "   sigma_sub never exceeds sigma_host")
+_bad = np.where(sig_tot > sig_sub)[0]
+print(f"   sigma_tot <= sigma_sub everywhere: {len(_bad) == 0}"
+      + (f"  (fails at r/r200 <= {xr[_bad].max():.3f}, "
+         f"max excess {(sig_tot[_bad]/sig_sub[_bad]).max():.4f}x)" if len(_bad) else ""))

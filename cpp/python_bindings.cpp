@@ -125,15 +125,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("Nhalos") = 100,
         py::arg("strict_weak_lensing") = false,
         py::arg("Mmin") = 1e7,
-        py::arg("subhalo") = false,
+        py::arg("subhalo") = true,
         py::arg("m_floor") = 1e7,
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
-        py::arg("subhalo_model") = 3,
+        py::arg("subhalo_model") = 5,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
-        py::arg("subhalo_virial") = false,
+        py::arg("subhalo_virial") = true,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("psi_min_fixed") = -1.0,
@@ -144,14 +144,14 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
-        py::arg("kappa_anchor") = 0,
+        py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
-        py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 8441.0,
-        py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0,
-        py::arg("fil_bias") = false
+        py::arg("bias_model") = 1,
+        py::arg("bias_Rperp") = 20000.0,
+        py::arg("bias_weak") = true,
+        py::arg("bias_window") = 1,
+        py::arg("fil_bias") = true
     );
 
 
@@ -240,15 +240,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("seed") = py::none(),
         py::arg("strict_weak_lensing") = false,
         py::arg("Mmin") = 1e7,
-        py::arg("subhalo") = false,
+        py::arg("subhalo") = true,
         py::arg("m_floor") = 1e7,
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
-        py::arg("subhalo_model") = 3,
+        py::arg("subhalo_model") = 5,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
-        py::arg("subhalo_virial") = false,
+        py::arg("subhalo_virial") = true,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
@@ -258,14 +258,14 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
-        py::arg("kappa_anchor") = 0,
+        py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
-        py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 8441.0,
-        py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0,
-        py::arg("fil_bias") = false,
+        py::arg("bias_model") = 1,
+        py::arg("bias_Rperp") = 20000.0,
+        py::arg("bias_weak") = true,
+        py::arg("bias_window") = 1,
+        py::arg("fil_bias") = true,
         "Simplified ML-facing wrapper API for raw ln(mu) sampling."
     );
 
@@ -356,15 +356,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("seed") = py::none(),
         py::arg("strict_weak_lensing") = false,
         py::arg("Mmin") = 1e7,
-        py::arg("subhalo") = false,
+        py::arg("subhalo") = true,
         py::arg("m_floor") = 1e7,
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
-        py::arg("subhalo_model") = 3,
+        py::arg("subhalo_model") = 5,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
-        py::arg("subhalo_virial") = false,
+        py::arg("subhalo_virial") = true,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
@@ -374,14 +374,14 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
-        py::arg("kappa_anchor") = 0,
+        py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
-        py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 8441.0,
-        py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0,
-        py::arg("fil_bias") = false,
+        py::arg("bias_model") = 1,
+        py::arg("bias_Rperp") = 20000.0,
+        py::arg("bias_weak") = true,
+        py::arg("bias_window") = 1,
+        py::arg("fil_bias") = true,
         "ML-facing sampler returning ln(mu) and invalid-sample diagnostics."
     );
 
@@ -490,15 +490,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("bias") = true,
         py::arg("ell") = true,
         py::arg("Nhalos") = 100,
-        py::arg("subhalo") = false,
+        py::arg("subhalo") = true,
         py::arg("m_floor") = 1e7,
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
-        py::arg("subhalo_model") = 3,
+        py::arg("subhalo_model") = 5,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
-        py::arg("subhalo_virial") = false,
+        py::arg("subhalo_virial") = true,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("custom_kappathr") = -1.0,
@@ -510,11 +510,11 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
-        py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 8441.0,
-        py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0,
-        py::arg("fil_bias") = false,
+        py::arg("bias_model") = 1,
+        py::arg("bias_Rperp") = 20000.0,
+        py::arg("bias_weak") = true,
+        py::arg("bias_window") = 1,
+        py::arg("fil_bias") = true,
         "Return raw (kappa, gamma1, gamma2) realizations for diagnostics."
     );
 
@@ -524,33 +524,41 @@ PYBIND11_MODULE(gwlensing, m) {
         [](double h, double OmegaM, double sigma8, double As,
            double OmegaB, double zeq, double ns) {
             py::dict d;
-            d["filaments"] = true;
-            d["bias"] = true;
-            d["ell"] = true;
-            d["Nhalos"] = 100;
-            d["subhalo"] = false;
-            d["m_floor"] = 1e7;
-            d["subhalo_threads"] = 1;
-            d["subhalo_parallel_threshold"] = 200000;
-            d["subhalo_model"] = 3;
-            d["subhalo_brute"] = false;
-            d["subhalo_factor"] = 1.0e-2;
-            d["subhalo_carve"] = true;
-            d["subhalo_virial"] = false;   // JvdB14 virial convention (psi=m/M_vir, profile to r_vir); model 4/5 only
-            d["subhalo_kappathr"] = -1.0;        // model 5 only: <= 0 -> factor * host kappa_thr
-            d["subhalo_kappathr_factor"] = 0.1;  // model 5 only
-            d["kappathr_flat"] = -1.0;
-            d["Mmin"] = 1e7;
+            // Report the ACTUAL compiled-in defaults by reading a default-constructed
+            // SamplingParams, never literals. Three copies of these values used to
+            // exist (the struct, the py::arg list, and a hardcoded block here); the
+            // hardcoded block silently kept reporting the pre-2026-07-29 values after
+            // the paper-default flip, which would have written wrong provenance into
+            // every dataset's metadata/simulator_defaults. Anything hardcoded below
+            // is a value with no SamplingParams field.
+            const SamplingParams sp{};
+            d["filaments"] = static_cast<bool>(sp.fil);
+            d["bias"] = static_cast<bool>(sp.bias);
+            d["ell"] = static_cast<bool>(sp.ell);
+            d["Nhalos"] = sp.Nhalos;
+            d["subhalo"] = sp.subhalo;
+            d["m_floor"] = sp.m_floor;
+            d["subhalo_threads"] = sp.subhalo_threads;
+            d["subhalo_parallel_threshold"] = sp.subhalo_parallel_threshold;
+            d["subhalo_model"] = sp.subhalo_model;
+            d["subhalo_brute"] = sp.subhalo_brute;
+            d["subhalo_factor"] = sp.subhalo_factor;
+            d["subhalo_carve"] = sp.subhalo_carve;
+            d["subhalo_virial"] = sp.subhalo_virial;
+            d["subhalo_kappathr"] = sp.subhalo_kappathr;
+            d["subhalo_kappathr_factor"] = sp.subhalo_kappathr_factor;
+            d["kappathr_flat"] = sp.kappathr_flat;
+            d["Mmin"] = 1e7;                // grid floor, not a SamplingParams field
             d["NM"] = 100;
             d["Nz"] = 100;
-            d["kappa_anchor"] = 0;          // 0 legacy batch mean, 1 robust (cut), 2 external
-            d["kappa_anchor_cut"] = 1.0;
-            d["kappa_anchor_value"] = 0.0;
-            d["bias_model"] = 0;            // 0 legacy iid cell bias, 1 correlated 1D field
-            d["bias_Rperp"] = 8441.0;       // comoving kpc = R_L(1e14 Msun) fiducial (bias_model = 1 only)
-            d["bias_weak"] = false;         // weak arm: kappa_W conditional on the field
-            d["bias_window"] = 0;           // 0 transverse disk, 1 spherical top-hat, 2 Gaussian
-            d["fil_bias"] = false;          // filaments use filbias (PBS of pFCfil) not halobias
+            d["kappa_anchor"] = sp.kappa_anchor;
+            d["kappa_anchor_cut"] = sp.kappa_anchor_cut;
+            d["kappa_anchor_value"] = sp.kappa_anchor_value;
+            d["bias_model"] = sp.bias_model;
+            d["bias_Rperp"] = sp.bias_Rperp;
+            d["bias_weak"] = sp.bias_weak;
+            d["bias_window"] = sp.bias_window;
+            d["fil_bias"] = sp.fil_bias;
 
             // derived power spectrum normalization (cheap: no sigma(M)/HMF tables)
             cosmology C;
@@ -662,15 +670,15 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("Nhalos") = 100,
         py::arg("strict_weak_lensing") = false,
         py::arg("fast") = true,
-        py::arg("subhalo") = false,
+        py::arg("subhalo") = true,
         py::arg("m_floor") = 1e7,
         py::arg("subhalo_threads") = 1,
         py::arg("subhalo_parallel_threshold") = 200000,
-        py::arg("subhalo_model") = 3,
+        py::arg("subhalo_model") = 5,
         py::arg("subhalo_brute") = false,
         py::arg("subhalo_factor") = 1.0e-2,
         py::arg("subhalo_carve") = true,
-        py::arg("subhalo_virial") = false,
+        py::arg("subhalo_virial") = true,
         py::arg("subhalo_kappathr") = -1.0,
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
@@ -680,14 +688,14 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
         py::arg("Nz") = 100,
-        py::arg("kappa_anchor") = 0,
+        py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
-        py::arg("bias_model") = 0,
-        py::arg("bias_Rperp") = 8441.0,
-        py::arg("bias_weak") = false,
-        py::arg("bias_window") = 0,
-        py::arg("fil_bias") = false
+        py::arg("bias_model") = 1,
+        py::arg("bias_Rperp") = 20000.0,
+        py::arg("bias_weak") = true,
+        py::arg("bias_window") = 1,
+        py::arg("fil_bias") = true
     );
 
     m.def(

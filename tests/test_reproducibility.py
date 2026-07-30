@@ -43,9 +43,11 @@ def test_bitwise_reproducibility():
                 continue
 
             with h5py.File(f1_path, 'r') as f1, h5py.File(f2_path, 'r') as f2:
-                # Check samples (schema 2.0: 1+6d As-mode)
-                for key in ["lnmu", "valid_counts", "z", "h", "OmegaM", "As",
-                            "OmegaB", "ns", "zeq", "sigma8_derived", "split_type"]:
+                # Check samples (schema 2.1: 1+6d sigma8-mode; the amplitude column
+                # is sigma8 and As_derived is the stored diagnostic. Was "As" under
+                # schema 2.0 -- stale here since the 2026-07-27 amplitude switch.)
+                for key in ["lnmu", "valid_counts", "z", "h", "OmegaM", "sigma8",
+                            "As_derived", "OmegaB", "ns", "zeq", "split_type"]:
                     p1 = f"samples/{key}"
                     p2 = f"samples/{key}"
                     assert p1 in f1 and p2 in f2, f"Missing key {key} in split {split}"
@@ -78,7 +80,9 @@ def test_bitwise_reproducibility():
                 # Check parameter ranges group
                 g1 = f1["metadata/parameter_ranges"]
                 g2 = f2["metadata/parameter_ranges"]
-                for p in ["z", "h", "OmegaM", "As", "OmegaB", "ns", "zeq"]:
+                # parameter_ranges covers the SAMPLED parameters only, so no
+                # As_derived (a per-config diagnostic, not a sampling axis).
+                for p in ["z", "h", "OmegaM", "sigma8", "OmegaB", "ns", "zeq"]:
                     assert p in g1.attrs and p in g2.attrs
                     np.testing.assert_array_equal(g1.attrs[p], g2.attrs[p])
 

@@ -47,9 +47,14 @@ pytestmark = pytest.mark.skipif(
 M5 = dict(subhalo=True, subhalo_model=5)
 
 
-def test_default_model_is_unchanged():
-    """Model 5 is STAGED: the shipped default must still be 3."""
-    assert gw.get_simulator_config()["subhalo_model"] == 3
+def test_default_model_is_five():
+    """Paper default since 2026-07-29 (model 5 was STAGED, default 3, before that).
+
+    Model 5 is the config the draft describes: every subhalo sampled to
+    m_floor/M with the host carved by the realized sum, and only clumps whose
+    kappa at the ray clears the threshold actually rendered."""
+    assert gw.get_simulator_config()["subhalo_model"] == 5
+    assert gw.get_simulator_config()["subhalo"] is True
 
 
 def test_config_exposes_threshold_knobs():
@@ -138,9 +143,13 @@ def test_model5_cheaper_than_model4():
 
 
 def test_does_not_perturb_other_models():
-    """Model 5 added tables to Subhalo; models 3 and 4 must be untouched."""
+    """Model 5 added tables to Subhalo; models 3 and 4 must be untouched.
+
+    ⚠ subhalo_virial must be passed explicitly: it defaults True since 2026-07-29
+    and THROWS on models 0-3, so `subhalo_model=3` alone no longer runs."""
     for m in (3, 4):
-        a = kappa(subhalo=True, subhalo_model=m)
-        b = kappa(subhalo=True, subhalo_model=m)
+        virial = dict(subhalo_virial=(m >= 4))
+        a = kappa(subhalo=True, subhalo_model=m, **virial)
+        b = kappa(subhalo=True, subhalo_model=m, **virial)
         assert np.array_equal(a, b)
         assert np.isfinite(a).all()

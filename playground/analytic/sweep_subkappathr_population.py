@@ -66,7 +66,7 @@ def load_weights(path: Path):
     return head, np.array(zl), np.array(M), np.array(w), np.array(rm)
 
 
-def node_table(zs, kappa_thr, kthr_subs, verbose=True):
+def node_table(zs, kappa_thr, kthr_subs, verbose=True, virial=True, legacy_profile=False):
     """Campbell quadrature at every (M, z_l) node -> N_ret and Var_tot per threshold."""
     zl_nodes = ZL_FRACS * zs
     nret = np.zeros((len(M_NODES), len(zl_nodes), len(kthr_subs)))
@@ -74,7 +74,8 @@ def node_table(zs, kappa_thr, kthr_subs, verbose=True):
     t0 = time.time()
     for i, M in enumerate(M_NODES):
         for j, zl in enumerate(zl_nodes):
-            _, rows = run_kthr(float(M), float(zl), zs, kappa_thr, kthr_subs)
+            _, rows = run_kthr(float(M), float(zl), zs, kappa_thr, kthr_subs,
+                               virial=virial, legacy_profile=legacy_profile)
             for k, r in enumerate(rows):
                 nret[i, j, k] = r["n_retained"]
                 var[i, j, k] = r["sigma_total"] ** 2
@@ -99,6 +100,24 @@ def interp_to_grid(M_nodes, zl_nodes, table, M_grid, zl_grid):
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--legacy-virial", action="store_true",
+                    help="run with subhalo_virial=False (r_200 extent, psi=m/M_200). "
+                         "Default is the PRODUCTION_CONFIG convention, virial=True.")
+    ap.add_argument("--legacy-profile", action="store_true",
+                    help="reproduce the pre-2026-07-28 published numbers: dN/dx ~ x^2 "
+                         "(wrong shape), bias x0 = 0.54 read as r_200 units, extent "
+                         "x <= 1. Attribution only -- never a production setting.")
+    ap.add_argument("--out", default="subkappathr_population.json")
+    args = ap.parse_args()
+    virial = not args.legacy_virial and not args.legacy_profile
+    if args.legacy_profile:
+        print("radial-profile convention: LEGACY (x^2 shape, x0=0.54 r_200, x<=1) "
+              "-- attribution run, reproduces the 2026-07-27 report")
+    else:
+        print(f"radial-profile convention: production (x0 = 0.86*eta in r_200 units), "
+              f"subhalo_virial={virial}")
     results = {}
     for zs in (0.5, 1.0, 5.0):
         wpath = ROOT / "tmp" / f"host_weights_zs{zs}.txt"
@@ -121,7 +140,8 @@ def main() -> None:
         # "self-consistent" choice kappa_thr,sub = kappa_thr is the 1.0 entry.
         mults = [0.0, 0.01, 0.1, 1.0, 10.0]
         kthr_subs = [m * kappa_thr for m in mults]
-        zl_nodes, nret, var = node_table(zs, kappa_thr, kthr_subs)
+        zl_nodes, nret, var = node_table(zs, kappa_thr, kthr_subs, virial=virial,
+                                         legacy_profile=args.legacy_profile)
 
         row = {"kappa_thr": kappa_thr, "N_host": head["NhfNFW"],
                "aperture_ratio_median": float(np.median(rat)), "mults": mults,
@@ -161,9 +181,11 @@ def main() -> None:
               f"90% below {row['M_90pct_cost']:.3g}")
         results[str(zs)] = row
 
-    out = ROOT / "playground" / "analytic" / "subkappathr_population.json"
+    out = ROOT / "playground" / "analytic" / args.out
     out.write_text(json.dumps({"M_NODES": M_NODES.tolist(),
                                "ZL_FRACS": ZL_FRACS.tolist(),
+                               "subhalo_virial": virial,
+                               "profile": "x B(x)/(1+cx)^2, x0=0.86*eta (r_200 units)",
                                "results": results}, indent=2))
     print(f"\nsaved {out}")
 

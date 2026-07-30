@@ -259,7 +259,7 @@ def make_figure(hists, ref, mu_centers, zs, ctx_label, out_stem, xlim, ylim):
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
     ax.set_xlabel(r"magnification $\mu$")
-    ax.set_ylabel(r"$\mathrm{d}P/\mathrm{d}\mu$")
+    ax.set_ylabel(r"$\mathrm{d}P_I/\mathrm{d}\mu$")
 
     ax.legend(loc="upper right", fontsize=7, frameon=False, handlelength=1.6)
 

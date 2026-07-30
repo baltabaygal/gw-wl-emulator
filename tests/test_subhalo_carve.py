@@ -25,7 +25,11 @@ import gwlensing as gw  # noqa: E402
 
 BASE = dict(z=1.0, h=0.674, OmegaM=0.315, sigma8=0.811, nsamples=6000,
             seed=950_000_777)
-SUB = dict(subhalo=True, subhalo_model=3)          # production carve target
+# Model 3 is this file's carve target. subhalo_virial must be pinned OFF: it
+# defaults ON since the 2026-07-29 paper-default flip and THROWS on models 0-3
+# (they reduce the host with M_200-referred tables), so `subhalo_model=3` alone no
+# longer runs. Same reason models 1/2 are pinned below.
+SUB = dict(subhalo=True, subhalo_model=3, subhalo_virial=False)
 
 
 def rawdict(**kw):
@@ -41,7 +45,7 @@ def test_config_default_carve_on():
 
 
 def test_default_equals_explicit_carve_on():
-    """The production default (no kwarg) must be the carve, bit-for-bit."""
+    """subhalo_carve defaults on, bit-for-bit (unchanged by the 2026-07-29 flip)."""
     a = kappa(**SUB)
     b = kappa(**SUB, subhalo_carve=True)
     assert np.array_equal(a, b)
@@ -93,15 +97,17 @@ def test_no_op_when_subhalo_off():
 def test_carve_scope_model1_nonbrute_unaffected():
     """Carve is scoped to model 3 and the brute reference only; model-1
     resolved-only (non-brute) is untouched by the flag."""
-    assert np.array_equal(kappa(subhalo=True, subhalo_model=1, subhalo_carve=True),
-                          kappa(subhalo=True, subhalo_model=1, subhalo_carve=False))
+    assert np.array_equal(
+        kappa(subhalo=True, subhalo_model=1, subhalo_virial=False, subhalo_carve=True),
+        kappa(subhalo=True, subhalo_model=1, subhalo_virial=False, subhalo_carve=False))
 
 
 def test_brute_reference_is_carved():
     """The brute truth (model 1 + subhalo_brute) is carved identically (M_u = 0,
     all clumps explicit). Small nsamples: brute resolves every clump and is slow."""
     brute = dict(z=0.5, h=0.674, OmegaM=0.315, sigma8=0.811, nsamples=200,
-                 seed=17, subhalo=True, subhalo_model=1, subhalo_brute=True)
+                 seed=17, subhalo=True, subhalo_model=1, subhalo_virial=False,
+                 subhalo_brute=True)
     on = np.asarray(gw.sample_lensing_raw_ml(**brute, subhalo_carve=True)["kappa"])
     off = np.asarray(gw.sample_lensing_raw_ml(**brute, subhalo_carve=False)["kappa"])
     assert np.all(np.isfinite(on)) and np.all(np.isfinite(off))

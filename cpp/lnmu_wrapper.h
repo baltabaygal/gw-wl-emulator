@@ -36,30 +36,30 @@ struct SamplingParams {
     int ell     = 1;
     int Nhalos  = 100;
     bool strict_weak_lensing = false;
-    bool subhalo = false;
+    bool subhalo = true;             // PAPER DEFAULT (2026-07-29): the draft's model includes subhalos
     double m_floor = 1.0e7;
     int subhalo_threads = 1;
     int subhalo_parallel_threshold = 200000;
-    int subhalo_model = 3;   // reduced-host + Wsub (default since 2026-07-09)
+    int subhalo_model = 5;   // PAPER DEFAULT (2026-07-29): brute population + per-clump kappa threshold
     bool subhalo_brute = false;
     double subhalo_factor = 1.0e-2;  // PDF-level brute acceptance, scripts/convergence/subhalo_factor_jsd.py (2026-07-12)
     bool subhalo_carve = true;       // mass-conserving realized-clump host carve (scheme A, 2026-07-22); false = legacy (1-f_s,b)M
-    bool subhalo_virial = false;     // JvdB14 virial convention: psi = m/M_vir, profile to r_vir (2026-07-28); model 4/5 only
+    bool subhalo_virial = true;      // PAPER DEFAULT (2026-07-29): JvdB14 virial convention, psi = m/M_vir, profile to r_vir; model 4/5 only
     // model 5 only (2026-07-27): per-clump convergence threshold kappa_thr,sub.
     // > 0 absolute; <= 0 uses subhalo_kappathr_factor * host kappa_thr.
     double subhalo_kappathr = -1.0;
     double subhalo_kappathr_factor = 0.1;
     double psi_min_fixed = -1.0;    // diagnostic: > 0 fixes psi_min (overrides m_floor/M); e.g. 1e-4 = psi_res
     double kappathr_flat = -1.0;   // <= 0 = legacy <N>=Nhalos rule (default, reverted 2026-07-10); > 0 = flat explicit-halo threshold
-    int kappa_anchor = 0;          // mean-kappa anchor: 0 legacy batch mean (default, bit-identical),
+    int kappa_anchor = 1;          // PAPER DEFAULT (2026-07-29): robust anchor. 0 = legacy batch mean,
     double kappa_anchor_cut = 1.0; // 1 robust (exclude kappa > cut), 2 external value below
     double kappa_anchor_value = 0.0; // used only when kappa_anchor == 2
-    int bias_model = 0;            // 0 legacy iid cell bias (default, bit-identical); 1 correlated 1D field
-    double bias_Rperp = 8441.0;    // comoving kpc transverse window radius = R_L(1e14) (bias_model = 1 only)
-    bool bias_weak = false;        // weak arm: kappa_W conditional on the field (requires bias_model = 1)
-    int bias_window = 0;           // field smoothing window: 0 transverse disk (default, bit-identical);
+    int bias_model = 1;            // PAPER DEFAULT (2026-07-29): correlated 1D field (draft sec. II.A); 0 = legacy iid cell bias
+    double bias_Rperp = 20000.0;   // PAPER DEFAULT (2026-07-29): R_s = 20 Mpc, confirmed by Ville (bias_model = 1 only)
+    bool bias_weak = true;         // PAPER DEFAULT (2026-07-29): sub-threshold background rides the field (requires bias_model = 1)
+    int bias_window = 1;           // PAPER DEFAULT (2026-07-29): real-space spherical top-hat. 0 = legacy transverse disk;
                                    // 1 spherical top-hat, 2 Gaussian (both on |k|; require bias_model = 1)
-    bool fil_bias = false;         // filaments use filbias (PBS of pFCfil, q=0.7) not halobias; requires bias_model = 1
+    bool fil_bias = true;          // PAPER DEFAULT (2026-07-29): filaments use filbias (PBS of pFCfil, q=0.7); requires bias_model = 1
 };
 
 struct LnmuSampleDiagnostics {

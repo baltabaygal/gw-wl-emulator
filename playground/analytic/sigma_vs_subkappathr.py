@@ -61,14 +61,15 @@ from scripts.subhalo_gate.subhalo_factor_proxy_check import (  # noqa: E402
 )
 from playground.dgate.subhalo_factor_dgate_area_scan import host_rmax  # noqa: E402
 from playground.analytic.subhalo_factor_analytic_deficit import (  # noqa: E402
-    distance_kernel, projected_profile,
+    distance_kernel, projected_profile, production_profile_params, eta_vir_to_200,
+    _nfw_mu,
 )
 from playground.analytic.plot_sigma_vs_psimin import area_weighted_mean  # noqa: E402
 
 
 def run_kthr(host_mass, z_lens, z_source, kappa_thr_host, kthr_subs,
              m_floor=1.0e7, n_mass=200, n_y=160, n_d=1200, n_theta=256,
-             y_probe_r200=None):
+             y_probe_r200=None, virial=True, legacy_profile=False):
     """Sweep the per-subhalo convergence cut at fixed psi_min = m_floor/host_mass.
 
     Returns (meta, rows); kthr_subs may include 0.0 (= no cut, fully populated baseline).
@@ -88,11 +89,20 @@ def run_kthr(host_mass, z_lens, z_source, kappa_thr_host, kthr_subs,
     sigmac = sigma_crit(z_source, z_lens)
     kappa0_host = rs_host * rhos_host / sigmac
 
-    # FIXED clump population: psi_min = m_floor / M, never varied in this sweep
-    psi_min = m_floor / host_mass
+    # Virial convention (cpp/subhalo.cpp, subhalo_virial; ON in PRODUCTION_CONFIG):
+    # psi is referred to M_vir and the population extends to x = eta = r_vir/r_200.
+    # M_vir/M_200 = mu(eta c)/mu(c) since both radii share r_s.
+    eta = eta_vir_to_200(c_host, z_lens)
+    Mpsi = host_mass * _nfw_mu(eta * c_host) / _nfw_mu(c_host) if virial else host_mass
+
+    # FIXED clump population: psi_min = m_floor / Mpsi, never varied in this sweep
+    psi_min = m_floor / Mpsi
     lpsi = np.linspace(np.log(psi_min), np.log(PSI_MAX), n_mass)
     psi = np.exp(lpsi)
-    mass = psi * host_mass
+    mass = psi * Mpsi                 # PHYSICAL clump mass -> its lensing profile
+    # The carve removes sum m_i / (M_vir/M_200) from M_200, i.e. a fraction sum psi of
+    # M_200, so the host mass-response variable is psi * M_200, not psi * M_vir.
+    mass_carve = psi * host_mass
     dN_dlnpsi = gamma * psi**ALPHA * np.exp(-BETA * psi**OMEGA)
 
     # per-clump convergence on the (mass, ray-clump separation) grid
@@ -104,7 +114,17 @@ def run_kthr(host_mass, z_lens, z_source, kappa_thr_host, kthr_subs,
         k1[i] = 2.0 * kappa0 * fg_kappa(np.maximum(d_grid / rs_i, 1.0e-12))
 
     # f(d|y) quadrature weights (rows sum to 1: it is a normalized pdf in d)
-    sigma_interp, _ = projected_profile(c_host, r200_host)
+    if legacy_profile:
+        # pre-2026-07-28 convention, kept ONLY to reproduce the published sizing
+        # numbers so the change can be attributed: bias x0 = 0.54 read as r_200 units
+        # (the engine calibrates in r_vir and refit it to 0.86), extent x <= 1.
+        from playground.analytic.subhalo_factor_analytic_deficit import LEGACY_X0_R200
+        x0_p, xmax_p, shp = LEGACY_X0_R200, 1.0, 2.0
+    else:
+        x0_p, xmax_p = production_profile_params(c_host, z_lens, virial=virial)
+        shp = 1.0
+    sigma_interp, _ = projected_profile(c_host, r200_host, x0=x0_p, xmax=xmax_p,
+                                        shape_exp=shp)
     y_grid = np.logspace(-1, np.log10(rmax_host), n_y)
     if y_probe_r200 is not None:
         # splice the requested radii into the grid so the probe is exact, not nearest-cell
@@ -153,8 +173,8 @@ def run_kthr(host_mass, z_lens, z_source, kappa_thr_host, kthr_subs,
         mu_y = np.trapezoid(dN_dlnpsi[:, None] * J1, lpsi, axis=0)
         var_y = np.trapezoid(dN_dlnpsi[:, None] * J2, lpsi, axis=0)
         frac_y = np.trapezoid((dN_dlnpsi * psi)[:, None] * Jn, lpsi, axis=0)
-        varm_y = np.trapezoid((dN_dlnpsi * mass**2)[:, None] * Jn, lpsi, axis=0)
-        covmk_y = np.trapezoid((dN_dlnpsi * mass)[:, None] * J1, lpsi, axis=0)
+        varm_y = np.trapezoid((dN_dlnpsi * mass_carve**2)[:, None] * Jn, lpsi, axis=0)
+        covmk_y = np.trapezoid((dN_dlnpsi * mass_carve)[:, None] * J1, lpsi, axis=0)
 
         frac_res = float(np.mean(frac_y))
         k_host_y = host_kappa_reduced(frac_y)

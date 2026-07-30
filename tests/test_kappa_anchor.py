@@ -56,7 +56,9 @@ def test_robust_anchor_removes_monster_shift():
         pytest.skip("no monster batch found in seed scan")
     kw = dict(z=5.0, OmegaM=0.315, sigma8=0.811, h=0.674,
               Nreal=15000, seed=seed)
-    a0 = gw.sample_lnmu(**kw)
+    # mode 0 must be EXPLICIT: since 2026-07-29 the default is mode 1, so a bare
+    # call would compare mode 1 against itself and the shift would read as zero.
+    a0 = gw.sample_lnmu(**kw, kappa_anchor=0)
     a1 = gw.sample_lnmu(**kw, kappa_anchor=1)
     pred = 2.0 * excess.sum() / 15000
     obs = np.median(a1) - np.median(a0)
@@ -65,7 +67,10 @@ def test_robust_anchor_removes_monster_shift():
 
 
 def test_config_reports_anchor():
+    # Paper default since 2026-07-29: robust anchor (mode 1). The draft's emulator
+    # enforces <1/mu> = 1, which the legacy batch-mean anchor cannot support --
+    # one kappa >> 1 ray drags the whole batch.
     c = gw.get_simulator_config()
-    assert c["kappa_anchor"] == 0
+    assert c["kappa_anchor"] == 1
     assert c["kappa_anchor_cut"] == 1.0
     assert c["kappa_anchor_value"] == 0.0

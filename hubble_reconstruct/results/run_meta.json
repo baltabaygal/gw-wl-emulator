@@ -1,0 +1,33 @@
+{
+  "provider": "dataset",
+  "arm": "bns_et",
+  "selection": "redshift",
+  "snr_thr": 20.0,
+  "params": "3d",
+  "n_bns": 300,
+  "n_smbh": 12,
+  "n_znodes": 24,
+  "n_samples": 2400,
+  "n_burn": 200,
+  "n_chains": 4,
+  "f_step": 0.05,
+  "seed": 0,
+  "gaussian": false,
+  "demo_mismatch": false,
+  "quick": false,
+  "outdir": "/Users/baltabay/Desktop/gw-wl-emulator/hubble_reconstruct/results",
+  "keys": [
+    "Om",
+    "sigma8",
+    "h"
+  ],
+  "theta_fid": {
+    "h": 0.674,
+    "Om": 0.315,
+    "sigma8": 0.811,
+    "Ob": 0.0493,
+    "ns": 0.965,
+    "zeq": 3402.0
+  },
+  "runtime_s": 150.1
+}

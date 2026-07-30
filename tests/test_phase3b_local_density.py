@@ -20,7 +20,10 @@ def test_phase3b_local_density_residual_outputs_exist(tmp_path, monkeypatch):
     }
     write_local_density_outputs(payload)
     result_path = tmp_path / "data/results/phase3b_local_density_check.json"
-    report_path = tmp_path / "docs/phase3/phase3b_local_density_check.md"
+    # ml.phase3b_diagnostics.DOCS_DIR is Path("docs"), not "docs/phase3" -- this
+    # expectation had been stale for a long time (the "pre-existing unrelated
+    # failure" noted in CLAUDE.md). Fixed 2026-07-29; nothing to do with physics.
+    report_path = tmp_path / "docs/phase3b_local_density_check.md"
     plot_path = tmp_path / "plots/figures/phase3b_local_density_check/residual_sum_by_z.png"
     assert result_path.exists()
     assert report_path.exists()

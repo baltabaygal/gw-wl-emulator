@@ -222,36 +222,28 @@ def on_fine(arr):
 
 m_fine = boost(on_fine(q_tot))
 b_clm = boost(on_fine(q_clm))
-b_ch = boost(on_fine(q_clm + q_hst))
+b_hst = boost(on_fine(q_hst))
 
-# the cross term is the gap between "clumps + host" and the truth: it pulls the boost DOWN
 jd = int(np.argmin(np.abs(np.log(k_cmp / K_DEFAULT))))
-b_clm_d, b_ch_d, b_tot_d = (boost(q_clm[jd]), boost(q_clm[jd] + q_hst[jd]),
-                            boost(q_tot[jd]))
+b_clm_d, b_hst_d, b_tot_d = boost(q_clm[jd]), boost(q_hst[jd]), boost(q_tot[jd])
 
-# The percentages live in the legend labels rather than in a text block: the plateau is
-# where every curve is flat, so a separate annotation just fights the curves for space.
-# The two dashed/dotted curves are CUMULATIVE partial sums, not separate contributions.
-# Labelling the orange one "+ carved host" invited the reading that the host contributes
-# 5.9% on its own and therefore exceeds the 5.1% total, which is nonsense. It is
-# clumps+host with the covariance still omitted, and it lies ABOVE the total precisely
-# because 2Cov < 0: the clump sum and the host response anticorrelate (the carve conserves
-# mass, so a ray with more clump mass nearby sees a lighter host), and adding the two
-# variances without the cross term overestimates the boost. The labels now say so.
-ax.fill_between(k_fine, m_fine, b_ch, color='0.55', alpha=0.20, lw=0, zorder=2,
-                label=r'cross term $2\,\mathrm{Cov}<0$')
-ax.plot(k_fine, b_clm, color='C0', lw=1.1, ls=(0, (1, 1.3)), zorder=3,
-        label=rf'$\sum_i\kappa_i$ only: $+{100 * (b_clm_d - 1):.1f}\%$')
-ax.plot(k_fine, b_ch, color='C1', lw=1.1, ls=(0, (4, 1.6)), zorder=3,
-        label=rf'$+$ host, no cross: $+{100 * (b_ch_d - 1):.1f}\%$')
+# 2026-07-29b (user): the three curves are now SEPARATE channels, not cumulative partial
+# sums, and the cross-term shading is gone. Each line is the boost that channel's variance
+# would produce on its own, sqrt(1 + A q_x). Consequence to keep in mind when reading the
+# figure: the black total is NOT the sum of the other two. Var_tot = Var_clumps + Var_host
+# + 2Cov with 2Cov < 0 -- the carve conserves mass, so a ray with more clump mass nearby
+# sees a lighter host and the two anticorrelate -- which is why the total (+5.1%) sits
+# BELOW the subhalo line (+5.5%) rather than above it. The earlier version drew that gap
+# as a shaded band; it is now implicit, so the caption should carry it.
+ax.plot(k_fine, b_clm, color='C0', lw=1.2, ls=(0, (1, 1.3)), zorder=3, label=r'subhalos')
+ax.plot(k_fine, b_hst, color='C1', lw=1.2, ls=(0, (4, 1.6)), zorder=3, label=r'host')
 
 # The +-c_err calibration band is deliberately NOT drawn now that the MC points are off
 # the canvas. Two shaded regions of similar weight read as one confused object, and the
 # cross-term shading is the physics -- the calibration band was only there to show that
 # the points were consistent with the curve. Its size is stated in the caption instead:
 # the amplitude carries +-c_err = +-0.34% from the null-region normalisation.
-ax.plot(k_fine, m_fine, color=C_AN, lw=1.5, zorder=5,
-        label=rf'$+$ cross $=$ total: $+{100 * (b_tot_d - 1):.1f}\%$')
+ax.plot(k_fine, m_fine, color='k', lw=1.5, zorder=5, label=r'total')
 # The MC points are NOT drawn (user decision 2026-07-27): the figure shows the model's
 # variance budget, and 35 noisy points at +-0.3-0.6% obscured the 0.4% separation between
 # the clumps-alone and clumps+host curves, which is the thing being shown. The MC has not
@@ -283,22 +275,19 @@ n_def = float(np.exp(np.interp(np.log(K_DEFAULT), np.log(k_an), np.log(clumps_an
 ax.set_xscale('log')
 ax.set_xlim(*XLIM)
 ax.set_ylim(YLO, YHI)
-ax.set_xlabel(r'per-subhalo convergence threshold $\kappa_{\rm thr,\,sub}$')
+ax.set_xlabel(r'$\kappa_{\rm thr,\,sub}$')
 ax.set_ylabel(r'$\sigma_\kappa^{\rm sub}\,/\,\sigma_\kappa^{\rm no\ sub}$')
 format_log_axis_decimal(ax, axis='x')
 # legend in the empty band between the 1.0 reference line and the lowest MC point:
 # the frame is off in the house style, so the box must not cross any line at all
 handles, labels = ax.get_legend_handles_labels()
-wanted = [rf'$\sum_i\kappa_i$ only: $+{100 * (b_clm_d - 1):.1f}\%$',
-          rf'$+$ host, no cross: $+{100 * (b_ch_d - 1):.1f}\%$',
-          r'cross term $2\,\mathrm{Cov}<0$',
-          rf'$+$ cross $=$ total: $+{100 * (b_tot_d - 1):.1f}\%$']
+wanted = [r'subhalos', r'host', r'total']
 if SHOW_MC:
     wanted.insert(0, rf'MC, $N={N_RAY // 1000}\times10^3$ rays')
 order = [labels.index(l) for l in wanted]
 ax.legend([handles[i] for i in order], [labels[i] for i in order],
-          fontsize=5.5, loc='upper right', handlelength=1.5, borderaxespad=0.6,
-          labelspacing=0.34, handletextpad=0.55)
+          fontsize=6.5, loc='upper right', handlelength=1.6, borderaxespad=0.6,
+          labelspacing=0.36, handletextpad=0.55)
 
 out_png = OUT_DIR / 'fig_subhalo_sigma_ratio_vs_subkappathr.png'
 out_pdf = out_png.with_suffix('.pdf')

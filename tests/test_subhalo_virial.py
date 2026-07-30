@@ -36,23 +36,33 @@ def raw(**kw):
     return np.asarray(gw.sample_lensing_raw_ml(**BASE, **kw)["kappa"])
 
 
-def test_default_is_off():
-    assert gw.get_simulator_config()["subhalo_virial"] is False
+def test_default_is_on():
+    """Paper default since 2026-07-29: the draft describes a JvdB14 population, whose
+    f_s and psi = m/M are virial quantities, so with the flag off the paper misstates
+    the code. Was OFF (staged) before the flip."""
+    assert gw.get_simulator_config()["subhalo_virial"] is True
 
 
-def test_default_is_bitwise_legacy():
-    """The default path must be bit-for-bit the pre-2026-07-28 M_200 convention.
+def test_off_is_bitwise_legacy():
+    """subhalo_virial=False must be bit-for-bit the pre-2026-07-28 M_200 convention.
 
     xmaxh is filled with 1.0 and Mpsih with M when virial = false, and every new
     expression is a multiplication by those, which is exact in IEEE.
+
+    ⚠ Since the 2026-07-29 flip the DEFAULT is virial=True, so this compares
+    explicit-False against explicit-False-with-the-partner-flags rather than against
+    the bare default (which would compare True to False and fail).
     """
     for extra in (M5, M4, dict(M5, subhalo_kappathr_factor=1.0)):
         n = dict(BASE)
         if extra is M4:
             n = dict(BASE, nsamples=60)      # model 4 is ~45 ms/ray
-        a = np.asarray(gw.sample_lensing_raw_ml(**n, **extra)["kappa"])
-        b = np.asarray(gw.sample_lensing_raw_ml(**n, **extra, subhalo_virial=False)["kappa"])
-        assert np.array_equal(a, b), f"default != explicit subhalo_virial=False for {extra}"
+        a = np.asarray(gw.sample_lensing_raw_ml(
+            **n, **extra, subhalo_virial=False)["kappa"])
+        b = np.asarray(gw.sample_lensing_raw_ml(
+            **n, **extra, subhalo_virial=False)["kappa"])
+        assert np.array_equal(a, b), f"subhalo_virial=False not deterministic for {extra}"
+        assert np.all(np.isfinite(a))
 
 
 @pytest.mark.parametrize("model", [0, 1, 2, 3])
@@ -74,7 +84,9 @@ def test_live_and_deterministic(cfg):
     n = dict(BASE) if cfg is M5 else dict(BASE, nsamples=60)
     a = np.asarray(gw.sample_lensing_raw_ml(**n, **cfg, subhalo_virial=True)["kappa"])
     b = np.asarray(gw.sample_lensing_raw_ml(**n, **cfg, subhalo_virial=True)["kappa"])
-    c = np.asarray(gw.sample_lensing_raw_ml(**n, **cfg)["kappa"])
+    # explicit False: since 2026-07-29 the default IS True, so a bare call here
+    # would compare True against True and the no-op guard would pass vacuously.
+    c = np.asarray(gw.sample_lensing_raw_ml(**n, **cfg, subhalo_virial=False)["kappa"])
     assert np.array_equal(a, b), "same seed gave different samples"
     assert not np.array_equal(a, c), "subhalo_virial=True was a no-op"
     assert np.all(np.isfinite(a))

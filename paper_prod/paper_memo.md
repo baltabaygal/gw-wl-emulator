@@ -32,7 +32,9 @@ rule as CLAUDE.md; date your edits).
   `Hubble_diagram_fit` (:1289); D_L: `cosmology.h` (`DL`), python port `Cosmo.DL`.
 - Eq. (mueq) μ = 1/[(1−κ)²−γ²]: `lensing.cpp::sample_lnmu` (:1036–1160) — detA,
   ⟨κ⟩ flux anchor (:1040–1067; kappa_anchor modes 0/1/2, batch-mean bug note),
-  invalid-sample bookkeeping `cpp/invalid_stats.h`; P(lnμ) hist `Plnmuf` (:1163).
+  invalid-sample bookkeeping `cpp/invalid_stats.h`; P(lnμ) hist `Plnmuf` (:1364
+  — was misquoted as :1163 until 2026-07-29; the 1/μ source-plane conversion +
+  renormalization inside it are at :1396–1405).
 - κ, γ single-angle sums over lenses: host add `lensing.cpp` add_host (:842–944,
   γ projection comment :898–901); realization struct `lensing.h::RealizationRaw`
   (κ, γ1, γ2, κ_nosub, κ_weak).
@@ -241,16 +243,27 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
 ## §II.B Magnification PDF
 
 - Raw sampler + PDF: `sample_lnmu_raw` (:630), `sample_lnmu` (:1036),
-  `Plnmuf` (:1163); python API `python/testing_api.py`, bindings
+  `Plnmuf` (:1364); python API `python/testing_api.py`, bindings
   `cpp/python_bindings.cpp` (`sample_lnmu`, `sample_lnmu_ml`,
   `sample_lensing_raw_ml` incl. per-ray `kappa_weak`, `compute_lnmu_stats`,
   `get_simulator_config`).
 - Tail/edge/flux facts for the text: `docs/edge_tail_flux_note.md` (μ⁻² tail,
   empty-beam edge, flux calibration target).
-- **§II.B rewritten 2026-07-28** (shape rationale in `paper_writer.md` §5): four
-  paragraphs — synthesis+estimator, low-μ edge, μ⁻² tail, flux sum rule — each
-  feature handed forward to §III as an imposed constraint; evidence in the new
-  appendix `app:edge_tail`. **Plane = IMAGE throughout.** ⚠ Two conventions coexist
+- **§II.B rewritten 2026-07-28, restructured 2026-07-28b** (shape rationale in
+  `paper_writer.md` §5): now follows Killedar+12 §2.1
+  (`papers/misc/mnras0420-0155.pdf` p.157) — a feature list in prose, one displayed
+  equation (the flux sum rule). Four paragraphs — synthesis+estimator, feature
+  list, what §III imposes. **Plane = IMAGE throughout.**
+  ⚠ **No appendix (user, 2026-07-28b).** `app:edge_tail` was written then deleted
+  (577 words); the tail evidence compressed into §II.B, the flux-sum-rule numbers
+  into a footnote, the edge block dropped as redundant. `fig:magpdf_tail` now sits
+  in §II.B next to `fig:magpdf_zs`. See `paper_writer.md` §5 for the block-by-block
+  disposition and for the rule that the low-μ edge discussion stays SHORT (one
+  sentence + one footnote, not a paragraph).
+  ⚠ **Do not write that the PDF drops at the empty-beam limit** — ours does not
+  reach it (P = e^{−N̄_l}); the edge is a convolution edge and the emulator uses a
+  ridge-fitted 0.1% quantile. Numbers + provenance: `paper_writer.md` §5,
+  `docs/edge_tail_flux_note.md` §1. ⚠ Two conventions coexist
   in the repo: `Plnmuf` (:1396) applies the 1/μ source-plane conversion, whereas
   `sample_lnmu` (used by the figure script AND the ML pipeline) is image-plane.
   ⚠ `fig:magpdf_ingredients` DELETED — the ingredient decomposition moved to
@@ -259,17 +272,56 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
   ⚠ Do NOT impose ⟨1/μ⟩=1 on the emulator: the constraint is plane-invariant
   (⟨μ⟩_S = 1/⟨1/μ⟩_I exactly), it was tried (KL 0.50 vs 0.0034), and the sim does
   not satisfy it on certified support. Target `F_trim(ctx)`.
-- Figs. `fig:magpdf_zs` / `fig:magpdf_ingredients` (added 2026-07-24, Sec. II.B):
-  dP/dμ vs μ for z_s=0.5/1/2/5/10 (full config), and dP/dμ at z_s=5 for
-  baseline/+subhalos/+clustering. Generator
+- Figs. `fig:magpdf_zs` (Sec. II.B) + `fig:magpdf_tail` (App. `edge_tail`) —
+  **promoted 2026-07-28**, both from
   `paper_prod/scripts/plot_fig_magnification_pdf.py` →
-  `paper_prod/plots/figures/fig_magnification_pdf_{zs,ingredients}.{pdf,png}`;
-  run guide `paper_prod/scripts/README_magnification_pdf.md`. **Heavy MC run by
-  the USER** (needs the model-4 Mac build + test env; smoothness via --nreal or
-  seed shards + --combine). Configs: full = bias_model=1/window=1/Rperp=20000/
-  bias_weak/fil_bias + subhalo_model=4; baseline = bias_model=0, no subhalos;
-  kappa_anchor=1 (robust). Caches histograms to plots/data/magpdf_<tag>.npz for
-  instant --replot. Plotted window mu≤1.8 only (far tail uncertified).
+  `paper_prod/plots/figures/fig_magnification_pdf_{zs,tail}.{pdf,png}`; run
+  guide `paper_prod/scripts/README_magnification_pdf.md` (rewritten same day).
+  **Heavy MC, run by the USER**; needs a `make build` POSTDATING the 2026-07-28
+  `halobias` + subhalo-profile changes.
+  - **BODY** `fig:magpdf_zs`: linear μ ∈ [0.5, 2.5], y ∈ [2e-2, 110],
+    `ZS_LIST` = 0.2/0.5/1/2/3/5/7/10 simulated, `--body-zs` draws
+    0.2/0.5/1/2/5/10. Edge ticks OFF (`--edge-q 0`).
+  - **TAIL** `fig:magpdf_tail`: **compensated** μ²·dP/dμ vs μ ∈ [2,100],
+    7 log bins, Poisson error bars, per-curve flat reference. Flat ⇔ μ⁻².
+    μ⁻³ contrast behind `--tail-mu3` (off). As plotted 2026-07-28b:
+    z_s = 2/5/10, reference line at **μ=20** (`--tail-fit-mu`, the default),
+    NOT the μ=8 of `docs/edge_tail_flux_note.md` — measured, the survival
+    exponent is still ≈2.25 just above 8 and reaches 2 only above μ≈20. That is
+    consistent with the shipped 3-segment POT tail, and both the caption and
+    the appendix text now say it rather than claiming a single μ⁻² segment.
+  - ⚠⚠ **THE TWO FIGURES USE DIFFERENT COSMOLOGIES ON PURPOSE (2026-07-28b).**
+    `fig:magpdf_zs` = **FIDUCIAL** (Ω_M 0.315, σ₈ 0.811, h 0.674), cache
+    `magpdf_combined.npz`, 8×60k = 480k/z_s. `fig:magpdf_tail` =
+    **HIGH-STRUCTURE** (Ω_M 0.38, σ₈ 1.0, h 0.72, `--high-structure`), cache
+    `magpdf_combined_high.npz`, 8×100k = 800k/z_s, because the fiducial tail is
+    too sparse to fit a slope. **Never plot `fig:magpdf_zs` from the
+    high-structure cache** — at σ₈=1.0 the z_s=0.5 edge sits at μ≈0.83 vs ≈0.95
+    fiducial, which would contradict the σ₈-moves-the-edge sentence (Premadi)
+    directly above it in §II.B. Both captions state their cosmology.
+    **`--out-suffix` added 2026-07-28b** so the two runs cannot overwrite each
+    other; before that the script wrote unsuffixed names and the `_highstruct`
+    files were renamed by hand. Exact commands are in a comment at
+    `fig:magpdf_zs` in the draft.
+  - Config: imports `ml/params.py::PRODUCTION_CONFIG` (hash `0d50caf91c75`)
+    rather than restating flags — **the pre-2026-07-28 script hard-coded
+    `subhalo_model=4` and omitted `subhalo_virial`, i.e. plotted a different
+    subhalo population from the one the draft describes.**
+  - `--nreal` default **4e6**/series (10 series); shard 8×5e5 + `--combine`.
+  - Cache `plots/data/magpdf_<tag>.npz` = 4000 LOG bins over μ ∈ [0.05, 200]
+    + under/overflow counts. ⚠ **Pre-2026-07-28 caches (2000 linear bins over
+    [0.4,5]) are NOT reusable**; `--combine` refuses to mix grids, `--replot`
+    works but auto-skips the tail figure.
+  - ⚠ Body and tail **cannot** share a panel (1–99% mass spans 0.07 decades at
+    z_s=0.2 vs 0.61 at z_s=10, against ~2 decades for the tail) — hence two
+    figures; `--logx` exists but is not the default.
+  - ⚠ Tail unsampled at z_s ≤ 1 (S(μ>5)=2e-6 at z_s=0.5 ⇒ ~1 ray in 4.8e5);
+    that is physics, not depth. Captioned, not hidden.
+  - `fig:magpdf_ingredients` **retired from the paper** — decomposition moved to
+    `fig:variance_DL`. Script still emits it as a diagnostic. ⚠ Its arms are NOT
+    one-variable-at-a-time (`CONFIG_SUBH` bias_model=0 vs `CONFIG_FULL`
+    correlated field), so at z_s=5 it reads as clustering REDUCING the scatter.
+    Fix the arms before any quantitative use.
 
 ## §III Machine learning
 
@@ -327,6 +379,19 @@ All in `cpp/subhalo.{h,cpp}` + the host-side hooks in `lensing.cpp`:
 - Fig. `fig:variance_DL` (`plots/variance_D_L.pdf`): **no generating script or
   file found in the repo** (2026-07-20) — lives outside or TBD; add here when
   created.
+
+## Downstream of the PDF — Hubble diagram reconstruction (HDR)
+
+Not part of the current draft, but the step that turns $P(\mu)$ into Vaskonen's
+headline σ8 forecast and his Fig. 5 corner plot: **`docs/hubble_diagram_reconstruction.md`**
+(2026-07-29). Covers the four stages (PDF → mock catalogue → likelihood → MCMC),
+where each lives in the code, the De Leo+ 2026 (arXiv:2607.20413) catalogue
+upgrade Ville flagged, and the selection coupling that makes it more than a
+stage-2 swap. Key code facts recorded there, all verified against source:
+`loglikelihood` (:1410) and `Hubble_diagram_fit` (:1490) are **not exposed to
+Python**; the likelihood runs on the **source-plane** PDF while our emulator is
+image-plane; the C++ likelihood is **stochastic** (fresh MC per call); and stage 2
+(`cpp/main_lensing.cpp` :99–183) carries an **unbounded OOB read** in the SMBH arm.
 
 ## §IV Comparison with earlier works
 

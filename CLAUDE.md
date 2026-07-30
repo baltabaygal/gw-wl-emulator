@@ -229,8 +229,27 @@ WIDE (0.40,1.40). `python/generate_dataset.py` samples the 6d wide box (LHS,
 A_s=2.101e-9 → σ₈_derived **0.860**; the new fiducial is σ₈=0.811 (→ A_s_derived
 1.8695e-9), i.e. −11% in P(k) amplitude. Any pre-2026-07-27 6d reference/control
 (`param_space_ref`, `groundtruth.npz`) is at the OLD amplitude — regenerate, do not
-compare across the switch. **-ar worktree NOT yet converted** (7 files still on
-lnAs10 — see below). In the **-ar worktree**: train_ar/
+compare across the switch. **-ar worktree CONVERTED 2026-07-28** — `ml/params.py` and
+`ml/data.py` copied from the main repo (verified strict supersets; main's `data.py`
+still reads deprecated schema-2.0 A_s files via the stored `sigma8_derived`), and the
+nine autoresearch files converted in place: `param_space_check`, `prepare_ar`,
+`gen_tail_counts`, `gen_lowz_data` (θ dicts + simulator calls), `validate_pit`,
+`validate_posterior` (simulator calls), `features`, `smooth_model`, `train_ar`
+(docstrings). Every simulator call now passes σ₈ as the amplitude POSITIONAL with
+`As` left at its −1.0 default. **Panels are preserved**: the old route
+`As = FID_As·(s8/0.86)²` was exactly invertible (σ₈_derived ∝ √A_s), verified against
+`get_simulator_config` — old-vs-new σ₈_derived agree to 3e-4 at all six panel corners
+(residual is only the rounded 0.86 vs the true 0.859744). Import-smoke + an end-to-end
+`param_space_check._worker` run pass. ⚠ 443 lines of PRE-EXISTING uncommitted work in
+that worktree were preserved, not clobbered (diffstat 443→476, same 15 files).
+⚠ **Still NOT done there: the retrain itself.** Caches remain on the old amplitude and
+must be regenerated, not reused — `param_space_ref.npz`, `groundtruth.npz`,
+`lowz_aug.npz`, `tail_counts_extra.npz`, and any `*_6d.json` feature-fit cache (its
+amplitude slot was `lnAs10`, now σ₈). ⚠ The -ar validators do NOT pass
+`PRODUCTION_CONFIG` — deliberately left alone, since the shipped emulator was trained
+on the older physics and changing the validators' config now would invalidate the
+comparison. Fold that into the retrain bundle.
+In the **-ar worktree**: train_ar/
 train_smooth infer context dim from data (old checkpoints default 4);
 `ml/autoresearch/features.py` = shared edge/tail feature maps (legacy 10/14 exact,
 6d 16/20); smooth_model dispatches on len(theta) — 6d needs refit `*_6d.json` caches
@@ -240,6 +259,57 @@ train_smooth infer context dim from data (old checkpoints default 4);
 **CORRECTED 2026-07-27: there is nothing to rebuild.** `gw-wl-emulator-ar/build` is a
 **symlink** to `gw-wl-emulator/build` (made 2026-06-16), so the two worktrees share
 one `.so` and a `make build` in the main repo updates both. Verified: identical inode.
+
+## ⚠⚠ PAPER-DEFAULT FLIP (2026-07-29) — the C++ defaults ARE the paper config now
+**User decision: "overall all defaults must be what was described in the paper."**
+Nine settings flipped, so a bare no-kwarg call now runs the model the draft describes:
+`subhalo` false→**true**, `subhalo_model` 3→**5**, `subhalo_virial` false→**true**,
+`bias_model` 0→**1**, `bias_window` 0→**1**, `bias_Rperp` 8441→**20000.0**,
+`bias_weak` false→**true**, `fil_bias` false→**true**, `kappa_anchor` 0→**1**.
+(`subhalo_carve`, `m_floor`, `subhalo_kappathr_factor`, `kappa_anchor_cut` were
+already the paper values.) **R_s = 20 Mpc is FIXED and confirmed by Ville** — this
+part is no longer pending. Verified: no-kwarg == `**PRODUCTION_CONFIG` bitwise at
+z_s=0.5/1/5.
+- **Defaults live in THREE places** — `lensing.h` (struct), `lnmu_wrapper.h`
+  (struct), and the `py::arg(...)` list in `python_bindings.cpp` (44 entries; the
+  py::arg values SHADOW the structs, so flipping only the structs changes nothing
+  through Python). A fourth copy — hardcoded literals inside `get_simulator_config`
+  — **was silently reporting the pre-flip values**, which would have written wrong
+  provenance into every dataset's `metadata/simulator_defaults`. Fixed properly: it
+  now reads a default-constructed `SamplingParams`, so that drift class is gone.
+- **`ml.params.LEGACY_CONFIG` + `legacy_config(**over)` / `production_config(**over)`
+  (NEW).** ⚠⚠ **The paper defaults are a COUPLED set — a single-flag override can now
+  THROW**: `bias_model=0` alone raises (`bias_weak`/`bias_window` are inherited ON and
+  both require `bias_model=1`); `subhalo_model=3` alone raises (`subhalo_virial` is
+  inherited ON and requires model 4/5). Before the flip these were harmless because
+  the partners defaulted off. **Splat the whole `LEGACY_CONFIG` for a reference arm;
+  use `legacy_config(bias_model=1)` to vary one setting against it.** ~20 A/B and
+  figure scripts under `scripts/` do single-flag overrides and were NOT audited — they
+  will throw or silently change physics. Fix them with `legacy_config()` as you hit them.
+- **Attribution proof (protocol satisfied):** with the flip in place, an explicit
+  `LEGACY_CONFIG` call reproduces the pre-flip reference **bit-for-bit at all 3
+  points** ⇒ the flip moved DEFAULTS ONLY, no physics. Reference re-baselined;
+  pre-flip vectors kept as `tests/data/reference_lnmu_pre_paper_defaults.npz` and
+  **still guarded** by the new `test_legacy_physics_bitwise`.
+- **Tests: 16 failed on the flip (all "asserts the OLD default"), all updated; suite
+  green.** New: `test_legacy_physics_bitwise`, `test_defaults_are_the_paper_config`.
+  `test_parallel_generation.py`'s guard was **INVERTED** — it used to assert the pin
+  DIFFERED from the defaults (a no-op guard while they were staged); it now asserts
+  they AGREE. ⚠ Several tests passed vacuously after the flip until fixed to reference
+  the off-state EXPLICITLY (comparing the new default against itself) — when a default
+  moves, re-read every `assert not array_equal` in that file.
+- ⚠ **`test_sigma8_as_round_trip_samples` is no longer bitwise on the default path.**
+  Legacy: 100% bitwise. Paper defaults: **0%**, max |Δlnμ| = 1.8e-7 — realized subhalo
+  and clustered-count draws depend on `deltaH8`, so a 1-ULP amplitude change
+  decorrelates the RNG stream. Stream divergence, not amplitude error; the test now
+  asserts an ABSOLUTE tolerance (lnμ crosses zero, so rtol is wrong) and keeps the
+  bitwise check on the legacy path.
+- ⚠ **The suite is now much slower** (~10 min for 6 physics files, was seconds) —
+  every test that used to run cheap default physics now runs model-5 subhalos + the
+  correlated field + the weak arm.
+- **Must regenerate on the new defaults:** any stored subhalo-ON/bias reference, the
+  model-4/5 gate, the subkappathr sizing, and any figure whose script relied on the
+  old defaults.
 
 ## Production simulator config — PINNED IN PYTHON (2026-07-27)
 `ml/params.py::PRODUCTION_CONFIG` is the single source of truth for the physics the
@@ -327,12 +397,69 @@ tail exponent settled μ⁻² image-plane (μ⁻³ = source plane), Poisson race
 nats over μ⁻³. **Full findings + gotchas: `docs/edge_tail_flux_note.md`.**
 
 **Retraining recipe (when new/subhalo-corrected training data lands):**
-1. regenerate datasets + `cache/lowz_aug.npz` (`gen_lowz_data.py`) — not in git (114MB);
-2. `train_smooth.py` (~7 min MPS) → new body;
-3. refit `prepare_fix.py` (edge) + `gen_tail_counts.py` + `fit_tail_amplitude.py` (tail)
-   + `fit_flux_target.py` (flux calibration, 2026-07-11 — regenerate `cache/flux_grid.npz` too);
+1. regenerate datasets (`python/generate_dataset.py --log_z`, splats PRODUCTION_CONFIG)
+   + `cache/lowz_aug.npz` (`gen_lowz_data.py`) — not in git (114MB);
+2. `train_smooth.py` (~7 min MPS) → new body (context dim inferred from data: 7 for 1+6d);
+3. refit `prepare_fix.py` (edge) + `gen_tail_counts.py` + `fit_tail_amplitude.py` (tail).
+   **`fit_flux_target.py` is NO LONGER NEEDED** — see the flux entry below;
 4. acceptance gates: `param_space_check.py` (needs fresh `param_space_ref`),
    `validate_kl.py`, `validate_pit.py`, `validate_posterior.py` (control must be ~0σ).
+
+**PIPELINE REWIRED FOR THE RETRAIN (2026-07-29). Three changes, all in -ar:**
+
+**(a) `ml/autoresearch/simcfg.py` (NEW) — one switch for the physics, size and cache
+paths of every -ar simulator call.** Until now the -ar scripts called the simulator
+with NO physics kwargs, i.e. on the compiled-in C++ defaults (`subhalo_model=3`,
+`bias_model=0`, `fil_bias`/`subhalo_virial` off, `kappa_anchor=0`) while
+`generate_dataset.py` used PRODUCTION_CONFIG — so training data and the
+edge/tail/flux calibrations fitted on top of it sat on **different physics**. That
+hold was deliberate (the shipped emulator predates the new physics) and is now
+lifted. `SIM_CONFIG` (= PRODUCTION_CONFIG) is splatted at all 7 pipeline call sites
+(`gen_lowz_data`, `gen_tail_counts`, `param_space_check`, `validate_pit`,
+`validate_posterior`, `prepare_fix`, `prepare_ar`). ⚠ **Never add a bare simulator
+call to that package again** — that is how the two physics mixed silently. Escape
+hatch `AR_SIM_LEGACY=1` reproduces pre-2026-07-29 results. The historical experiment
+scripts (`validate_ar`, `validate_flow`, `validate_alpha2`, `measure_tail`, `l1_check`,
+`plot_*`) were deliberately NOT patched — they reproduce exp18–24 figures.
+- **Size knob `AR_N_SCALE`** (float, default 1.0) scales every hardcoded sample count
+  via `nsamp()`, so the same code path smoke-tests in seconds
+  (`AR_N_SCALE=0.02 python -m ml.autoresearch.gen_lowz_data`). A scaled run is
+  valid-shaped and **statistically worthless** — never quote a number from one.
+- **`cache_path()` tags caches** by physics/size (`lowz_aug.smoke0p02.npz`,
+  `*.legacy.npz`); production+full-size keeps the bare historical filename so
+  existing caches stay valid. This exists because a smoke run **did** clobber the
+  119MB `lowz_aug.npz` and `stats_smooth.json` (the standardization stats the
+  SHIPPED body depends on — `train()` rewrites it every run). Both were restored;
+  `STATS_PATH` is now tagged too.
+- **`AR_DATASET_DIR`** overrides `train_ar.DATASET_DIR` (colon-separated).
+  ⚠ `datasets_logz_1k` is GONE from disk — the training set must be regenerated.
+
+**(b) Flux calibration: `FLUX_TARGET = "unit"` — ⟨1/μ⟩ = 1 exactly (user decision
+2026-07-29).** `"trim"` restores the legacy regressed `F_trim(ctx)`.
+**Why it is now safe:** `"trim"` existed because the OLD `sample_lnmu` anchored
+⟨κ⟩=0 on the EMPIRICAL batch mean, so a few κ>1 monster rays dragged the raw flux to
+~1.08 and F_trim ran 1.0001–1.021 — targeting 1 then over-shifted by ~2%.
+PRODUCTION_CONFIG's `kappa_anchor=1` fixes that at source. **Measured** (20k rays,
+fiducial): ⟨1/μ⟩ = 1.000026/1.000093/1.000395/1.001363/1.002476/0.996085 at
+z_s=0.3/0.5/1/2/5/10. 8-seed ensembles give 1.000379±0.000014 (z=1) and
+1.002081±0.000090 (z=5) ⇒ the residual is **REAL, ~25σ, not MC noise**, but it is
+0.04%/0.21% — an order of magnitude below what "trim" corrected, and of order ⟨κ²⟩,
+the expected residual of a mean-anchored scheme. So targeting 1 is a deliberate
+O(0.04–0.2%) departure from THIS simulator in favour of the exact theorem. The
+z_s=10 row sits BELOW 1 and is tail-noise-limited — do not read it as a sign flip.
+Verified: composite gives ⟨1/μ⟩=1 to 1e-5 (grid quadrature) vs legacy 1.0002→1.0050.
+**Consequence: `fit_flux_target.py`, `cache/flux_target_fit*.json` and the 20MB
+`cache/flux_grid.npz` drop out of the recipe** — one fewer fit and one fewer 6d cache.
+
+**(c) Verified end-to-end at small N (2026-07-29), all on production physics:**
+`generate_dataset.py --log_z` (40 cfg × 4k, schema 2.1, `physics_config_hash
+0d50caf91c75` recorded) → `ml.data` → X (N,7) → `train_smooth.train()` → **context=7
+body, finite log-p at a 6d context**. So the 1+6d plumbing works; only the fits and
+the real training runs remain. ⚠ Still MISSING for a real retrain: the 6d caches
+`edge_alpha_fit_6d.json` (prepare_fix) and `tail_amp_fit_6d.json`
+(fit_tail_amplitude) — `smooth_model` dispatches on `len(theta)` and raises a clear
+FileNotFoundError until they exist. `groundtruth.npz` (needed by `prepare_ar.evaluate`,
+which `train_smooth.main()` calls) is also still at the OLD amplitude AND old physics.
 
 ## The `halos` fork — production subhalo port (2026-07-01)
 The clean port of the subhalo model into the original Vaskonen code lives in
@@ -407,8 +534,10 @@ user explicitly asks, under their supervision.**
    before 2026-07-12 used factor 1e-5 — pass it explicitly.** ML training data regen still
    pending. Known factor-INDEPENDENT residual: all split arms sit ~2.3% below brute q99(μ)
    at z=5 (global JSD unaffected). Compare clipped cores/ensembles only — one κ~9 ray =
-   4e-4 raw-Var shift. Pre-existing unrelated failure: `tests/test_phase3b_local_density.py`
-   (stale docs path). Derivation: `docs/subhalo/wsub_gaussian_term_derivation.md` §7;
+   4e-4 raw-Var shift. ~~Pre-existing unrelated failure: `tests/test_phase3b_local_density.py`
+   (stale docs path).~~ **FIXED 2026-07-29** — the test expected `docs/phase3/...` but
+   `phase3b_diagnostics.DOCS_DIR` is `docs`. The suite is now FULLY green.
+   Derivation: `docs/subhalo/wsub_gaussian_term_derivation.md` §7;
    acceptance: `data/results/subhalo_factor_jsd/report.md`; full narrative:
    `docs/claude_md_archive.md`.
 11. **Model-3 cost + parallelism (benchmarked 2026-07-10):** at the 1e-2 factor default,
@@ -731,6 +860,90 @@ user explicitly asks, under their supervision.**
    is used on the DEFAULT path (`samp.bias = 1` is hardcoded in the ML entry points), so
    this shifts every ray regardless of `subhalo`. Evidence:
    `data/results/subhalo_profile_fix/halobias_only_n250000.json` + report sec. 3b.
+
+18. **Analytic-vs-C++ subhalo profile conventions RECONCILED (2026-07-28) — the §15
+   re-derivations are DONE and `subhalo_kappathr_factor=0.1` STANDS (loss is smaller
+   than originally certified).** Re-deriving the §15-invalidated items exposed that the
+   analytic `playground/analytic/` chain disagreed with `cpp/subhalo.cpp` on **three**
+   things, not just the shape §15 named:
+
+   | | analytic (stale) | production C++ |
+   |---|---|---|
+   | shape | `x^2 B/(1+cx)^2` | `x B/(1+cx)^2` (§15) |
+   | bias scale | `x0 = 0.54` read as **r_200** units | `BIAS_X0_RVIR = 0.86` in **r_vir** units → `0.86*eta(c,z)` in r_200 (refit to Klypin+11 Bolshoi pts; landed **undocumented** in commit `6bf0633`, 2026-07-27) |
+   | extent / psi | `x <= 1`, `psi = m/M_200` | `x <= eta`, `psi = m/M_vir` under `subhalo_virial` (**ON** in PRODUCTION_CONFIG) |
+
+   Combined, the stale chain carried a **~30% radius-dependent tilt** in `<kappa_sub>(y)`
+   vs the engine (1.19 at x=0.15 → 0.92 at x=0.76); fixed it is ~6% away from the
+   innermost point. Fixed via explicit `x0`/`xmax`/`shape_exp` args on
+   `projected_profile` + `production_profile_params()`, and a `virial=` arg on
+   `run_kthr` (psi→M_vir for clump lensing, →M_200 for the carve response).
+   **Validated against production C++, not asserted:** `subhalo_single_host_probe.cpp`
+   gained a `virial` argv; `scripts/convergence/check_analytic_vs_probe.py` compares.
+   Median analytic/engine ratios at production (virial ON): `<N_c>` 1.0153,
+   `<kappa_sub>` 1.0138, `sigma_sub` 1.0081; the virial jump reproduces exactly
+   (engine ×1.0997, analytic ×1.0998). The residual ~1.5% on `<N_c>` is mass-grid
+   quadrature, is radius-INDEPENDENT, and **cancels in the sigma ratios the sweep quotes.**
+   **Attribution is clean** — `sweep_subkappathr_population.py --legacy-profile`
+   reproduces the 2026-07-27 published table to every digit.
+   **Revised sizing (production convention):** sigma loss at f=0.1 **FELL ~30%** to
+   0.059 / 0.078 / 0.152 % at z_s=0.5/1/5 (was 0.084/0.111/0.210); clumps/ray rose ~10%
+   to 88.5/93.6/108.6 (virial psi scale) = 3.8 us/ray, still ~3% of the 0.108 ms/ray
+   fixed overhead. Both the cost and accuracy arguments get BETTER. f=1.0 costs
+   0.190/0.333/1.123%, so the f=0.1 recommendation is if anything strengthened.
+   **Model-4/5 gate re-run** (`--virial`, fresh outdir, corrected profile): z_s=1 at 96k
+   rays/arm gives JSD 2.40e-4 vs floors 4.39/4.38e-4 = **AT FLOOR**, sd ratio
+   **+0.58 +/- 0.97 % (0.6 sigma)**.
+   ⚠⚠ **Two traps this re-run hit, both now guarded:**
+   (a) the gate script CACHES shards by path — the default outdir still held
+   2026-07-27 OLD-PROFILE `.npy` files, which would have been silently reused. **Always
+   pass a fresh `--outdir` after a physics change.**
+   (b) the pooled sd ratio reads +0.55% and `1/sqrt(2N)` suggests 0.23% SEM ⇒ "2.4 sigma".
+   That is WRONG — the clipped sd is heavy-tail dominated, so its effective sample size is
+   far below the ray count and the true shard-resolved SEM is 0.97%, i.e. **0.6 sigma**.
+   The gate now computes and prints the shard SEM and labels it as the number to use.
+   **Never read a sigma ratio off `1/sqrt(2N)` in this codebase.**
+   **Fig 4 also had an INDEPENDENT normalization bug** (not the profile): it normalized
+   the SHMF so `f_s` was the bound fraction over `[psi_min, 1]`, whereas the engine
+   (`precompute`'s `gden`) defines JvdB14's `f_s` over the RESOLVED band
+   `[psi_res = 1e-4, 1]`. Like-for-like at the engine's grid host that under-populated
+   the host **1.169x** (3131 vs 3660 clumps) ⇒ `sigma_sub` low **8.1%**. Fixed +
+   regenerated; `paper_prod/scripts/check_fig4_vs_probe.py` is the standing check
+   (reproduces the engine's `gnorm` to 6 digits and its `<N_c>` to 3659.8 vs 3659.6
+   measured). Three draft captions were stale as a result and were corrected in
+   `draft_revised_2026-07-20.tex` — subhalo mean share is **4.6%→34%** across the
+   aperture (not "a few per cent"), `sigma_sub > sigma_host` **everywhere** shown (not
+   "beyond 0.15 r_200"), and `sigma_tot < sigma_sub` fails inside `0.046 r_200`. The
+   figure script now prints these three claim checks on every run — **re-verify them
+   whenever the profile or the SHMF normalization changes.**
+   Evidence: `data/results/subkappathr_population/report.md` (REVISED block at top).
+
+## Hubble diagram reconstruction (HDR) — downstream of the PDF (2026-07-29)
+Everything after the magnification PDF: mock catalogue → likelihood → MCMC →
+posteriors. Produces Vaskonen's σ8 forecast (10% ET / 30% LISA / 8% combined) and
+his Fig. 5. **Not in the current paper**; design + code map in
+**`docs/hubble_diagram_reconstruction.md`**. Read it before touching
+`cpp/main_lensing.cpp` or `lensing.cpp::{loglikelihood,Hubble_diagram_fit}`.
+Verified facts worth knowing here:
+- `loglikelihood` (:1410) / `Hubble_diagram_fit` (:1490) are **NOT bound to
+  Python** (`grep -c` on python_bindings.cpp = 0). Recommendation: reimplement the
+  likelihood in Python rather than bind — the C++ one calls `Plnmuf` internally
+  (:1446), so binding buys the slow stochastic MC, not an emulator-driven run.
+- **Plane trap:** `Plnmuf` (definition :1364, conversion+renorm :1396–1405)
+  returns the **source-plane** PDF, and both the likelihood AND the catalogue
+  (`main_lensing.cpp` :120, :166) use it. Our emulator is image-plane ⇒ apply
+  `P_S = μ⁻¹ P_I` *and renormalize* (the renorm is required, not automatic, and is
+  θ-dependent). ⚠ `paper_memo.md` misquoted `Plnmuf` as :1163 until 2026-07-29.
+- The C++ likelihood is **stochastic** (fresh MC per call, `Nreal=1e4`), so MH runs
+  on a noisy logL; z is quantized to **6 nodes** (10 combined). The emulator makes
+  it deterministic and continuous in z — a correctness upgrade, not just speed.
+- The MCMC fits a **4th parameter the paper never mentions** — a DM-model mass,
+  `par[3]`, prior [-0.6,1.4] in log10, inert in CDM but random-walked.
+- ⚠ **Unbounded OOB read in the SMBH catalogue arm** (`main_lensing.cpp` :110 vs
+  :113): the list is truncated to 10 but 12 accepted events are demanded, and the
+  index advances on rejected events too. Verify before reusing stage 2.
+- `DLthr` is hardcoded to 3.0e8 kpc (:231) = 300 Gpc > D_L(z=10), so the P_det
+  threshold machinery **exists but has never been exercised**.
 
 ## Conventions
 - Plots → `plots/`; throwaway/scratch → `tmp/`.

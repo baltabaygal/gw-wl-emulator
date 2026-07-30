@@ -20,10 +20,13 @@ PLANCK = dict(h=0.674, OmegaM=0.315, As=2.101e-9, OmegaB=0.0493, zeq=3402.0, ns=
 def test_backward_compat_bitwise():
     """DEFAULT threshold path reproduces the reference samples exactly.
 
-    ⚠ The reference was RE-BASELINED 2026-07-28 after the deliberate
-    `cosmology::halobias` q 0.75 -> 0.8 change (see tests/capture_reference_lnmu.py for
-    the history and the verification protocol). It now anchors to post-halobias physics;
-    the pre-change vectors are kept in `tests/data/reference_lnmu_pre_halobias.npz`.
+    ⚠ The reference was RE-BASELINED 2026-07-29 for the PAPER-DEFAULT FLIP: the
+    compiled-in defaults are now the config the draft describes (see
+    tests/capture_reference_lnmu.py for the history and the verification protocol).
+    The pre-flip vectors are kept in `reference_lnmu_pre_paper_defaults.npz` and are
+    still guarded — by `test_legacy_physics_bitwise` below, via ml.params.LEGACY_CONFIG.
+    ⚠ The reference was ALSO re-baselined 2026-07-28 for `cosmology::halobias`
+    q 0.75 -> 0.8; those vectors are in `reference_lnmu_pre_halobias.npz`.
     A failure here means the default path moved — treat it as a real regression unless
     you know which intentional change caused it.
 
@@ -47,6 +50,42 @@ def test_backward_compat_bitwise():
         "explicit kappathr_flat=-1 diverged from the legacy reference"
 
 
+def test_legacy_physics_bitwise():
+    """The PRE-2026-07-29 physics is still exactly reproducible via LEGACY_CONFIG.
+
+    This is what stops the paper-default flip from being a one-way door. It also
+    doubles as the attribution proof for that flip: it passed against vectors
+    captured BEFORE the defaults moved, so the flip changed defaults only and no
+    physics. Keep it even after the legacy arms are retired — it is the cheapest
+    guard on the reference arm of every A/B in the repo.
+    """
+    from ml.params import LEGACY_CONFIG
+    ref = os.path.join(os.path.dirname(__file__), "data",
+                       "reference_lnmu_pre_paper_defaults.npz")
+    d = np.load(ref)
+    for i, (z, h, om, s8) in enumerate(d["points"]):
+        r = gw.sample_lnmu_ml_with_diagnostics(
+            float(z), float(h), float(om), float(s8), int(d["nsamp"]), int(d["seed"]),
+            False, **LEGACY_CONFIG)
+        assert np.array_equal(np.asarray(r["lnmu"]), d[f"lnmu_{i}"]), \
+            f"point {i} diverged on the explicit LEGACY_CONFIG path"
+
+
+def test_defaults_are_the_paper_config():
+    """The compiled-in defaults ARE ml.params.PRODUCTION_CONFIG (flipped 2026-07-29).
+
+    Guards both directions: a C++ default drifting away from the paper config, and
+    PRODUCTION_CONFIG being edited without the corresponding C++ change. Before the
+    flip the companion test asserted the two DIFFERED; that assertion is now
+    inverted on purpose.
+    """
+    from ml.params import PRODUCTION_CONFIG
+    cfg = gw.get_simulator_config(h=0.674, OmegaM=0.315, sigma8=0.811)
+    for k, v in PRODUCTION_CONFIG.items():
+        assert k in cfg, f"{k} not reported by get_simulator_config"
+        assert cfg[k] == v, f"default {k}: {cfg[k]} != paper config {v}"
+
+
 def test_sigma8_as_round_trip_deltaH8():
     """As-mode at the sigma8-mode's derived As reproduces deltaH8 to ~1 ULP."""
     c = gw.get_simulator_config(h=0.674, OmegaM=0.315, sigma8=0.811)
@@ -66,12 +105,24 @@ def test_sigma8_as_round_trip_samples():
     As = gw.get_simulator_config(h=h, OmegaM=om, sigma8=s8)["As_derived"]
     b = np.asarray(gw.sample_lnmu_ml_with_diagnostics(z, h, om, s8, n, seed, False, As=As)["lnmu"])
     assert a.size == b.size
-    frac_bitwise = np.mean(a == b)
-    # default path is the legacy <N>=Nhalos rule again (reverted 2026-07-10);
-    # kept at the relaxed 0.99 bar to tolerate As round-trip last-bit divergences
-    # (max |dlnmu| ~ 5e-16), same character on either threshold rule.
-    assert frac_bitwise > 0.99, f"only {frac_bitwise:.4%} bitwise-equal"
-    np.testing.assert_allclose(a, b, rtol=1e-6)
+    # ⚠ The bitwise bar was dropped on 2026-07-29 (paper-default flip). Under the
+    # LEGACY defaults this round trip was 100% bitwise, because a 1-ULP deltaH8
+    # difference did not change any RNG draw count. Under the paper defaults the
+    # realized subhalo and clustered-count draws depend on deltaH8, so a last-bit
+    # change DECORRELATES THE RNG STREAM and 0% of rays are bitwise equal --
+    # measured max |dlnmu| = 1.8e-7, i.e. stream divergence, not an amplitude error.
+    # The physical invariant (the two amplitude modes describe the same cosmology)
+    # is therefore checked on the value, not on the stream. lnmu crosses zero, so
+    # this must be an ABSOLUTE tolerance; rtol would blow up near lnmu = 0.
+    assert np.abs(a - b).max() < 1e-5, \
+        f"As/sigma8 modes diverge by {np.abs(a - b).max():.2e} in lnmu"
+    # The stream-level identity still holds where nothing is count-dependent:
+    from ml.params import LEGACY_CONFIG
+    al = np.asarray(gw.sample_lnmu_ml_with_diagnostics(
+        z, h, om, s8, n, seed, False, **LEGACY_CONFIG)["lnmu"])
+    bl = np.asarray(gw.sample_lnmu_ml_with_diagnostics(
+        z, h, om, s8, n, seed, False, As=As, **LEGACY_CONFIG)["lnmu"])
+    assert np.array_equal(al, bl), "As round trip is no longer bitwise on the legacy path"
 
 
 def test_planck_sigma8_sanity():

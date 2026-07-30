@@ -469,5 +469,7 @@ Comparison of `production.tex` (user's Overleaf copy, Claude read-only) vs
 | Fig. `fig:kappa_convergence` | `paper_prod/plots/figures/sigma_partition_vs_kthr_bias.pdf` | exists; caption to write |
 | Fig. `fig:subhalo-factor-mean` | `plots/fig_subhalo_sigma_decomposition_mean.pdf` | generated 2026-07-23 |
 | Fig. `fig:subhalo-factor-scatter` | `plots/fig_subhalo_sigma_decomposition_scatter.pdf` | generated 2026-07-23 |
-| Fig. `fig:variance_DL` | `plots/variance_D_L.pdf` | caption: fix spacing, move conclusion to text |
+| Fig. `fig:variance_DL` | `plots/variance_D_L.pdf` | caption: fix spacing, move conclusion to text. ⚠ no generating script in the repo, and now needs 3 cumulative ingredient curves whose arms are not yet one-variable-at-a-time |
+| Fig. `fig:magpdf_zs` (Sec. II.B body) | `plots/fig_magnification_pdf_zs.pdf` | promoted 2026-07-28; **needs the MC rerun** (post-rebuild, `--nreal 4e6`) |
+| Fig. `fig:magpdf_tail` (App. compensated tail) | `plots/fig_magnification_pdf_tail.pdf` | promoted 2026-07-28; same run |
 | pyHalo comparison | `plots/figures/pyhalo_vs_ours.png` | exists |
