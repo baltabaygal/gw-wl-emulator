@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../b
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import gwlensing as gw
 from ml.params import (PRIOR_6D, WIDE_6D, PARAM_KEYS_6D,
-                       PRODUCTION_CONFIG, PRODUCTION_CONFIG_HASH)
+                       PRODUCTION_CONFIG, PRODUCTION_CONFIG_HASH,
+                       ENGINE_ZMAX, Z_RANGE_ENGINE_SAFE)
 
 try:
     from pyDOE3 import lhs
@@ -383,9 +384,21 @@ def main():
     parser.add_argument("--output_dir", type=str, default="datasets")
     parser.add_argument("--dataset_dir", type=str, default=None)
     parser.add_argument("--log_z", action="store_true", help="Sample z log-uniformly instead of uniformly (denser low-z coverage).")
-    parser.add_argument("--z_min", type=float, default=0.01, help="Lower z bound for sampling.")
-    parser.add_argument("--z_max", type=float, default=10.0, help="Upper z bound for sampling.")
+    # Defaults come from ml.params.TRAINING_RANGE (Ville's confirmed box), clipped to
+    # what the engine can actually simulate: z_s above ENGINE_ZMAX = 10.01 is SILENTLY
+    # CLAMPED by the C++ z grid, so generating there would write duplicate panels.
+    parser.add_argument("--z_min", type=float, default=Z_RANGE_ENGINE_SAFE[0], help="Lower z bound for sampling.")
+    parser.add_argument("--z_max", type=float, default=Z_RANGE_ENGINE_SAFE[1], help="Upper z bound for sampling.")
     args = parser.parse_args()
+
+    if args.z_max > ENGINE_ZMAX:
+        raise SystemExit(
+            f"--z_max {args.z_max} exceeds the engine's hardcoded z grid limit "
+            f"({ENGINE_ZMAX}); z_s above it is silently clamped, so every such config "
+            f"would be a duplicate of the z={ENGINE_ZMAX} panel. Expose/raise the C++ "
+            f"zmax first (see ml/params.py TRAINING_RANGE), or pass --z_max "
+            f"{ENGINE_ZMAX} to generate the reachable part of the confirmed range."
+        )
 
     if args.dataset_dir is not None:
         args.output_dir = args.dataset_dir

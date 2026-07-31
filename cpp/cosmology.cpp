@@ -71,6 +71,45 @@ vector<double> cosmology::sigmaC(double M, double deltaH) {
 }
 
 
+// Variance of the matter fluctuations with the REAL-SPACE TOP-HAT filter
+// (2026-07-30). Same P(k) and the same k grid as sigmaC -- only the window
+// differs -- so the ratio sigmaC/sigmaTH isolates the filter and nothing else.
+//
+// Used ONLY to anchor the amplitude in sigma8-mode when sigma8_tophat = true
+// ("option b"): sigma8 is conventionally the top-hat variance in a sphere of
+// 8 Mpc/h, so anchoring with Ws made our sigma8 label incomparable to Planck's
+// (input 0.811 -> true top-hat 0.7786, i.e. 4.2% in sigma, 8.5% in P(k)).
+//
+// Deliberately NOT used for sigma_M(M) in the HMF/barrier/bias: those (p,q) =
+// (0.3, 0.8) come from random-walk first-crossing fits, which require a
+// Markovian filter that a real-space top-hat does not provide (Vaskonen 2026
+// footnote 3). So the smooth-k Ws stays everywhere except this one anchor.
+//
+// W(x) = 3(x cos x - sin x)/x^3 oscillates rather than decaying like Ws' x^-6,
+// so the tail of the integrand is less benign; the shared Nk = 1000 log grid over
+// k in [1e-6, 1] * 1000/RM is checked for convergence in tests/test_sigma8_tophat.py.
+// The dsigma/dM slot is returned for signature parity with sigmaC and is NOT
+// used by the normalization (the anchor needs sigma at M8 only).
+vector<double> cosmology::sigmaTH(double M, double deltaH) {
+    double RM = pow(3.0*M/(4.0*PI*rhoM0),1.0/3.0);
+    double DRM = RM/(3.0*M);
+
+    double kmax = 1000.0/RM;
+    double kmin = 1.0e-6*kmax;
+    double dlogk = (log(kmax)-log(kmin))/(1.0*(Nk-1));
+
+    double sigma2 = 0.0, dsigma2 = 0.0;
+    double k1, k2 = kmin;
+    for (int jk = 0; jk < Nk; jk++) {
+        k1 = k2;
+        k2 = exp(log(k2)+dlogk);
+        sigma2 += (k2-k1)*(pow(W(k1*RM)*Deltak(k1,deltaH),2.0)/k1 + pow(W(k2*RM)*Deltak(k2,deltaH),2.0)/k2)/2.0;
+        dsigma2 += (k2-k1)*(2.0*k2*DRM*DW(k2*RM)*W(k2*RM)*pow(Deltak(k2,deltaH),2.0)/k2 + 2.0*k1*DRM*DW(k1*RM)*W(k1*RM)*pow(Deltak(k1,deltaH),2.0)/k1)/2.0;
+    }
+    return {sqrt(sigma2), dsigma2/(2.0*sqrt(sigma2))};
+}
+
+
 // variance of the FDM matter fluctuations
 vector<double> cosmology::sigmaF(double M, double deltaH, double m22) {
     double RM = pow(3.0*M/(4.0*PI*rhoM0),1.0/3.0);

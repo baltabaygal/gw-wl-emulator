@@ -13,6 +13,11 @@ struct CosmologyParams {
     double As     = -1.0;
     double kpivot = 5.0e-5;   // comoving kpc^-1 (= 0.05 Mpc^-1)
 
+    // sigma8 normalization filter (2026-07-30, "option b"): true = real-space
+    // top-hat at 8 Mpc/h (conventional sigma8, DEFAULT); false = legacy smooth-k Ws.
+    // Ignored in As-mode. Only the amplitude anchor moves, never sigma_M(M).
+    bool sigma8_tophat = true;
+
     // grid defaults
     double OmegaB = 0.0493;
     double zeq    = 3402.0;
@@ -23,9 +28,33 @@ struct CosmologyParams {
     double Mmax = 1e17;
     int NM      = 100;
 
+    // Source-redshift grid. The halo/z grid is log-spaced over [zmin, zmax] with Nz
+    // nodes (cosmology.h: `zlist = loglist(zmin, zmax, Nz)`), and a z_s ABOVE zmax is
+    // silently CLAMPED to the top node -- there is no throw and no warning, so an
+    // out-of-range source redshift returns a duplicate of the zmax PDF.
+    //
+    // Raised 2026-07-30 from (10.01, 100) to cover the confirmed training range
+    // z_s <= 12 (ml/params.py TRAINING_RANGE). This pair is NOT an arbitrary
+    // rescaling: it EXTENDS the old grid at unchanged resolution. loglist builds by
+    // the recurrence x_{j+1} = exp(log(x_j) + dlogz) from zmin, and
+    //     dlogz = (log(zmax) - log(zmin)) / (Nz - 1)
+    // evaluates to the SAME double for (10.01, 100) and for (ZMAX_DEFAULT, 103):
+    // 0.06978540181126486, hex 3fb1dd74c284818c. So nodes 0..99 are bitwise
+    // identical to the old grid and three new nodes are appended at
+    // z = 10.7335, 11.5093, 12.3412. Anything with z_s <= 10.01 is unaffected as
+    // long as no loop integrates over the full grid irrespective of z_s -- that is
+    // what tests/test_cosmology_params.py::test_backward_compat_bitwise checks.
+    //
+    // ⚠ zmax and Nz remain INDEPENDENT knobs, so overriding Nz alone still rescales
+    // the grid exactly as before (the Nz convergence studies keep their meaning).
+    // If you change one, recompute the other from dlogz rather than picking a round
+    // number, or the bitwise-extension property is lost.
+    static constexpr double ZMAX_DEFAULT = 12.341169644129371;
+    static constexpr int    NZ_DEFAULT   = 103;
+
     double zmin = 0.01;
-    double zmax = 10.01;
-    int Nz      = 100;
+    double zmax = ZMAX_DEFAULT;
+    int Nz      = NZ_DEFAULT;
 };
 
 struct SamplingParams {

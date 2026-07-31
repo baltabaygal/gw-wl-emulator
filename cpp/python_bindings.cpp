@@ -51,7 +51,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double subhalo_kappathr_factor,
            double psi_min_fixed,
            double kappathr_flat,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
@@ -61,6 +61,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
             cosmo.As     = As;
+            cosmo.sigma8_tophat = sigma8_tophat;
             cosmo.OmegaB = OmegaB;
             cosmo.zeq    = zeq;
             cosmo.ns     = ns;
@@ -139,11 +140,12 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("psi_min_fixed") = -1.0,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
@@ -164,7 +166,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
@@ -182,6 +184,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
             cosmo.As     = As;
+            cosmo.sigma8_tophat = sigma8_tophat;
             cosmo.OmegaB = OmegaB;
             cosmo.zeq    = zeq;
             cosmo.ns     = ns;
@@ -253,11 +256,12 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
@@ -278,7 +282,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
@@ -295,6 +299,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
             cosmo.As     = As;
+            cosmo.sigma8_tophat = sigma8_tophat;
             cosmo.OmegaB = OmegaB;
             cosmo.zeq    = zeq;
             cosmo.ns     = ns;
@@ -369,11 +374,12 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
@@ -392,7 +398,7 @@ PYBIND11_MODULE(gwlensing, m) {
            bool filaments, bool bias, bool ell, int Nhalos, bool subhalo, double m_floor,
            int subhalo_threads, int subhalo_parallel_threshold, int subhalo_model, bool subhalo_brute,
            double subhalo_factor, bool subhalo_carve, bool subhalo_virial, double subhalo_kappathr, double subhalo_kappathr_factor, double custom_kappathr, double kappathr_flat, double Mmin,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
             std::uint64_t seed = 0;
@@ -408,6 +414,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.sigma8 = sigma8;
             C.h      = h;
             C.As     = As;
+            C.sigma8_tophat = sigma8_tophat;
             C.OmegaB = OmegaB;
             C.zeq    = zeq;
             C.T0     = 2.7255;
@@ -416,7 +423,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.Mmax   = 1e17;
             C.NM     = NM;
             C.zmin   = 0.01;
-            C.zmax   = 10.01;
+            C.zmax   = CosmologyParams::ZMAX_DEFAULT;
             C.Nz     = Nz;
             C.outdir = "dataL";
 
@@ -505,11 +512,12 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("kappathr_flat") = -1.0,
         py::arg("Mmin") = 1e7,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         py::arg("bias_model") = 1,
         py::arg("bias_Rperp") = 20000.0,
         py::arg("bias_weak") = true,
@@ -522,7 +530,7 @@ PYBIND11_MODULE(gwlensing, m) {
     // ---- get_simulator_config -----------------------------------------------
     m.def("get_simulator_config",
         [](double h, double OmegaM, double sigma8, double As,
-           double OmegaB, double zeq, double ns) {
+           bool sigma8_tophat, double OmegaB, double zeq, double ns) {
             py::dict d;
             // Report the ACTUAL compiled-in defaults by reading a default-constructed
             // SamplingParams, never literals. Three copies of these values used to
@@ -548,9 +556,17 @@ PYBIND11_MODULE(gwlensing, m) {
             d["subhalo_kappathr"] = sp.subhalo_kappathr;
             d["subhalo_kappathr_factor"] = sp.subhalo_kappathr_factor;
             d["kappathr_flat"] = sp.kappathr_flat;
-            d["Mmin"] = 1e7;                // grid floor, not a SamplingParams field
-            d["NM"] = 100;
-            d["Nz"] = 100;
+            // Grid parameters live on CosmologyParams, not SamplingParams. Read them
+            // from a default-constructed instance -- hardcoding literals here is how
+            // this dict silently reported stale values through two default changes.
+            {
+                CosmologyParams cp_def;
+                d["Mmin"] = cp_def.Mmin;
+                d["NM"]   = cp_def.NM;
+                d["zmin"] = cp_def.zmin;
+                d["zmax"] = cp_def.zmax;
+                d["Nz"]   = cp_def.Nz;
+            }
             d["kappa_anchor"] = sp.kappa_anchor;
             d["kappa_anchor_cut"] = sp.kappa_anchor_cut;
             d["kappa_anchor_value"] = sp.kappa_anchor_value;
@@ -566,6 +582,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.sigma8 = sigma8;
             C.h      = h;
             C.As     = As;
+            C.sigma8_tophat = sigma8_tophat;
             C.OmegaB = OmegaB;
             C.zeq    = zeq;
             C.T0     = 2.7255;
@@ -574,6 +591,8 @@ PYBIND11_MODULE(gwlensing, m) {
             d["amplitude_mode"] = (As > 0.0) ? "As" : "sigma8";
             d["deltaH8"] = C.deltaH8;
             d["sigma8_derived"] = C.sigma8_derived;
+            d["sigma8_tophat_derived"] = C.sigma8_tophat_derived;
+            d["sigma8_tophat"] = C.sigma8_tophat;
             d["As_derived"] = C.As_derived;
             d["OmegaR"] = C.OmegaR;
             return d;
@@ -582,6 +601,7 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("OmegaM") = 0.315,
         py::arg("sigma8") = 0.811,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
@@ -602,7 +622,7 @@ PYBIND11_MODULE(gwlensing, m) {
            double subhalo_kappathr,
            double subhalo_kappathr_factor,
            double kappathr_flat,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            int NM, int Nz,
            int kappa_anchor, double kappa_anchor_cut, double kappa_anchor_value,
            int bias_model, double bias_Rperp, bool bias_weak, int bias_window, bool fil_bias) {
@@ -612,6 +632,7 @@ PYBIND11_MODULE(gwlensing, m) {
             cosmo.sigma8 = sigma8;
             cosmo.h      = h;
             cosmo.As     = As;
+            cosmo.sigma8_tophat = sigma8_tophat;
             cosmo.OmegaB = OmegaB;
             cosmo.zeq    = zeq;
             cosmo.ns     = ns;
@@ -683,11 +704,12 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("subhalo_kappathr_factor") = 0.1,
         py::arg("kappathr_flat") = -1.0,
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         py::arg("kappa_anchor") = 1,
         py::arg("kappa_anchor_cut") = 1.0,
         py::arg("kappa_anchor_value") = 0.0,
@@ -701,13 +723,14 @@ PYBIND11_MODULE(gwlensing, m) {
     m.def(
         "get_kappa_threshold",
         [](double z, double h, double OmegaM, double sigma8, int Nhalos,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            double Mmin, int NM, int Nz) {
             cosmology C;
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
             C.As     = As;
+            C.sigma8_tophat = sigma8_tophat;
             C.OmegaB = OmegaB;
             C.zeq    = zeq;
             C.T0     = 2.7255;
@@ -716,7 +739,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.Mmax   = 1e17;
             C.NM     = NM;
             C.zmin   = 0.01;
-            C.zmax   = 10.01;
+            C.zmax   = CosmologyParams::ZMAX_DEFAULT;
             C.Nz     = Nz;
             C.outdir = "dataL";
             C.initialize(0);
@@ -732,25 +755,27 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("sigma8"),
         py::arg("Nhalos"),
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("Mmin") = 1e7,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         "Calculate the kappa threshold for a given number of resolved host halos."
     );
 
     m.def(
         "get_expected_halo_count",
         [](double z, double h, double OmegaM, double sigma8, double kappathr,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            double Mmin, int NM, int Nz) {
             cosmology C;
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
             C.As     = As;
+            C.sigma8_tophat = sigma8_tophat;
             C.OmegaB = OmegaB;
             C.zeq    = zeq;
             C.T0     = 2.7255;
@@ -759,7 +784,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.Mmax   = 1e17;
             C.NM     = NM;
             C.zmin   = 0.01;
-            C.zmax   = 10.01;
+            C.zmax   = CosmologyParams::ZMAX_DEFAULT;
             C.Nz     = Nz;
             C.outdir = "dataL";
             C.initialize(0);
@@ -772,25 +797,27 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("sigma8"),
         py::arg("kappathr"),
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("Mmin") = 1e7,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         "Calculate the expected number of explicit host halos above a fixed kappa threshold."
     );
 
     m.def(
         "get_sigma_background",
         [](double z, double h, double OmegaM, double sigma8, double kappathr,
-           double As, double OmegaB, double zeq, double ns,
+           double As, bool sigma8_tophat, double OmegaB, double zeq, double ns,
            double Mmin, int NM, int Nz) {
             cosmology C;
             C.OmegaM = OmegaM;
             C.sigma8 = sigma8;
             C.h      = h;
             C.As     = As;
+            C.sigma8_tophat = sigma8_tophat;
             C.OmegaB = OmegaB;
             C.zeq    = zeq;
             C.T0     = 2.7255;
@@ -799,7 +826,7 @@ PYBIND11_MODULE(gwlensing, m) {
             C.Mmax   = 1e17;
             C.NM     = NM;
             C.zmin   = 0.01;
-            C.zmax   = 10.01;
+            C.zmax   = CosmologyParams::ZMAX_DEFAULT;
             C.Nz     = Nz;
             C.outdir = "dataL";
             C.initialize(0);
@@ -812,12 +839,13 @@ PYBIND11_MODULE(gwlensing, m) {
         py::arg("sigma8"),
         py::arg("kappathr"),
         py::arg("As") = -1.0,
+        py::arg("sigma8_tophat") = true,
         py::arg("OmegaB") = 0.0493,
         py::arg("zeq") = 3402.0,
         py::arg("ns") = 0.965,
         py::arg("Mmin") = 1e7,
         py::arg("NM") = 100,
-        py::arg("Nz") = 100,
+        py::arg("Nz") = CosmologyParams::NZ_DEFAULT,
         "Calculate the background standard deviation for a given kappa threshold."
     );
 }

@@ -138,7 +138,7 @@ def generate(
     *,
     arm: str = "bns_et",
     z_range=(0.01, 2.0),
-    frac_sigma_dL: float = 0.03,
+    frac_sigma_dL=0.03,
     pz_fn=None,
     rng: np.random.Generator | None = None,
     max_batches: int = 10000,
@@ -202,7 +202,18 @@ def generate(
 
         # 5. measurement noise (applied to detected events)
         zk, muk, dk, wk = z[acc], mu[acc], dL_true[acc], w[acc]
-        sig = frac_sigma_dL * dk
+        # frac_sigma_dL may be a scalar (Vaskonen's flat 3% / 0.3%) or a
+        # CALLABLE (z, dL, w) -> sigma_dL, which is the hook for a per-event
+        # Fisher forecast a la GWFish (Dupletsa+23) -- the upgrade Ville flagged
+        # in De Leo+ 2026. Nothing downstream changes: Catalogue already stores
+        # sigma_dL per event and the likelihood already reads it per event.
+        # ⚠ The likelihood treats sigma_j as theta-INDEPENDENT (it is a number
+        # attached to the observed event). That holds for a Fisher forecast made
+        # from the observed signal; it would NOT hold for a sigma computed from
+        # the trial cosmology, which would resurrect the Gaussian normalization
+        # in the theta-dependence.
+        sig = (np.asarray(frac_sigma_dL(zk, dk, wk), float)
+               if callable(frac_sigma_dL) else frac_sigma_dL * dk)
         obs = rng.normal(dk, sig)
         good = obs > 0
         keep["z"].append(zk[good])

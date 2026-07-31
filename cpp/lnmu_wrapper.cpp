@@ -50,6 +50,7 @@ LnmuStats compute_lnmu_stats_fast(
     C.h      = cp.h;
     C.As     = cp.As;
     C.kpivot = cp.kpivot;
+    C.sigma8_tophat = cp.sigma8_tophat;
 
     C.OmegaB = cp.OmegaB;
     C.zeq    = cp.zeq;
@@ -251,6 +252,7 @@ LnmuSampleDiagnostics sample_lnmu_with_diagnostics(
     C.h      = cp.h;
     C.As     = cp.As;
     C.kpivot = cp.kpivot;
+    C.sigma8_tophat = cp.sigma8_tophat;
 
     C.OmegaB = cp.OmegaB;
     C.zeq    = cp.zeq;

@@ -32,7 +32,17 @@ public:
     double As = -1.0;
     double kpivot = 5.0e-5;      // pivot scale, comoving kpc^-1 (= 0.05 Mpc^-1)
     // derived amplitudes, filled by initialize_normalization() for either mode
-    double sigma8_derived = 0.0; // via the code's smooth window Ws, not a tophat
+    // sigma8 normalization convention (2026-07-30, user decision "option b").
+    // true  = anchor the amplitude with the REAL-SPACE TOP-HAT at 8 Mpc/h, the
+    //         standard definition of sigma8, so our sigma8 label is comparable to
+    //         Planck's and to other emulators'. THIS IS THE DEFAULT.
+    // false = legacy: anchor by inverting the smooth-k Ws at M8 (Vaskonen's code
+    //         convention). Reproduces every pre-2026-07-30 result bit-for-bit.
+    // Only the ANCHOR moves; sigma_M(M) for the HMF/barrier/bias keeps Ws either
+    // way (see sigmaTH in cosmology.cpp for why).
+    bool sigma8_tophat = true;
+    double sigma8_derived = 0.0;    // via the smooth window Ws (the excursion-set filter)
+    double sigma8_tophat_derived = 0.0;  // via the real-space top-hat = the conventional sigma8
     double As_derived = 0.0;
     double OmegaR;
     double OmegaL;
@@ -193,6 +203,7 @@ private:
     
     // variance of the matter fluctuations, m22: FDM mass in 10^-22 eV, m3: WDM mass in keV
     vector<double> sigmaC(double M, double deltaH);
+    vector<double> sigmaTH(double M, double deltaH);  // real-space top-hat; amplitude anchor only
     vector<double> sigmaF(double M, double deltaH, double m22);
     vector<double> sigmaW(double M, double deltaH, double m3);
     vector<double> sigmaE(double M, double deltaH, double kc);
@@ -324,14 +335,18 @@ public:
         // through the standard relation Delta_m^2 = (4/25) As (ck/H0)^4
         // (k/kpivot)^(ns-1) T^2 D^2/OmegaM^2 (D -> a in matter domination), giving
         //   deltaH8 = (2/5) gfid sqrt(As) (c kpivot/H0)^((1-ns)/2) / OmegaM.
-        // sigma8-mode inverts sigmaC as before. NOTE sigmaC uses the smooth window
-        // Ws, not a tophat, so sigma8_derived vs CAMB agrees only to a few %.
+        // sigma8-mode anchors at M8. Which FILTER defines that anchor is set by
+        // sigma8_tophat: the real-space top-hat (default, the conventional sigma8)
+        // or the smooth-k Ws (legacy, Vaskonen's code convention).
         if (As > 0.0) {
             deltaH8 = 0.4*gfid*sqrt(As)*pow(CLIGHT*kpivot/H0,(1.0-ns)/2.0)/OmegaM;
+        } else if (sigma8_tophat) {
+            deltaH8 = sigma8/sigmaTH(M8, 1.0)[0];
         } else {
             deltaH8 = sigma8/sigmaC(M8, 1.0)[0];
         }
         sigma8_derived = deltaH8*sigmaC(M8, 1.0)[0];
+        sigma8_tophat_derived = deltaH8*sigmaTH(M8, 1.0)[0];
         As_derived = pow(deltaH8*OmegaM/(0.4*gfid), 2.0)*pow(CLIGHT*kpivot/H0, ns-1.0);
     }
 

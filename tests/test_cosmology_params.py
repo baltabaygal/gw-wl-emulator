@@ -93,8 +93,12 @@ def test_sigma8_as_round_trip_deltaH8():
     c2 = gw.get_simulator_config(h=0.674, OmegaM=0.315, As=c["As_derived"])
     assert c2["amplitude_mode"] == "As"
     assert c2["deltaH8"] == pytest.approx(c["deltaH8"], rel=1e-14)
-    # and the inverse direction closes too
-    assert c2["sigma8_derived"] == pytest.approx(0.811, rel=1e-12)
+    # and the inverse direction closes too. ⚠ Since the 2026-07-30 "option b"
+    # change the CONVENTIONAL sigma8 is `sigma8_tophat_derived`; `sigma8_derived`
+    # is the smooth-k (excursion-set filter) value of the same P(k), which at the
+    # top-hat-anchored fiducial is 0.8448, not 0.811.
+    assert c2["sigma8_tophat_derived"] == pytest.approx(0.811, rel=1e-12)
+    assert c2["sigma8_derived"] == pytest.approx(0.84478, rel=1e-4)
 
 
 def test_sigma8_as_round_trip_samples():
@@ -116,13 +120,28 @@ def test_sigma8_as_round_trip_samples():
     # this must be an ABSOLUTE tolerance; rtol would blow up near lnmu = 0.
     assert np.abs(a - b).max() < 1e-5, \
         f"As/sigma8 modes diverge by {np.abs(a - b).max():.2e} in lnmu"
-    # The stream-level identity still holds where nothing is count-dependent:
+    # The stream-level identity still holds where nothing is count-dependent.
+    # ⚠ As must be re-derived under the LEGACY anchor: LEGACY_CONFIG pins
+    # sigma8_tophat=False, so feeding it the top-hat-derived As above would compare
+    # two different AMPLITUDES and fail for a reason that has nothing to do with
+    # the round trip (this is exactly how it broke on 2026-07-30).
     from ml.params import LEGACY_CONFIG
+    As_leg = gw.get_simulator_config(h=h, OmegaM=om, sigma8=s8,
+                                     sigma8_tophat=False)["As_derived"]
     al = np.asarray(gw.sample_lnmu_ml_with_diagnostics(
         z, h, om, s8, n, seed, False, **LEGACY_CONFIG)["lnmu"])
     bl = np.asarray(gw.sample_lnmu_ml_with_diagnostics(
-        z, h, om, s8, n, seed, False, As=As, **LEGACY_CONFIG)["lnmu"])
-    assert np.array_equal(al, bl), "As round trip is no longer bitwise on the legacy path"
+        z, h, om, s8, n, seed, False, As=As_leg, **LEGACY_CONFIG)["lnmu"])
+    # ⚠ Was `array_equal`. Relaxed 2026-07-30 with the z-GRID EXTENSION (zmax 10.01 ->
+    # 12.3412, Nz 100 -> 103): the extension is exact on the shared nodes, but it moves
+    # sigma_W at the ~1e-9 level, which is enough to flip a handful of last-bit-sensitive
+    # draws. Measured here: 99.85% of rays still bit-identical, max |dlnmu| = 3.5e-16
+    # (one ULP of lnmu ~ 0.07), sd ratio 1.000000. That is last-bit noise, not an
+    # amplitude error, and exact equality between two routes that agree to 1 ULP by
+    # construction is a knife-edge bar -- the same reasoning that already made the
+    # paper-default check above a tolerance. ABSOLUTE tolerance because lnmu crosses zero.
+    d = np.abs(al - bl).max()
+    assert d < 1e-12, f"As round trip diverges by {d:.2e} in lnmu on the legacy path"
 
 
 def test_planck_sigma8_sanity():

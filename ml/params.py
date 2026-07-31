@@ -108,6 +108,19 @@ PRODUCTION_CONFIG = dict(
     # kappa >> 1 monster ray shifts the whole batch by -2 kappa / n.
     kappa_anchor=1,
     kappa_anchor_cut=1.0,
+    # -- amplitude convention (2026-07-30, user decision "option b") -----------
+    # sigma8 is anchored with the REAL-SPACE TOP-HAT at 8 Mpc/h, the standard
+    # definition, so our sigma8 label means what Planck's and ACE's do. The
+    # engine's legacy convention inverted the smooth-k excursion-set filter Ws
+    # at M8 instead, which made the SAME input number describe a 4.2%-lower-sigma
+    # (8.5%-lower-power) universe: input 0.811 -> true top-hat sigma8 = 0.7786.
+    # That offset dwarfs every physics effect we certified this month (the subhalo
+    # profile fix was +1.5%), and it sits on the parameter the paper is named for.
+    # Only the ANCHOR moved; sigma_M(M) for the HMF/barrier/bias keeps Ws, because
+    # its (p,q) = (0.3, 0.8) come from random-walk first-crossing fits that need a
+    # Markovian filter (Vaskonen 2026 fn. 3) -- so this is NOT the paper's literal
+    # "top-hat everywhere", which would break that calibration.
+    sigma8_tophat=True,
 )
 
 # Stable fingerprint of the physics config, written into dataset metadata so two
@@ -142,6 +155,11 @@ LEGACY_CONFIG = dict(
     fil_bias=False,
     kappa_anchor=0,
     kappa_anchor_cut=1.0,      # unchanged by the flip
+    # Legacy smooth-k amplitude anchor (Vaskonen's code convention). ⚠ Required
+    # here: without it LEGACY_CONFIG stopped reproducing the pre-flip reference
+    # the moment the default moved, silently running the old physics at the NEW
+    # amplitude. Same class of bug as an "inherit the defaults" empty dict.
+    sigma8_tophat=False,
 )
 
 assert set(LEGACY_CONFIG) == set(PRODUCTION_CONFIG), \
@@ -164,22 +182,72 @@ def production_config(**overrides):
         raise KeyError(f"not physics-config keys: {sorted(bad)}")
     return {**PRODUCTION_CONFIG, **overrides}
 
-# In-distribution prior box (training/inference support).
-PRIOR_6D = dict(
-    h=(0.59, 0.76),
-    Om=(0.20, 0.40),
-    sigma8=(0.65, 1.05),
-    Ob=(0.035, 0.065),
-    ns=(0.90, 1.02),
-    zeq=(2500.0, 4500.0),
+# --- CONFIRMED TRAINING RANGE (Ville, 2026-07-30) -----------------------------
+# The production emulator's training box, confirmed by the supervisor. This is the
+# authority: PRIOR_6D, WIDE_6D and the z bounds of python/generate_dataset.py are
+# all derived from it, so widening/narrowing the emulator means editing THIS dict
+# and nothing else.
+#
+# Supersedes the pre-2026-07-30 boxes, which were:
+#   ID    h(0.59,0.76) Om(0.20,0.40) s8(0.65,1.05) Ob(0.035,0.065)
+#         ns(0.90,1.02) zeq(2500,4500),  z in [0.01, 10.0]
+#   WIDE  = ID with Om(0.15,0.45), s8(0.40,1.40)
+# Every axis moved. Notable: h and Om widen, ns and (drastically) zeq narrow, and
+# z_s now starts at 0.2 rather than 0.01.
+#
+# ⚠ z_s UPPER END IS NOT REACHABLE BY THE ENGINE AS SHIPPED. The C++ halo/z grid
+# is log-spaced over [zmin, zmax] with zmax HARDCODED to 10.01 (cpp/lnmu_wrapper.h
+# :27, cpp/python_bindings.cpp:419/719/762/802), and z_s above that is silently
+# CLAMPED -- measured 2026-07-30, z_s = 10.5 / 12 / 15 / 20 all return the same
+# PDF to 5 digits (mean +0.04566, sd 0.32180, q99 1.1053 at the fiducial). Data
+# generated over [10.01, 12] would be copies of the z=10.01 panel and would teach
+# the emulator a false plateau. Exposing zmax as a kwarg is mechanical (mirror the
+# existing Mmin/NM/Nz plumbing), but it is NOT bitwise: the grid is log-spaced over
+# the whole range, so raising zmax at fixed Nz=100 rescales the spacing at every z
+# (Nz ~ 103 holds the current resolution). Until that lands, generate over
+# Z_RANGE_ENGINE_SAFE.
+TRAINING_RANGE = dict(
+    z=(0.2, 12.0),
+    h=(0.55, 0.80),
+    Om=(0.15, 0.50),
+    sigma8=(0.40, 1.50),
+    Ob=(0.03, 0.07),
+    ns=(0.94, 0.99),
+    zeq=(3300.0, 3500.0),
 )
 
-# Wider sampling box for dataset generation: (Om, sigma8) extend past the ID box
-# to populate the OoD corners. The sigma8 margins reproduce Vaskonen (2026)'s
-# MCMC prior exactly; his Om prior is marginally wider (0.15, 0.47).
+# Source-redshift bounds for dataset generation (generate_dataset.py --z_min/--z_max
+# default to these). ENGINE_SAFE is what is actually simulable today; see the clamp
+# warning above.
+Z_RANGE = TRAINING_RANGE["z"]
+
+# Top of the engine's z grid (`CosmologyParams::ZMAX_DEFAULT` in cpp/lnmu_wrapper.h).
+# A z_s above it is SILENTLY CLAMPED to the top node -- no throw, no warning.
+#
+# Raised 2026-07-30 from 10.01 to cover the confirmed range's z_s <= 12. The value is
+# not round on purpose: (zmax, Nz) = (12.341169644129371, 103) makes
+# dlogz = (log zmax - log zmin)/(Nz-1) the SAME double as the old (10.01, 100) grid,
+# so the extension adds three nodes (10.7335, 11.5093, 12.3412) on top of an unchanged
+# lower grid instead of rescaling every node. Picking 12.01 would have rescaled the
+# whole grid by +2.6% in dlogz.
+# ⚠ Keep in sync with the C++ constant by hand -- this module is imported in contexts
+# with no compiled module, so it cannot read it. `tests/test_cosmology_params.py`
+# asserts the two agree.
+ENGINE_ZMAX = 12.341169644129371
+Z_RANGE_ENGINE_SAFE = (Z_RANGE[0], min(Z_RANGE[1], ENGINE_ZMAX))
+
+# In-distribution prior box (training/inference support) = the confirmed range.
+PRIOR_6D = {k: v for k, v in TRAINING_RANGE.items() if k != "z"}
+
+# Sampling box for dataset generation. ⚠ As of 2026-07-30 this EQUALS PRIOR_6D,
+# because the confirmed range is the full training box rather than an ID core with
+# room outside it. Consequence: `partition_samples` in generate_dataset.py labels
+# ID/OoD by whether (Om, sigma8) fall inside PRIOR_6D, so with the two boxes equal
+# its OoD branch is a NO-OP -- every config is ID and is split train/val/test by
+# the checkerboard pattern alone. If genuine out-of-distribution panels are wanted
+# again, widen WIDE_6D here (not PRIOR_6D) so the confirmed range keeps its meaning
+# as the supported region.
 WIDE_6D = dict(PRIOR_6D)
-WIDE_6D["Om"] = (0.15, 0.45)
-WIDE_6D["sigma8"] = (0.40, 1.40)
 
 # ML context layout. z stays at index 0 (train_smooth.py relies on it). Note the
 # first four columns now coincide with the legacy 1+3d layout (z, h, Om, sigma8).

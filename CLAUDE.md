@@ -13,7 +13,12 @@ Then `paper_prod/paper_memo.md` (2026-07-20) — maps every
 draft section/equation to its implementation (file:line), figure scripts, and the
 claim-constraining standing rules; `paper_prod/draft_comments_memo.md` holds the
 resolved \R{}/\Gala{} comments + known draft↔code mismatches (R_s/window, model-3
-description, stale figure paths). Keep all three updated like this file.
+description, stale figure paths). For **§III (ML) presentation** —
+`paper_prod/ml_presentation_memo.md` (2026-07-30): the ACE (Türker 2026) benchmark
+of how emulator results are presented, the six missing validation figures + their
+scripts, the "every emulator number is stale" list, and the `production.tex`
+defects found (duplicate `fig:variance_DL` label, §III.A describing the wrong
+checkpoint, missing `\usetikzlibrary{arrows.meta}`). Keep all four updated like this file.
 
 **Two .tex files, different edit rights (2026-07-23):**
 - `paper_prod/production.tex` — pasted straight from Overleaf. **User-only: Claude may
@@ -260,6 +265,53 @@ train_smooth infer context dim from data (old checkpoints default 4);
 **symlink** to `gw-wl-emulator/build` (made 2026-06-16), so the two worktrees share
 one `.so` and a `make build` in the main repo updates both. Verified: identical inode.
 
+## ⚠⚠ sigma8 NORMALIZATION = TOP-HAT ("option b", 2026-07-30, user decision)
+The long-open amplitude question is CLOSED. `cosmology::sigma8_tophat` (**default
+true**) anchors P(k) with the **real-space top-hat at 8 Mpc/h** via the new
+`cosmology::sigmaTH`, instead of inverting the smooth-k `Ws` at M8.
+**Before this, "sigma8 = 0.811" described a universe whose conventional (top-hat)
+sigma8 was 0.7786** — +4.17% in sigma, **+8.50% in P(k)** — so our sigma8 was not
+comparable to Planck's, ACE's, or a reader's, on the parameter the paper is named for.
+- ⚠ **Scope is the ANCHOR ONLY.** `sigma_M(M)` for the HMF/barrier/bias keeps `Ws`:
+  its (p,q)=(0.3,0.8) come from random-walk first-crossing fits, which need a
+  Markovian filter (Vaskonen 2026 fn. 3). The paper's literal "top-hat everywhere"
+  would break that calibration and is deliberately NOT implemented.
+- ⚠ **There is no version where the top-hat was live.** Vaskonen's §2 TEXT says
+  top-hat; `halos` even defines `W(x)=3(x cos x − sin x)/x^3` — and never calls it
+  (dead code in both repos, `cpp/cosmology.h:174`). His text and code always
+  disagreed; this follows the text for the anchor.
+- **Effect is FIRST-ORDER** — comparable to the whole legacy→paper composition shift.
+  Clipped sd(lnmu), 8×25k/arm at full PRODUCTION_CONFIG:
+  **+3.44%±0.75% (4.6σ) / +5.76%±0.50% (11.6σ) / +3.73%±0.30% (12.4σ)** at
+  z_s=0.5/1/5. Cross-check vs `data/results/sigma8_shape/` (sd ∝ sigma8^0.93–0.96 ⇒
+  ~+4.0% predicted) matches at z_s=5 and 0.5; **z_s=1 runs high (5.76 vs 4.0), not
+  chased — do not use the scaling law as a quantitative prediction.**
+- **Attribution proof:** explicit `sigma8_tophat=false` reproduces
+  `reference_lnmu_pre_paper_defaults.npz` **bitwise at all 3 points** ⇒ only the anchor
+  moved. Default reference re-baselined (3rd time; protocol in
+  `tests/capture_reference_lnmu.py`).
+- ⚠ **`sigma8_tophat` added to BOTH `PRODUCTION_CONFIG` and `LEGACY_CONFIG`** (hash
+  now `c10eca783b41`, was `0d50caf91c75`). Without it in LEGACY_CONFIG the legacy dict
+  silently ran old physics at the NEW amplitude — same class of bug as an
+  "inherit the defaults" empty dict. **Any config dict must be a COMPLETE description
+  of the physics, or the next default flip breaks it silently.**
+- ⚠ **pybind11 matches `py::arg` POSITIONALLY to lambda params.** Inserting the new
+  arg after `ns` in the 8 signatures but after `As` in the `py::arg` lists compiled
+  fine and silently mis-mapped `OmegaB` ↔ `sigma8_tophat` (bool↔double both convert).
+  Caught before building only by reading the generated order. **Always re-check that
+  the Nth `py::arg` is the Nth lambda parameter.**
+- Two As-round-trip tests broke for REAL reasons and were fixed, not relaxed: the
+  conventional sigma8 in As-mode is now `sigma8_tophat_derived` (`sigma8_derived` is
+  the smooth-k value, 0.8448 at the fiducial); and the legacy arm must re-derive `As`
+  under `sigma8_tophat=False` or it compares two different amplitudes.
+- New diagnostics in `get_simulator_config`: `sigma8_tophat`, `sigma8_tophat_derived`.
+  Tests: `tests/test_sigma8_tophat.py` (13). Evidence:
+  `data/results/sigma8_tophat_ab/report.md`.
+- **⚠ EVERY pre-2026-07-30 result is at the OLD amplitude — regenerate, never compare
+  across the switch. Emulator training data MUST be generated after this.**
+- **Tell Ville:** this redefines the sigma8 in his abstract; `sigma8_tophat=false`
+  reverts exactly. Bundle with the carve convention and the `halobias` q note.
+
 ## ⚠⚠ PAPER-DEFAULT FLIP (2026-07-29) — the C++ defaults ARE the paper config now
 **User decision: "overall all defaults must be what was described in the paper."**
 Nine settings flipped, so a bare no-kwarg call now runs the model the draft describes:
@@ -311,15 +363,137 @@ z_s=0.5/1/5.
   model-4/5 gate, the subkappathr sizing, and any figure whose script relied on the
   old defaults.
 
+## CONFIRMED TRAINING RANGE (Ville, 2026-07-30) — `ml/params.py::TRAINING_RANGE`
+The production emulator's training box, confirmed by the supervisor. **This dict is
+the authority** — `PRIOR_6D`, `WIDE_6D` and `generate_dataset.py`'s `--z_min/--z_max`
+defaults all derive from it, so re-scoping the emulator = editing `TRAINING_RANGE`
+and nothing else.
+
+| axis | confirmed | previous (pre-2026-07-30) |
+|---|---|---|
+| z_s | **0.2 – 12** | 0.01 – 10.0 |
+| h | **0.55 – 0.80** | ID 0.59–0.76 |
+| Ω_M | **0.15 – 0.50** | ID 0.20–0.40, WIDE 0.15–0.45 |
+| σ₈ | **0.40 – 1.50** | ID 0.65–1.05, WIDE 0.40–1.40 |
+| n_s | **0.94 – 0.99** | 0.90 – 1.02 |
+| Ω_B | **0.03 – 0.07** | 0.035 – 0.065 |
+| z_eq | **3300 – 3500** | 2500 – 4500 |
+
+Every axis moved. h/Ω_M/σ₈ widen; n_s narrows; **z_eq narrows ~10×** (±3% — nearly a
+fixed parameter, so expect that context feature to carry almost no leverage and its
+standardization std to be tiny); z_s no longer probes below 0.2.
+⚠ h was quoted as 0.88 in the user's first message and **0.8** in the authoritative
+follow-up — 0.8 is what is recorded. Re-confirm with Ville if it matters.
+
+✅ **z_s CLAMP — RESOLVED 2026-07-30, the full confirmed range is now generable.**
+The C++ halo/z grid is log-spaced over `[zmin, zmax]` and a z_s ABOVE zmax is
+**silently clamped** to the top node — no warning, no throw. With the old
+`zmax = 10.01` that made z_s = 10.5 / 12 / 15 / 20 return the SAME PDF to 5 digits
+(mean +0.04566, sd 0.32180, q99 1.1053), so generating over [10.01, 12] would have
+written duplicate panels and taught the emulator a false plateau.
+Fixed by **extending, not rescaling** the grid:
+`CosmologyParams::ZMAX_DEFAULT = 12.341169644129371`, `NZ_DEFAULT = 103`
+(`cpp/lnmu_wrapper.h`, wired to all 4 hardcoded `C.zmax` sites and 8 `py::arg("Nz")`
+defaults). That pair makes `dlogz = (log zmax − log zmin)/(Nz−1)` the **same double**
+as the old (10.01, 100) grid — 0.06978540181126486, hex `3fb1dd74c284818c` — so
+nodes 0..99 are bitwise identical and three nodes are appended at 10.7335 / 11.5093 /
+12.3412. A round 12.01 at Nz=100 would instead have made `dlogz` 2.64% coarser at
+every z. Verified: z_s = 10.5/11/12/12.34 now all distinct, 13 and 15 identical
+(clamped at the new top node). `ml/params.py::ENGINE_ZMAX` mirrors the constant and
+`Z_RANGE_ENGINE_SAFE` is now (0.2, 12.0) = the full confirmed range;
+`generate_dataset.py` still **raises** on `--z_max > ENGINE_ZMAX`.
+⚠ **Not bitwise, by an indirect route** — the shared nodes are exact, but σ_W shifts
+at the ~1e-9 level and that reseeds the RNG stream: measured max |Δlnμ| = 6.1e-7
+(legacy path) and 3.5e-16 (A_s/σ₈ round trip). **The PDF is unchanged** — sd ratios
+over 240k and 60k rays/arm scatter ±0.8% and FLIP SIGN between the two depths, i.e.
+MC noise, not a shift. Four stored-reference tests moved and were re-baselined
+together (see `tests/capture_reference_lnmu.py` history); `zmax`/`Nz` remain
+INDEPENDENT kwargs, so overriding `Nz` alone still rescales the grid as before and
+the Nz convergence studies keep their meaning.
+⚠ Cost: `Nz` 100→103 is ~3% more work per ray, on top of the σ₈ top-hat anchor which
+roughly **doubled** per-ray cost (0.254 → 0.477 ms/ray at z_s=1) and the fixed
+precompute (3.2 → 6.3 s/config). Re-measure before quoting any older timing.
+
+⚠ **The OoD split is now a no-op.** `WIDE_6D == PRIOR_6D` (the confirmed range is the
+full training box, not an ID core with room outside), and `partition_samples` labels
+ID/OoD by whether (Ω_M, σ₈) sit inside `PRIOR_6D` — so every config is ID and the
+train/val/test split is the checkerboard pattern alone. If genuine OoD panels are
+wanted again, widen `WIDE_6D`, never `PRIOR_6D`.
+
+## Production training data — `production_data/` (2026-07-30)
+The retrain's dataset. Generated with the paper defaults, explicitly splatted:
+```bash
+python python/generate_dataset.py --log_z --num_points 1000 --nsamples 20000 \
+       --dataset_dir production_data --seed 20260730     # log: production_data_gen.log
+```
+⚠ `--num_points N` yields **4N** configs (`total_points = args.num_points * 4`),
+split ~2N train / ~N val / ~N test — this run reported **2009 train points**.
+20k rays each ≈ 8e7 rays. Schema 2.1, `physics_config_hash` = **`c10eca783b41`**
+recorded per file.
+z is log-uniform over `Z_RANGE_ENGINE_SAFE` = **[0.2, 12.0]** — the FULL confirmed
+range, since the zmax extension landed before this run; theta is LHS over
+`WIDE_6D` = the confirmed box.
+⚠ **Budget ~3.7 h at 8 processes, NOT the ~1 h an older cost model suggested.** Two
+compounding errors in that estimate: per-ray cost roughly doubled with the σ₈ top-hat
+anchor (see the clamp section), and process parallelism gives only **~4.4× at 8
+processes**, not linear scaling (benchmarked, §"Model-3 cost + parallelism"). For the
+downstream fits the dominant job is `gen_tail_counts` (~2.1 h), not the dataset.
+**Datasets COMPOSE** — `AR_DATASET_DIR` is colon-separated
+(`simcfg.dataset_dirs()`), so generation can be extended by making a second dir and
+passing both, rather than regenerating. **⚠ Paths are cwd-relative**
+(`ml/data.py::load_dataset` does `os.path.join(dataset_dir, split, ...)`), so from the
+`-ar` worktree pass an ABSOLUTE path or symlink it.
+
+### -ar pipeline wiring fixes (2026-07-30) — needed before any retrain
+Four bugs that would have crashed or silently corrupted the retrain:
+1. `prepare_fix` and `fit_tail_amplitude` hardcoded `DATASET = "datasets_logz_1k"`
+   (a **dangling** symlink) and ignored `AR_DATASET_DIR` — only `train_ar` read it, so
+   the body could be trained on one dataset while its edge/tail calibrations were
+   fitted on another. All three now go through `simcfg.dataset_dirs()`.
+2. `fit_tail_amplitude` read `lowz_aug` / `tail_counts_extra` / `param_space_ref` and
+   BOTH fit scripts wrote `*_6d.json` by bare path — so a smoke run pooled legacy
+   caches into a new fit and then **overwrote the production calibration**
+   `smooth_model` loads (neither `*_6d.json` is in git). All routed through
+   `cache_path()`; outputs now record `datasets` + `sim_tag`.
+3. `param_space_check.COSMOS` carried legacy 3-tuples unconditionally ⇒ a 1+6d model
+   got 14 features where the fit had 20, and a 4-column context where the flow wanted
+   7; `load_ref` also unpacked `PHYS` 3-wide when it holds 2-tuples (crash on cache
+   miss); `validate_kl` unpacked `COSMOS` 2-wide against 3-tuples. Now `PHYS` =
+   (name, phys_dict) for the simulator and `COSMOS` = (name, ctx_tuple) for the model,
+   dimension chosen by `AR_SIM_LEGACY`; the npz stores the model-side tuples.
+4. `prepare_fix.fit_alpha`'s spot check ignored `AR_N_SCALE` (6M rays); its
+   `clean_tail_ref.npz` is a legacy-physics cache that now skips loudly (its `alpha_z`
+   is unused — the POT path hardcodes `BLEND alpha=2.0`).
+**Panel widened at the same time:** production panel is 5 cosmologies x 8 z (adds the
+new box corners 0.80/0.50/1.50 and 0.55/0.15/0.40, and z_s = 0.2/0.5/10). The frozen
+3x5 legacy panel is kept as `LEGACY_PANEL`/`LEGACY_ZS` under `AR_SIM_LEGACY=1`.
+⚠ Still not tagged: `train_ar.STATS_PATH` (`stats_logz.json`) — untracked and rewritten
+every run; `train_smooth` monkeypatches it, new drivers must too.
+
+### ⚠ The edge/tail are FITTED, not learned — and the edge breaks at low z_s
+`smooth_model` composes `p = W·((1−w)·p_flow + w·p_POT)`; the blend weight is **0.978
+at μ=3, 0.9993 at μ=5**, so above μ≈3 the model is essentially pure POT and the flow's
+learned tail is discarded by design (exp23). `EDGE_MARGIN=0.05` / `EDGE_W=0.01` are
+ABSOLUTE constants in lnμ, but σ(lnμ) runs 0.0098 (z_s=0.2) → 0.317 (z_s=10), a factor
+32: at z_s=0.2 the window sits **6.3σ below the mean with width ≈ the whole PDF**, i.e.
+inert. The ridge target is likewise an absolute quantile spanning ×46.
+`prepare_fix.fit_edge` now prints a per-z RELATIVE residual — read that, not the global
+number. Fix direction: regress a scaled target (q0.1%/σ) with width-proportional margin
+and window, BEFORE fitting the POT tail. Memory: `edge_fit_scale_breaks_at_low_z`.
+
 ## Production simulator config — PINNED IN PYTHON (2026-07-27)
 `ml/params.py::PRODUCTION_CONFIG` is the single source of truth for the physics the
 paper describes, passed EXPLICITLY on every call so the ML pipeline does not depend on
 the staged C++ default flip:
 `subhalo=True, subhalo_model=5, subhalo_carve=True, m_floor=1e7,
-subhalo_kappathr_factor=0.1, subhalo_virial=True, bias_model=1, bias_window=1,
-bias_Rperp=20000.0, bias_weak=True, fil_bias=True, kappa_anchor=1,
-kappa_anchor_cut=1.0` (hash `0d50caf91c75`; was `e9150c0370af` before
-`subhalo_virial` was folded in 2026-07-28). `subhalo_carve`, `m_floor`, `subhalo_kappathr_factor` and
+subhalo_kappathr_factor=0.1, subhalo_virial=True, sigma8_tophat=True, bias_model=1,
+bias_window=1, bias_Rperp=20000.0, bias_weak=True, fil_bias=True, kappa_anchor=1,
+kappa_anchor_cut=1.0` (hash **`c10eca783b41`**; was `0d50caf91c75` before
+`sigma8_tophat` was folded in 2026-07-30, and `e9150c0370af` before `subhalo_virial`
+2026-07-28). ⚠ The hash fingerprints the PYTHON config only — it distinguishes runs
+with different `PRODUCTION_CONFIG` values, but CANNOT distinguish two compiled C++
+states carrying the same Python config. Commit `cpp/` if a dataset needs to be
+attributable to an exact build. `subhalo_carve`, `m_floor`, `subhalo_kappathr_factor` and
 `kappa_anchor_cut` are already the shipped defaults — pinned for explicitness and
 because model 5 THROWS without carve. Threaded through `python/generate_dataset.py`
 (splatted into the sampler worker).
@@ -436,18 +610,59 @@ scripts (`validate_ar`, `validate_flow`, `validate_alpha2`, `measure_tail`, `l1_
 
 **(b) Flux calibration: `FLUX_TARGET = "unit"` — ⟨1/μ⟩ = 1 exactly (user decision
 2026-07-29).** `"trim"` restores the legacy regressed `F_trim(ctx)`.
-**Why it is now safe:** `"trim"` existed because the OLD `sample_lnmu` anchored
-⟨κ⟩=0 on the EMPIRICAL batch mean, so a few κ>1 monster rays dragged the raw flux to
-~1.08 and F_trim ran 1.0001–1.021 — targeting 1 then over-shifted by ~2%.
-PRODUCTION_CONFIG's `kappa_anchor=1` fixes that at source. **Measured** (20k rays,
-fiducial): ⟨1/μ⟩ = 1.000026/1.000093/1.000395/1.001363/1.002476/0.996085 at
-z_s=0.3/0.5/1/2/5/10. 8-seed ensembles give 1.000379±0.000014 (z=1) and
-1.002081±0.000090 (z=5) ⇒ the residual is **REAL, ~25σ, not MC noise**, but it is
-0.04%/0.21% — an order of magnitude below what "trim" corrected, and of order ⟨κ²⟩,
-the expected residual of a mean-anchored scheme. So targeting 1 is a deliberate
-O(0.04–0.2%) departure from THIS simulator in favour of the exact theorem. The
-z_s=10 row sits BELOW 1 and is tail-noise-limited — do not read it as a sign flip.
+**Why it is now safe (numbers CORRECTED 2026-07-30 — the first version of this entry
+was wrong).** `"trim"` existed because the raw ⟨1/μ⟩ looked broken (~1.08 on a stress
+panel) and F_trim ran 1.0001–1.021, making "target 1" look like a ~2% over-shift.
+⚠ **Raw ⟨1/μ⟩ is a HEAVY-TAILED statistic** — dominated by rare κ>1 rays with
+1/μ~1e4 — so it cannot carry a Gaussian SEM, and this is **independent of the
+anchor**: `kappa_anchor=1` fixes the batch COUPLING (one monster shifting every
+other ray), NOT the monster sensitivity of ⟨1/μ⟩ itself. The earlier claim here
+("fixes it at source", ⟨1/μ⟩=1.000379±0.000014, "REAL ~25σ") came from an SEM
+computed on 8 seeds that happened to contain no monster ray — **wrong by ~1500×**.
+Measured properly (8 shards × 25k, z_s=1, fiducial;
+`scripts/convergence/paper_config_composition.py`):
+| arm | raw mean | shard median | monster-free mean |
+|---|---|---|---|
+| legacy | 1.000843 | 1.000418 | 1.000394 ± 0.000019 (6/8) |
+| paper | 1.007880 | 1.000371 | 1.000377 ± 0.000015 (7/8) |
+The paper arm's raw 1.0079 is **entirely one shard at 1.0604** (a single lnμ<−1 ray);
+across-shard sd 0.021. **What survives:** the ROBUST flux is ~1.0004 at z_s=1, the
+SAME for both arms (1.7e-5 apart, ~0.7σ), so targeting 1 is a ≤0.04% departure, not
+2%; and since raw ⟨1/μ⟩ cannot be estimated stably, REGRESSING it (what "trim" did)
+fits tail sampling noise — the exact theorem is the more defensible target.
+Quote the robust/trimmed flux only, never the raw mean, never with a Gaussian SEM.
 Verified: composite gives ⟨1/μ⟩=1 to 1e-5 (grid quadrature) vs legacy 1.0002→1.0050.
+
+**ASSEMBLED-CONFIG COMPOSITION MEASURED (2026-07-30) — the whole stack, not a sum of
+parts.** Every physics change of the prior week was gated individually; nothing had
+measured them together, and the cascade diagnostic had found composition sub-additive
+and z_s-growing. `scripts/convergence/paper_config_composition.py` (LEGACY_CONFIG vs
+PRODUCTION_CONFIG, 8 shards × 25k = 200k rays/arm, z_s=1, clipped |lnμ|≤1):
+| z_s | σ legacy | σ paper | change | σ-level |
+|---|---|---|---|---|
+| 0.5 | 0.031854 | 0.033752 | **+5.96% ± 1.04%** | 5.7σ RESOLVED |
+| 1 | 0.070206 | 0.073831 | **+5.16% ± 0.68%** | 7.6σ RESOLVED |
+| 5 | 0.213896 | 0.217732 | **+1.79% ± 0.23%** | 8.0σ RESOLVED (400k/arm) |
+
+z_s=5 first read +1.44% ± 0.29% (4.9σ) at 200k/arm — under the bar — so depth was
+DOUBLED to 16 shards: central value moved only ~1.2σ and the SEM scaled ~√N, the
+signature of a real effect. Quote the 400k row.
+
+⚠ The SEM is the ACROSS-SHARD spread — never `1/sqrt(2N)`. The clipped σ is the
+certified estimator and is immune to the monster-ray problem above. At σ(lnμ) ∝ σ₈²
+the z_s≲1 shift is **~2.5–3% in σ₈**, so the paper must state it.
+⚠ **The effect DECREASES with z_s** (5.96 → 5.16 → 1.44%). I had predicted growth
+from the cascade finding and was wrong — clustering dominates the total and its boost
+falls with z_s (CLAUDE.md §13: Var_clip ratio 1.151/1.108/1.078 at z_s=0.5/1/5).
+⚠ **Strongly SUB-ADDITIVE vs the sum of individually-gated parts**, and worst at
+high z_s: naive sums are ~+8.8/+7.2/+5.1% vs measured +5.96/+5.16/+1.79%, i.e. the
+total recovers ~68/72/**35**% of the parts — and that 35% at z_s=5 lands right on the
+cascade diagnostic's independently-derived 37%. ⚠ Do
+not push this quantitatively — the per-flag gates were measured against DIFFERENT
+baselines (e.g. clustering vs "no clustering", not vs the legacy iid layer), so the
+"sum of parts" is indicative only. The MEASURED totals above are the quotable numbers.
+⚠ Do NOT quote the ⟨1/μ⟩ values this script prints (monster-dominated; z_s=5 reads
+legacy 1.00545 / paper 1.00210) — use the robust estimator.
 **Consequence: `fit_flux_target.py`, `cache/flux_target_fit*.json` and the 20MB
 `cache/flux_grid.npz` drop out of the recipe** — one fewer fit and one fewer 6d cache.
 

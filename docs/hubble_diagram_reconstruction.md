@@ -224,6 +224,35 @@ Their useful shortcut: the full afterglow + LSST calculation is shown to be
 ≈ equivalent to a cut $\iota < 18^\circ$, so the cheap version is just the
 inclination cut.
 
+### What Ville meant, precisely (clarified 2026-07-29)
+
+His remark is about **how each event's numbers are produced, not how many
+events there are**. The two upgrades are (i) per-event $\sigma_{D_L}$ from a
+Fisher forecast (GWFish) replacing the flat 3%, and (ii) modelled EM-counterpart
+detectability (afterglowpy + LSST) replacing "assume a counterpart". $N$ is a
+separate question and is NOT what he was flagging.
+
+**Their selection splits into two parts with very different risk, so the work
+can be staged:**
+
+| part | $\mu$-coupled? | consequence |
+|---|---|---|
+| $\iota < 18°$ (EM-counterpart shortcut) | **No** — lensing does not change inclination | behaves exactly like Vaskonen's $z$-cut: catalogue $\mu$ stay a fair sample, no correction needed |
+| SNR > 20 | **Yes** | triggers the whole §5 apparatus (matched $P_{\rm det}$, already built and gated) |
+
+So: adopt per-event $\sigma_{D_L}$ + the inclination cut first, at essentially no
+statistical risk; adopt the SNR cut second.
+
+**Implementation status (2026-07-29):** `catalogue.generate`'s `frac_sigma_dL`
+accepts a **callable** `(z, dL, w) -> sigma_dL`, so a GWFish-backed model plugs
+in without touching anything downstream — `Catalogue` already stores
+$\sigma_{D_L}$ per event and the likelihood already reads it per event. Verified
+both paths (scalar reproduces the flat 3% exactly; callable varies per event).
+⚠ The likelihood treats $\sigma_j$ as $\theta$-INDEPENDENT, which holds for a
+Fisher forecast made from the observed signal but would NOT hold for a $\sigma$
+computed from the trial cosmology — that would resurrect the Gaussian
+normalization in the $\theta$-dependence.
+
 ### Packages (this is what Ville meant)
 
 - **GWFish** (Dupletsa+23) — per-event Fisher uncertainties on $d_L$ for a

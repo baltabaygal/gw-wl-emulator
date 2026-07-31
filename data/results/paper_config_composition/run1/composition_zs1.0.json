@@ -1,0 +1,16 @@
+{
+  "zs": 1.0,
+  "shards": 8,
+  "per_shard": 25000,
+  "rays_per_arm": 200000,
+  "clip": 1.0,
+  "sd_legacy": 0.07020564406038679,
+  "sd_paper": 0.07383131642917386,
+  "sd_ratio": 1.0516436024099214,
+  "sd_ratio_rel_sem": 0.006788910239895222,
+  "sd_ratio_sigma": 7.607053353929516,
+  "pct_change": 5.1643602409921385,
+  "flux_legacy": 1.0008433925178326,
+  "flux_paper": 1.0078804876106,
+  "verdict": "RESOLVED"
+}
